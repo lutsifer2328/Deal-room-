@@ -1,12 +1,83 @@
-import { Deal, Task, User } from './types';
+import { User, Deal, Task } from './types';
 import { createDefaultTimeline } from './defaultTimeline';
+import { getPermissionsForRole } from './permissions';
 
-// Users
+// Users with permissions
 export const MOCK_USERS: Record<string, User> = {
-    'u_lawyer': { id: 'u_lawyer', name: 'Elena Petrova', email: 'legal@agenzia.bg', role: 'lawyer', avatarUrl: '/avatars/lawyer.png' },
-    'u_buyer': { id: 'u_buyer', name: 'John Smith', email: 'john@example.com', role: 'buyer', avatarUrl: '/avatars/buyer.png' },
-    'u_seller': { id: 'u_seller', name: 'Maria Ivanova', email: 'maria@example.bg', role: 'seller', avatarUrl: '/avatars/seller.png' },
-    'u_agent': { id: 'u_agent', name: 'Ivan Dilov', email: 'ivan@agenzia.bg', role: 'agent', avatarUrl: '/avatars/agent.png' },
+    'u_admin': {
+        id: 'u_admin',
+        name: 'Admin User',
+        email: 'admin@agenzia.bg',
+        role: 'admin',
+        permissions: getPermissionsForRole('admin'),
+        avatarUrl: '/avatars/admin.png',
+        isActive: true,
+        createdAt: '2025-01-01T00:00:00Z',
+        lastLogin: new Date().toISOString(),
+    },
+    'u_lawyer': {
+        id: 'u_lawyer',
+        name: 'Elena Petrova',
+        email: 'elena@agenzia.bg',
+        role: 'lawyer',
+        permissions: getPermissionsForRole('lawyer'),
+        avatarUrl: '/avatars/lawyer.png',
+        isActive: true,
+        createdAt: '2025-01-01T00:00:00Z',
+        lastLogin: new Date().toISOString(),
+    },
+    'u_staff': {
+        id: 'u_staff',
+        name: 'Staff Member',
+        email: 'staff@agenzia.bg',
+        role: 'staff',
+        permissions: getPermissionsForRole('staff'),
+        avatarUrl: '/avatars/staff.png',
+        isActive: true,
+        createdAt: '2025-01-01T00:00:00Z',
+        lastLogin: new Date().toISOString(),
+    },
+    'u_viewer': {
+        id: 'u_viewer',
+        name: 'Viewer User',
+        email: 'viewer@agenzia.bg',
+        role: 'viewer',
+        permissions: getPermissionsForRole('viewer'),
+        avatarUrl: '/avatars/viewer.png',
+        isActive: true,
+        createdAt: '2025-01-01T00:00:00Z',
+        lastLogin: new Date().toISOString(),
+    },
+    'u_buyer': {
+        id: 'u_buyer',
+        name: 'John Smith',
+        email: 'john@example.com',
+        role: 'buyer',
+        permissions: getPermissionsForRole('buyer'),
+        avatarUrl: '/avatars/buyer.png',
+        isActive: true,
+        createdAt: '2025-01-01T00:00:00Z',
+    },
+    'u_seller': {
+        id: 'u_seller',
+        name: 'Maria Ivanova',
+        email: 'maria@example.bg',
+        role: 'seller',
+        permissions: getPermissionsForRole('seller'),
+        avatarUrl: '/avatars/seller.png',
+        isActive: true,
+        createdAt: '2025-01-01T00:00:00Z',
+    },
+    'u_agent': {
+        id: 'u_agent',
+        name: 'Ivan Dilov',
+        email: 'ivan@agenzia.bg',
+        role: 'agent',
+        permissions: getPermissionsForRole('agent'),
+        avatarUrl: '/avatars/agent.png',
+        isActive: true,
+        createdAt: '2025-01-01T00:00:00Z',
+    },
 };
 
 // Deal

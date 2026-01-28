@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutDashboard, FileText, Users, CreditCard, Building } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, CreditCard, Building, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/authContext';
@@ -12,11 +12,13 @@ export default function Sidebar() {
     if (!user) return null;
 
     const navItems = [
-        { icon: LayoutDashboard, label: 'Deal Room', href: '/dashboard', roles: ['lawyer', 'admin'] },
-        { icon: FileText, label: 'Documents', href: '/documents', roles: ['lawyer', 'admin', 'buyer', 'seller', 'agent'] },
-        { icon: Users, label: 'Participants', href: '/participants', roles: ['lawyer', 'admin'] },
+        { icon: LayoutDashboard, label: 'Deal Room', href: '/dashboard', roles: ['lawyer', 'admin', 'staff', 'viewer'] },
+        { icon: FileText, label: 'Documents', href: '/documents', roles: ['lawyer', 'admin', 'buyer', 'seller', 'agent', 'staff'] },
+        { icon: Users, label: 'Participants', href: '/participants', roles: ['lawyer', 'admin', 'staff'] },
         { icon: CreditCard, label: 'Finances', href: '/finances', roles: ['lawyer', 'admin'] },
+        { icon: Settings, label: 'Settings', href: '/settings', roles: ['admin'] },
     ];
+
 
     const visibleItems = navItems.filter(item => item.roles.includes(user.role));
 
@@ -41,8 +43,8 @@ export default function Sidebar() {
                             key={item.href}
                             href={item.href}
                             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
-                                    ? 'bg-teal text-white font-bold shadow-lg'
-                                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                                ? 'bg-teal text-white font-bold shadow-lg'
+                                : 'text-white/70 hover:bg-white/10 hover:text-white'
                                 }`}
                         >
                             <Icon className="w-5 h-5" />

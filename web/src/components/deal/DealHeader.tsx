@@ -164,7 +164,7 @@ export default function DealHeader({ deal }: { deal: Deal }) {
             {/* Modals */}
             {isParticipantsModalOpen && (
                 <ParticipantsModal
-                    dealId={deal.id}
+                    deal={deal}
                     onClose={() => setIsParticipantsModalOpen(false)}
                 />
             )}

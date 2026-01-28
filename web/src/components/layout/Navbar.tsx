@@ -138,6 +138,7 @@ export default function Navbar() {
                 )}
             </div>
 
+
             {/* Right Actions */}
             <div className="flex items-center gap-6 ml-6">
                 <button className="relative text-gray-400 hover:text-midnight transition-colors">
@@ -147,18 +148,62 @@ export default function Navbar() {
 
                 <div className="h-8 w-px bg-gray-200"></div>
 
-                {user && (
-                    <div className="flex items-center gap-3">
-                        <div className="text-right hidden sm:block">
-                            <div className="text-sm font-semibold text-midnight">{user.name}</div>
-                            <div className="text-xs text-gray-500 capitalize">{user.role}</div>
-                        </div>
-                        <div className="w-9 h-9 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-midnight font-bold">
-                            {user.name.charAt(0)}
-                        </div>
-                    </div>
-                )}
+                {user && <UserMenu user={user} />}
             </div>
         </header>
+    );
+}
+
+function UserMenu({ user }: { user: any }) {
+    const { logout } = useAuth();
+    const router = useRouter();
+    const [showMenu, setShowMenu] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setShowMenu(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleLogout = () => {
+        logout();
+        router.push('/login');
+    };
+
+    return (
+        <div className="relative" ref={menuRef}>
+            <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
+                <div className="text-right hidden sm:block">
+                    <div className="text-sm font-semibold text-midnight">{user.name}</div>
+                    <div className="text-xs text-gray-500 capitalize">{user.role}</div>
+                </div>
+                <div className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                    {user.name.charAt(0)}
+                </div>
+            </button>
+
+            {showMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                        <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+                        <p className="text-xs text-gray-500">{user.email}</p>
+                    </div>
+                    <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                        Logout
+                    </button>
+                </div>
+            )}
+        </div>
     );
 }

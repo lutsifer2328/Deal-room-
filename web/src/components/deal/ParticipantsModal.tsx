@@ -11,7 +11,7 @@ export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClo
     const { addParticipant, removeParticipant, updateParticipant, deals } = useData();
 
     // Get fresh deal data from store to see newly added participants
-    const freshDeal = deals.find(d => d.id === deal.id) || deal;
+    const freshDeal = (deal && deals) ? (deals.find(d => d && d.id === deal.id) || deal) : deal;
 
     const [isAddingNew, setIsAddingNew] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -28,7 +28,9 @@ export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClo
 
     // Get all unique roles in the deal (excluding lawyer)
     const availableRoles = Array.from(new Set(
-        freshDeal.participants.filter(p => p.isActive && p.role !== 'lawyer').map(p => p.role)
+        (freshDeal?.participants || [])
+            .filter(p => p && p.isActive && p.role && p.role !== 'lawyer')
+            .map(p => p.role)
     ));
 
     const [sendingInvite, setSendingInvite] = useState(false);
@@ -37,6 +39,11 @@ export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClo
     const handleAddParticipant = async () => {
         if (!newParticipant.fullName || !newParticipant.email) {
             alert('Name and email are required');
+            return;
+        }
+
+        if (!deal?.id) {
+            alert('Invalid deal');
             return;
         }
 
@@ -66,8 +73,8 @@ export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClo
         const emailSent = await sendInvitationEmail(
             newParticipant.email,
             newParticipant.fullName,
-            deal.title,
-            deal.propertyAddress,
+            deal.title || 'Deal',
+            deal.propertyAddress || '',
             newParticipant.role,
             'Elena Petrova', // TODO: Get from current user
             token
@@ -92,6 +99,7 @@ export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClo
     };
 
     const handleRemoveParticipant = (participantId: string) => {
+        if (!deal?.id) return;
         if (confirm('Are you sure you want to remove this participant?')) {
             removeParticipant(deal.id, participantId);
         }
@@ -111,6 +119,7 @@ export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClo
     };
 
     const saveEdit = () => {
+        if (!deal?.id) return;
         if (editingId && editForm.fullName && editForm.email) {
             updateParticipant(deal.id, editingId, editForm);
             setEditingId(null);
@@ -144,8 +153,8 @@ export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClo
         });
     };
 
-    const getRoleColor = (role: Role) => {
-        const colors: Record<Role, string> = {
+    const getRoleColor = (role: Role | string) => {
+        const colors: Partial<Record<Role | string, string>> = {
             'buyer': 'bg-teal/10 text-teal',
             'seller': 'bg-blue-100 text-blue-700',
             'lawyer': 'bg-gold/10 text-gold',
@@ -154,7 +163,9 @@ export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClo
             'attorney': 'bg-orange-100 text-orange-700',
             'notary': 'bg-green-100 text-green-700',
             'bank_representative': 'bg-gray-100 text-gray-700',
-            'admin': 'bg-red-100 text-red-700'
+            'admin': 'bg-red-100 text-red-700',
+            'staff': 'bg-green-100 text-green-700',
+            'viewer': 'bg-gray-100 text-gray-700'
         };
         return colors[role] || 'bg-gray-100 text-gray-700';
     };
@@ -185,7 +196,7 @@ export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClo
                 {/* Content */}
                 <div className="p-6 overflow-y-auto max-h-[calc(85vh-140px)]">
                     <div className="space-y-4">
-                        {freshDeal.participants.filter(p => p.isActive).map((participant) => (
+                        {(freshDeal?.participants || []).filter(p => p && p.isActive).map((participant) => (
                             <div key={participant.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                                 {editingId === participant.id ? (
                                     // EDIT MODE

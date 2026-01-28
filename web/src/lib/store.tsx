@@ -1,9 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, DealStatus } from './types';
+import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, DealStatus, Role } from './types';
 import * as InitialData from './mockData';
 import { createDefaultTimeline } from './defaultTimeline';
+import { getPermissionsForRole } from './permissions';
 
 interface DataContextType {
     users: Record<string, User>;
@@ -21,6 +22,11 @@ interface DataContextType {
     updateDealStatus: (dealId: string, status: DealStatus, actorId: string, notes?: string) => void;
     addTaskComment: (taskId: string, authorId: string, authorName: string, text: string) => void;
     toggleCommentVisibility: (taskId: string, commentId: string) => void;
+
+    // User Management Actions
+    addUser: (fullName: string, email: string, role: Role) => string;
+    updateUser: (userId: string, updates: Partial<User>) => void;
+    deactivateUser: (userId: string, actorId: string) => void;
 
     // Participant Actions
     addParticipant: (dealId: string, participant: Omit<Participant, 'id' | 'addedAt'>) => void;
@@ -102,9 +108,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 name: p.fullName,
                 email: p.email,
                 role: p.role,
-                avatarUrl: `/avatars/${p.role}.png`
+                avatarUrl: `/avatars/${p.role}.png`,
+                permissions: getPermissionsForRole(p.role),
+                isActive: true,
+                createdAt: new Date().toISOString(),
+                lastLogin: undefined
             };
         });
+
         setUsers(newUsers);
 
         // Create Deal
@@ -275,6 +286,53 @@ export function DataProvider({ children }: { children: ReactNode }) {
         logAction(dealId, actorId, 'UPDATED_DEAL_STATUS', detail);
     };
 
+    // User Management Actions
+    const addUser = (fullName: string, email: string, role: Role): string => {
+        const userId = `u_${role}_${Date.now()}_${Math.random()}`;
+        const newUser: User = {
+            id: userId,
+            name: fullName,
+            email,
+            role,
+            avatarUrl: `/avatars/${role}.png`,
+            permissions: getPermissionsForRole(role),
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            lastLogin: undefined
+        };
+        setUsers({ ...users, [userId]: newUser });
+        return userId;
+    };
+
+    const updateUser = (userId: string, updates: Partial<User>) => {
+        const user = users[userId];
+        if (!user) return;
+
+        // If role is being updated, update permissions too
+        if (updates.role && updates.role !== user.role) {
+            updates.permissions = getPermissionsForRole(updates.role);
+        }
+
+        setUsers({
+            ...users,
+            [userId]: { ...user, ...updates }
+        });
+    };
+
+    const deactivateUser = (userId: string, actorId: string) => {
+        const user = users[userId];
+        if (!user) return;
+
+        setUsers({
+            ...users,
+            [userId]: { ...user, isActive: false }
+        });
+
+        // Log the action
+        const detail = `Deactivated user ${user.name} (${user.email})`;
+        logAction('system', actorId, 'UPDATED_DEAL_STATUS', detail); // Reusing action type for now
+    };
+
     const addTaskComment = (taskId: string, authorId: string, authorName: string, text: string) => {
         const newComment = {
             id: `c_${Date.now()}`,
@@ -366,6 +424,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         <DataContext.Provider value={{
             users, activeDeal, deals, tasks, logs,
             createDeal, addTask, setActiveDeal, updateDealStep, updateCurrentStepId, updateDealTimeline, updateDealStatus, addTaskComment, toggleCommentVisibility,
+            addUser, updateUser, deactivateUser,
             addParticipant,
             removeParticipant,
             updateParticipant,

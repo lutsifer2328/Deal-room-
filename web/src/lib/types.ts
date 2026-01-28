@@ -1,11 +1,27 @@
-export type Role = 'buyer' | 'seller' | 'lawyer' | 'agent' | 'admin' | 'broker' | 'attorney' | 'notary' | 'bank_representative';
+export type Role = 'admin' | 'lawyer' | 'staff' | 'viewer' | 'buyer' | 'seller' | 'agent';
+
+export interface Permission {
+  canCreateDeals: boolean;
+  canEditDeals: boolean;
+  canDeleteDeals: boolean;
+  canManageUsers: boolean;
+  canViewAllDeals: boolean;
+  canEditTimeline: boolean;
+  canCloseDeals: boolean;
+  canManageDocuments: boolean;
+  canExportData: boolean;
+}
 
 export interface User {
   id: string;
-  name: string;
   email: string;
+  name: string;
   role: Role;
+  permissions: Permission;
   avatarUrl?: string;
+  isActive: boolean;
+  createdAt: string;
+  lastLogin?: string;
 }
 
 export interface Participant {

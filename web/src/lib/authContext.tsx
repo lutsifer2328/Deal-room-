@@ -14,8 +14,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    // Default to Lawyer for "God Mode" initial view, or null if we want login screen
-    const [user, setUser] = useState<User | null>(MOCK_USERS['u_lawyer']);
+    // Default to Admin for testing - change to null for production login screen
+    const [user, setUser] = useState<User | null>(MOCK_USERS['u_admin']);
     const [isLoading, setIsLoading] = useState(false);
 
     const loginAs = (userId: string) => {
