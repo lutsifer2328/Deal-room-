@@ -57,6 +57,17 @@ export interface DealDocument {
   rejectionReason_bg?: string;
 }
 
+export interface StandardDocument {
+  id: string;
+  name: string;
+  description?: string;
+  usageCount: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  isActive: boolean;
+}
+
 export interface Comment {
   id: string;
   authorId: string;
@@ -78,6 +89,8 @@ export interface Task {
   documents: DealDocument[];
   comments: Comment[];  // Lawyer can leave clarifications here
   required: boolean;
+  standardDocumentId?: string;  // Reference to StandardDocument
+  expirationDate?: string;      // For tracking expiring docs
 }
 
 export interface AuditLogEntry {

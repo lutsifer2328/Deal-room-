@@ -3,20 +3,49 @@
 import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
 import { X, User } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Deal, Participant } from '@/lib/types';
+import AutocompleteInput from '@/components/common/AutocompleteInput';
 
 export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose: () => void }) {
-    const { addTask } = useData();
+    const { addTask, standardDocuments, tasks } = useData();
     const { user } = useAuth();
 
     const [title, setTitle] = useState('');
     const [selectedParticipantId, setSelectedParticipantId] = useState('');
+    const [selectedStandardDocId, setSelectedStandardDocId] = useState<string | undefined>(undefined);
+    const [expirationDate, setExpirationDate] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    if (!user || user.role !== 'lawyer') return null;
+    if (!user || (user.role !== 'lawyer' && user.role !== 'admin')) return null;
 
     const activeParticipants = deal.participants.filter(p => p.isActive);
+
+    // Build autocomplete suggestions
+    const suggestions = useMemo(() => {
+        const standardSuggestions = standardDocuments
+            .filter(doc => doc.isActive)
+            .map(doc => ({
+                name: doc.name,
+                source: 'standard' as const,
+                standardDocumentId: doc.id
+            }));
+
+        // Get previously used document names from tasks
+        const usedNames = new Set<string>();
+        tasks.forEach(task => {
+            if (!standardDocuments.find(doc => doc.name.toLowerCase() === task.title_en.toLowerCase())) {
+                usedNames.add(task.title_en);
+            }
+        });
+
+        const historySuggestions = Array.from(usedNames).map(name => ({
+            name,
+            source: 'history' as const
+        }));
+
+        return [...standardSuggestions, ...historySuggestions];
+    }, [standardDocuments, tasks]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -29,11 +58,12 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
         const selectedParticipant = activeParticipants.find(p => p.id === selectedParticipantId);
         if (!selectedParticipant) return;
 
+
         setIsSubmitting(true);
 
         // Simulate API call
         setTimeout(() => {
-            addTask(title, selectedParticipant.role);
+            addTask(title, selectedParticipant.role, selectedStandardDocId, expirationDate || undefined);
             setIsSubmitting(false);
             onClose();
         }, 500);
@@ -63,17 +93,23 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
                     </button>
                 </div>
 
-                {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Document Title *</label>
-                        <input
-                            type="text"
-                            required
+                        <AutocompleteInput
                             value={title}
-                            onChange={(e) => setTitle(e.target.value)}
+                            onChange={(newValue) => {
+                                setTitle(newValue);
+                                // Check if this matches a standard document
+                                const matchingDoc = standardDocuments.find(
+                                    doc => doc.isActive && doc.name.toLowerCase() === newValue.toLowerCase()
+                                );
+                                setSelectedStandardDocId(matchingDoc?.id);
+                            }}
+                            suggestions={suggestions}
                             placeholder="e.g. Proof of Identity, Bank Statement, Tax Return"
                             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none transition-all"
+                            required
                         />
                         <p className="text-xs text-gray-500 mt-1">Enter the document name that needs to be uploaded</p>
                     </div>
@@ -93,8 +129,8 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
                                         type="button"
                                         onClick={() => setSelectedParticipantId(participant.id)}
                                         className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all ${selectedParticipantId === participant.id
-                                                ? 'bg-teal/10 border-teal shadow-sm'
-                                                : 'bg-white border-gray-200 hover:bg-gray-50'
+                                            ? 'bg-teal/10 border-teal shadow-sm'
+                                            : 'bg-white border-gray-200 hover:bg-gray-50'
                                             }`}
                                     >
                                         <div className="w-10 h-10 rounded-full bg-teal flex items-center justify-center text-white font-bold">
@@ -111,6 +147,22 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
                                 ))
                             )}
                         </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Expiration Date (optional)
+                        </label>
+                        <input
+                            type="date"
+                            value={expirationDate}
+                            onChange={(e) => setExpirationDate(e.target.value)}
+                            min={new Date().toISOString().split('T')[0]}
+                            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none transition-all"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            Set an expiration date for time-sensitive documents (e.g., ID cards, permits)
+                        </p>
                     </div>
 
                     <div className="pt-4 flex justify-end gap-3">

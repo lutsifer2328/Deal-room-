@@ -43,7 +43,7 @@ export default function DealDetailPage() {
                 <div className="col-span-2 space-y-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold text-midnight">Required Documents</h2>
-                        {user.role === 'lawyer' && (
+                        {(user.role === 'lawyer' || user.role === 'admin') && (
                             <button
                                 onClick={() => setIsTaskModalOpen(true)}
                                 className="text-sm text-gold font-bold hover:underline"
@@ -81,6 +81,7 @@ export default function DealDetailPage() {
 function TaskCard({ task, userRole, deal }: { task: Task, userRole: string, deal: Deal }) {
     const isOwner = userRole === task.assignedTo;
     const isLawyer = userRole === 'lawyer';
+    const isAdmin = userRole === 'admin';
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
     // Find the participant this task is assigned to
@@ -94,7 +95,7 @@ function TaskCard({ task, userRole, deal }: { task: Task, userRole: string, deal
                         <div className="flex items-center gap-2 mb-2">
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${task.assignedTo === 'buyer' ? 'bg-teal/10 text-teal' :
                                 task.assignedTo === 'seller' ? 'bg-blue-100 text-blue-700' :
-                                    task.assignedTo === 'broker' ? 'bg-purple-100 text-purple-700' :
+                                    task.assignedTo === 'agent' ? 'bg-purple-100 text-purple-700' :
                                         'bg-gray-100 text-gray-700'
                                 }`}>
                                 {task.assignedTo.replace('_', ' ')}
@@ -133,7 +134,7 @@ function TaskCard({ task, userRole, deal }: { task: Task, userRole: string, deal
                     ) : (
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-gray-400 italic">No documents uploaded yet.</span>
-                            {(isOwner || isLawyer) && (
+                            {(isOwner || isLawyer || isAdmin) && (
                                 <button
                                     onClick={() => setIsUploadModalOpen(true)}
                                     className="flex items-center gap-2 text-midnight font-medium hover:text-teal transition-colors"

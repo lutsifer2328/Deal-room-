@@ -1,8 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, DealStatus, Role } from './types';
+import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, DealStatus, Role, StandardDocument } from './types';
 import * as InitialData from './mockData';
+import { MOCK_STANDARD_DOCUMENTS } from './mockStandardDocuments';
 import { createDefaultTimeline } from './defaultTimeline';
 import { getPermissionsForRole } from './permissions';
 
@@ -14,7 +15,7 @@ interface DataContextType {
 
     // Actions
     createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], dealNumber?: string) => string;
-    addTask: (title: string, assignedTo: string) => void;
+    addTask: (title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => void;
     setActiveDeal: (dealId: string) => void;
     updateDealStep: (dealId: string, step: DealStep, actorId: string) => void;
     updateCurrentStepId: (dealId: string, stepId: string, actorId: string) => void;
@@ -39,6 +40,12 @@ interface DataContextType {
     releaseDocument: (actorId: string, taskId: string, docId: string) => void;
     rejectDocument: (actorId: string, taskId: string, docId: string, reasonEn: string, reasonBg: string) => void;
 
+    // Standard Documents Actions
+    standardDocuments: StandardDocument[];
+    addStandardDocument: (name: string, description: string, createdBy: string) => string;
+    updateStandardDocument: (id: string, name: string, description: string) => void;
+    deleteStandardDocument: (id: string) => void;
+
     // Logs
     logs: AuditLogEntry[];
 }
@@ -55,6 +62,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const [activeDealId, setActiveDealId] = useState<string>(InitialData.MOCK_DEAL.id);
 
     const [logs, setLogs] = useState<AuditLogEntry[]>([]);
+
+    const [standardDocuments, setStandardDocuments] = useState<StandardDocument[]>(MOCK_STANDARD_DOCUMENTS);
 
     // Persist to localStorage
     React.useEffect(() => {
@@ -74,6 +83,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
             localStorage.setItem('agenzia_activeDealId', activeDealId);
         }
     }, [activeDealId]);
+
+    React.useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('agenzia_standardDocuments', JSON.stringify(standardDocuments));
+        }
+    }, [standardDocuments]);
 
     const activeDeal = deals.find(d => d.id === activeDealId) || deals[0];
 
@@ -149,7 +164,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return newDeal.id;
     };
 
-    const addTask = (title: string, assignedTo: string) => {
+    const addTask = (title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => {
         const newTask: Task = {
             id: `t_${Date.now()}`,
             dealId: activeDealId,
@@ -159,9 +174,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
             status: 'pending',
             required: true,
             documents: [],
-            comments: []
+            comments: [],
+            standardDocumentId,
+            expirationDate: expirationDate || undefined
         };
         setTasks([newTask, ...tasks]);
+
+        // Increment usage count if standard document was used
+        if (standardDocumentId) {
+            setStandardDocuments(standardDocuments.map(doc =>
+                doc.id === standardDocumentId
+                    ? { ...doc, usageCount: doc.usageCount + 1, updatedAt: new Date().toISOString() }
+                    : doc
+            ));
+        }
+
         logAction(activeDeal.id, 'u_lawyer', 'ADDED_TASK', `Added task "${title}" for ${assignedTo}`);
     };
 
@@ -420,6 +447,56 @@ export function DataProvider({ children }: { children: ReactNode }) {
         logAction(activeDealId, actorId, 'REJECTED_DOC', `Rejected document with reason: ${reasonEn}`);
     };
 
+    // Standard Documents Actions
+    const addStandardDocument = (name: string, description: string, createdBy: string): string => {
+        // Check for duplicate names (case-insensitive)
+        const duplicate = standardDocuments.find(
+            doc => doc.isActive && doc.name.toLowerCase() === name.toLowerCase()
+        );
+        if (duplicate) {
+            throw new Error('A standard document with this name already exists');
+        }
+
+        const newDoc: StandardDocument = {
+            id: `std-doc-${Date.now()}`,
+            name,
+            description,
+            usageCount: 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            createdBy,
+            isActive: true
+        };
+
+        setStandardDocuments([...standardDocuments, newDoc]);
+        return newDoc.id;
+    };
+
+    const updateStandardDocument = (id: string, name: string, description: string) => {
+        // Check for duplicate names (case-insensitive), excluding current document
+        const duplicate = standardDocuments.find(
+            doc => doc.isActive && doc.id !== id && doc.name.toLowerCase() === name.toLowerCase()
+        );
+        if (duplicate) {
+            throw new Error('A standard document with this name already exists');
+        }
+
+        setStandardDocuments(standardDocuments.map(doc =>
+            doc.id === id
+                ? { ...doc, name, description, updatedAt: new Date().toISOString() }
+                : doc
+        ));
+    };
+
+    const deleteStandardDocument = (id: string) => {
+        // Soft delete - set isActive to false
+        setStandardDocuments(standardDocuments.map(doc =>
+            doc.id === id
+                ? { ...doc, isActive: false, updatedAt: new Date().toISOString() }
+                : doc
+        ));
+    };
+
     return (
         <DataContext.Provider value={{
             users, activeDeal, deals, tasks, logs,
@@ -429,7 +506,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
             removeParticipant,
             updateParticipant,
             uploadDocument,
-            verifyDocument, releaseDocument, rejectDocument
+            verifyDocument, releaseDocument, rejectDocument,
+            standardDocuments,
+            addStandardDocument,
+            updateStandardDocument,
+            deleteStandardDocument
         }}>
             {children}
         </DataContext.Provider>

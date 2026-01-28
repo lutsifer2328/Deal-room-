@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutDashboard, FileText, Users, CreditCard, Building, Settings } from 'lucide-react';
+import { LayoutDashboard, Archive, Users, CreditCard, Building, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/authContext';
@@ -13,7 +13,7 @@ export default function Sidebar() {
 
     const navItems = [
         { icon: LayoutDashboard, label: 'Deal Room', href: '/dashboard', roles: ['lawyer', 'admin', 'staff', 'viewer'] },
-        { icon: FileText, label: 'Documents', href: '/documents', roles: ['lawyer', 'admin', 'buyer', 'seller', 'agent', 'staff'] },
+        { icon: Archive, label: 'Archive', href: '/archive', roles: ['lawyer', 'admin', 'buyer', 'seller', 'agent', 'staff'] },
         { icon: Users, label: 'Participants', href: '/participants', roles: ['lawyer', 'admin', 'staff'] },
         { icon: CreditCard, label: 'Finances', href: '/finances', roles: ['lawyer', 'admin'] },
         { icon: Settings, label: 'Settings', href: '/settings', roles: ['admin'] },
