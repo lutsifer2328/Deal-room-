@@ -4,10 +4,11 @@ import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
 import { X, ChevronRight, ChevronLeft, UserPlus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { Participant, Role } from '@/lib/types';
+import { Participant, Role, GlobalParticipant } from '@/lib/types';
+import DuplicateDetectionModal from '@/components/participants/DuplicateDetectionModal';
 
 export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () => void, onSuccess?: (dealId: string) => void }) {
-    const { createDeal } = useData();
+    const { createDeal, checkDuplicateEmail, getParticipantDeals } = useData();
     const { user } = useAuth();
     const [step, setStep] = useState(1);
 
@@ -24,23 +25,93 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
         phone: '',
         role: 'buyer' as Role,
         canViewDocuments: true,
+        canDownload: true,
+        hasAcceptedInvite: false,
         isActive: true
     });
+
+    // Duplicate detection state
+    const [duplicateParticipant, setDuplicateParticipant] = useState<GlobalParticipant | null>(null);
+    const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+    const [pendingParticipantData, setPendingParticipantData] = useState<any>(null);
+
+    const handleEmailBlur = () => {
+        if (currentParticipant.email.trim()) {
+            const duplicate = checkDuplicateEmail(currentParticipant.email);
+            if (duplicate) {
+                // Show modal immediately when duplicate is detected
+                setPendingParticipantData(currentParticipant);
+                setDuplicateParticipant(duplicate);
+                setShowDuplicateModal(true);
+            } else {
+                setDuplicateParticipant(null);
+            }
+        }
+    };
 
     const handleAddParticipant = () => {
         if (!currentParticipant.fullName || !currentParticipant.email) {
             alert('Name and email are required');
             return;
         }
-        setParticipants([...participants, { ...currentParticipant }]);
+
+        // Check for duplicate email
+        const duplicate = checkDuplicateEmail(currentParticipant.email);
+        if (duplicate) {
+            // Store pending data and show duplicate modal
+            setPendingParticipantData(currentParticipant);
+            setDuplicateParticipant(duplicate);
+            setShowDuplicateModal(true);
+            return;
+        }
+
+        // No duplicate, proceed with adding
+        proceedWithAddingParticipant(currentParticipant);
+    };
+
+    const proceedWithAddingParticipant = (participantData: any) => {
+        setParticipants([...participants, { ...participantData }]);
         setCurrentParticipant({
             fullName: '',
             email: '',
             phone: '',
             role: 'buyer',
             canViewDocuments: true,
+            canDownload: true,
+            hasAcceptedInvite: false,
             isActive: true
         });
+        setDuplicateParticipant(null);
+    };
+
+    const handleUseExisting = () => {
+        if (!duplicateParticipant || !pendingParticipantData) return;
+
+        // Use the existing participant but with the new role from the form
+        const participantData = {
+            ...pendingParticipantData,
+            fullName: duplicateParticipant.name,
+            email: duplicateParticipant.email,
+            phone: duplicateParticipant.phone || pendingParticipantData.phone
+        };
+
+        setShowDuplicateModal(false);
+        proceedWithAddingParticipant(participantData);
+        setPendingParticipantData(null);
+    };
+
+    const handleCreateNew = () => {
+        if (!pendingParticipantData) return;
+
+        setShowDuplicateModal(false);
+        proceedWithAddingParticipant(pendingParticipantData);
+        setPendingParticipantData(null);
+    };
+
+    const handleCancelDuplicate = () => {
+        setShowDuplicateModal(false);
+        setDuplicateParticipant(null);
+        setPendingParticipantData(null);
     };
 
     const handleRemoveParticipant = (index: number) => {
@@ -196,7 +267,8 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                                             type="email"
                                             value={currentParticipant.email}
                                             onChange={(e) => setCurrentParticipant({ ...currentParticipant, email: e.target.value })}
-                                            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal outline-none text-sm"
+                                            onBlur={handleEmailBlur}
+                                            className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-teal outline-none"
                                         />
                                     </div>
                                     <div>
@@ -276,6 +348,21 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                     )}
                 </div>
             </div>
+
+            {/* Duplicate Detection Modal */}
+            {showDuplicateModal && duplicateParticipant && (
+                <DuplicateDetectionModal
+                    existingParticipant={duplicateParticipant}
+                    email={pendingParticipantData?.email || ''}
+                    deals={getParticipantDeals(duplicateParticipant.id).map(({ deal, dealParticipant }) => ({
+                        dealName: deal.title || deal.propertyAddress,
+                        role: dealParticipant.role
+                    }))}
+                    onCancel={handleCancelDuplicate}
+                    onUseExisting={handleUseExisting}
+                    onCreateNew={handleCreateNew}
+                />
+            )}
         </div>
     );
 }

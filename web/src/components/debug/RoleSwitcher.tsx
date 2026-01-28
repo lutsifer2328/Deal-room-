@@ -4,14 +4,19 @@ import { useAuth } from '@/lib/authContext';
 import { useData } from '@/lib/store';
 import { User as UserIcon, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 export default function RoleSwitcher() {
     const { user, loginAs } = useAuth();
     const { activeDeal } = useData();
+    const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
 
     if (process.env.NODE_ENV !== 'development') return null;
-    if (!user || !activeDeal) return null;
+
+    // Only show when INSIDE a specific deal page (/deal/[id])
+    const isInDealPage = pathname?.startsWith('/deal/');
+    if (!user || !activeDeal || !isInDealPage) return null;
 
     // Build user list from deal participants + lawyer
     const participantUsers = activeDeal.participants

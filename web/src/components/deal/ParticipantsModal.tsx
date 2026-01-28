@@ -1,14 +1,15 @@
 'use client';
 
-import { Deal, Participant, Role } from '@/lib/types';
+import { Deal, Participant, Role, GlobalParticipant } from '@/lib/types';
 import { X, UserPlus, Trash2, Mail, Phone, User, Edit2, Check, XCircle, Eye, Download, Send } from 'lucide-react';
 import { useState } from 'react';
 import { useData } from '@/lib/store';
 import { generateInviteToken } from '@/lib/invitations';
 import { sendInvitationEmail } from '@/lib/emailService';
+import DuplicateDetectionModal from '@/components/participants/DuplicateDetectionModal';
 
 export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClose: () => void }) {
-    const { addParticipant, removeParticipant, updateParticipant, deals } = useData();
+    const { addParticipant, removeParticipant, updateParticipant, deals, checkDuplicateEmail, getParticipantDeals } = useData();
 
     // Get fresh deal data from store to see newly added participants
     const freshDeal = (deal && deals) ? (deals.find(d => d && d.id === deal.id) || deal) : deal;
@@ -36,6 +37,25 @@ export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClo
     const [sendingInvite, setSendingInvite] = useState(false);
     const [inviteSuccess, setInviteSuccess] = useState('');
 
+    // Duplicate detection state
+    const [duplicateParticipant, setDuplicateParticipant] = useState<GlobalParticipant | null>(null);
+    const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+    const [pendingParticipantData, setPendingParticipantData] = useState<any>(null);
+
+    const handleEmailBlur = () => {
+        if (newParticipant.email.trim()) {
+            const duplicate = checkDuplicateEmail(newParticipant.email);
+            if (duplicate) {
+                // Show modal immediately when duplicate is detected
+                setPendingParticipantData(newParticipant);
+                setDuplicateParticipant(duplicate);
+                setShowDuplicateModal(true);
+            } else {
+                setDuplicateParticipant(null);
+            }
+        }
+    };
+
     const handleAddParticipant = async () => {
         if (!newParticipant.fullName || !newParticipant.email) {
             alert('Name and email are required');
@@ -47,21 +67,38 @@ export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClo
             return;
         }
 
+        // Check for duplicate email
+        const duplicate = checkDuplicateEmail(newParticipant.email);
+        if (duplicate) {
+            // Store pending data and show duplicate modal
+            setPendingParticipantData(newParticipant);
+            setDuplicateParticipant(duplicate);
+            setShowDuplicateModal(true);
+            return;
+        }
+
+        // No duplicate, proceed with adding
+        await proceedWithAddingParticipant(newParticipant);
+    };
+
+    const proceedWithAddingParticipant = async (participantData: any) => {
+        if (!deal?.id) return;
+
         // Generate participant ID
         const participantId = `p_${Date.now()}_${Math.random()}`;
 
         // Generate invitation token
         const token = generateInviteToken(
-            newParticipant.email,
+            participantData.email,
             deal.id,
             participantId,
-            newParticipant.fullName,
-            newParticipant.role
+            participantData.fullName,
+            participantData.role
         );
 
         // Add participant to deal
         addParticipant(deal.id, {
-            ...newParticipant,
+            ...participantData,
             isActive: true,
             hasAcceptedInvite: false,
             invitationToken: token,
@@ -71,17 +108,17 @@ export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClo
         // Send invitation email
         setSendingInvite(true);
         const emailSent = await sendInvitationEmail(
-            newParticipant.email,
-            newParticipant.fullName,
+            participantData.email,
+            participantData.fullName,
             deal.title || 'Deal',
             deal.propertyAddress || '',
-            newParticipant.role,
+            participantData.role,
             'Elena Petrova', // TODO: Get from current user
             token
         );
 
         if (emailSent) {
-            setInviteSuccess(`✅ Invitation sent to ${newParticipant.email}`);
+            setInviteSuccess(`✅ Invitation sent to ${participantData.email}`);
             setTimeout(() => setInviteSuccess(''), 5000);
         }
         setSendingInvite(false);
@@ -96,6 +133,38 @@ export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClo
             canDownload: true,
             documentPermissions: { canViewRoles: [] }
         });
+    };
+
+    const handleUseExisting = async () => {
+        if (!duplicateParticipant || !pendingParticipantData) return;
+
+        // Use the existing participant but with the new role from the form
+        const participantData = {
+            ...pendingParticipantData,
+            fullName: duplicateParticipant.name,
+            email: duplicateParticipant.email,
+            phone: duplicateParticipant.phone || pendingParticipantData.phone
+        };
+
+        setShowDuplicateModal(false);
+        await proceedWithAddingParticipant(participantData);
+        setDuplicateParticipant(null);
+        setPendingParticipantData(null);
+    };
+
+    const handleCreateNew = async () => {
+        if (!pendingParticipantData) return;
+
+        setShowDuplicateModal(false);
+        await proceedWithAddingParticipant(pendingParticipantData);
+        setDuplicateParticipant(null);
+        setPendingParticipantData(null);
+    };
+
+    const handleCancelDuplicate = () => {
+        setShowDuplicateModal(false);
+        setDuplicateParticipant(null);
+        setPendingParticipantData(null);
     };
 
     const handleRemoveParticipant = (participantId: string) => {
@@ -397,6 +466,7 @@ export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClo
                                             type="email"
                                             value={newParticipant.email}
                                             onChange={(e) => setNewParticipant({ ...newParticipant, email: e.target.value })}
+                                            onBlur={handleEmailBlur}
                                             className="w-full px-3 py-2 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-teal outline-none"
                                         />
                                     </div>
@@ -508,6 +578,21 @@ export default function ParticipantsModal({ deal, onClose }: { deal: Deal, onClo
                     </button>
                 </div>
             </div>
+
+            {/* Duplicate Detection Modal */}
+            {showDuplicateModal && duplicateParticipant && (
+                <DuplicateDetectionModal
+                    existingParticipant={duplicateParticipant}
+                    email={pendingParticipantData?.email || ''}
+                    deals={getParticipantDeals(duplicateParticipant.id).map(({ deal, dealParticipant }) => ({
+                        dealName: deal.title || deal.propertyAddress,
+                        role: dealParticipant.role
+                    }))}
+                    onCancel={handleCancelDuplicate}
+                    onUseExisting={handleUseExisting}
+                    onCreateNew={handleCreateNew}
+                />
+            )}
         </div>
     );
 }

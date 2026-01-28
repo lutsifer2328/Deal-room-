@@ -1,9 +1,11 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, DealStatus, Role, StandardDocument } from './types';
+import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, DealStatus, Role, StandardDocument, GlobalParticipant, DealParticipant } from './types';
 import * as InitialData from './mockData';
 import { MOCK_STANDARD_DOCUMENTS } from './mockStandardDocuments';
+import { MOCK_GLOBAL_PARTICIPANTS } from './mockGlobalParticipants';
+import { MOCK_DEAL_PARTICIPANTS } from './mockDealParticipants';
 import { createDefaultTimeline } from './defaultTimeline';
 import { getPermissionsForRole } from './permissions';
 
@@ -46,6 +48,15 @@ interface DataContextType {
     updateStandardDocument: (id: string, name: string, description: string) => void;
     deleteStandardDocument: (id: string) => void;
 
+    // Global Participants Actions
+    globalParticipants: GlobalParticipant[];
+    dealParticipants: DealParticipant[];
+    createGlobalParticipant: (participant: Omit<GlobalParticipant, 'id' | 'createdAt' | 'updatedAt'>) => string;
+    updateGlobalParticipant: (id: string, updates: Partial<GlobalParticipant>) => void;
+    checkDuplicateEmail: (email: string) => GlobalParticipant | null;
+    getParticipantDeals: (participantId: string) => Array<{ deal: Deal, dealParticipant: DealParticipant }>;
+    getRecentParticipants: (days?: number) => GlobalParticipant[];
+
     // Logs
     logs: AuditLogEntry[];
 }
@@ -64,6 +75,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const [logs, setLogs] = useState<AuditLogEntry[]>([]);
 
     const [standardDocuments, setStandardDocuments] = useState<StandardDocument[]>(MOCK_STANDARD_DOCUMENTS);
+
+    const [globalParticipants, setGlobalParticipants] = useState<GlobalParticipant[]>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('agenzia_globalParticipants');
+            return saved ? JSON.parse(saved) : MOCK_GLOBAL_PARTICIPANTS;
+        }
+        return MOCK_GLOBAL_PARTICIPANTS;
+    });
+
+    const [dealParticipants, setDealParticipants] = useState<DealParticipant[]>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('agenzia_dealParticipants');
+            return saved ? JSON.parse(saved) : MOCK_DEAL_PARTICIPANTS;
+        }
+        return MOCK_DEAL_PARTICIPANTS;
+    });
 
     // Persist to localStorage
     React.useEffect(() => {
@@ -89,6 +116,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
             localStorage.setItem('agenzia_standardDocuments', JSON.stringify(standardDocuments));
         }
     }, [standardDocuments]);
+
+    React.useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('agenzia_globalParticipants', JSON.stringify(globalParticipants));
+        }
+    }, [globalParticipants]);
+
+    React.useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('agenzia_dealParticipants', JSON.stringify(dealParticipants));
+        }
+    }, [dealParticipants]);
 
     const activeDeal = deals.find(d => d.id === activeDealId) || deals[0];
 
@@ -159,6 +198,58 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setDeals([...deals, newDeal]);
         setActiveDealId(newDeal.id);
 
+        // ===== SYNC WITH GLOBAL PARTICIPANTS SYSTEM =====
+        // For each participant, check if they exist globally, if not create them
+        const newGlobalParticipants = [...globalParticipants];
+        const newDealParticipants = [...dealParticipants];
+
+        participants.forEach(p => {
+            // Check if global participant already exists by email
+            let globalParticipant = newGlobalParticipants.find(
+                gp => gp.email.toLowerCase().trim() === p.email.toLowerCase().trim()
+            );
+
+            // If not exists, create new global participant
+            if (!globalParticipant) {
+                globalParticipant = {
+                    id: `gp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    name: p.fullName,
+                    email: p.email,
+                    phone: p.phone || undefined,
+                    invitationStatus: p.hasAcceptedInvite ? 'accepted' : 'pending',
+                    invitationSentAt: p.invitedAt || new Date().toISOString(),
+                    invitationAcceptedAt: p.hasAcceptedInvite ? new Date().toISOString() : undefined,
+                    internalNotes: '',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                newGlobalParticipants.push(globalParticipant);
+            }
+
+            // Create DealParticipant link
+            const dealParticipantLink: DealParticipant = {
+                id: `dp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                dealId: newDeal.id,
+                participantId: globalParticipant.id,
+                role: p.role,
+                permissions: {
+                    canViewDocuments: p.canViewDocuments,
+                    canDownloadDocuments: p.canDownload,
+                    canUploadDocuments: true,
+                    canViewTimeline: true
+                },
+                joinedAt: new Date().toISOString(),
+                isActive: true,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            newDealParticipants.push(dealParticipantLink);
+        });
+
+        // Update state
+        setGlobalParticipants(newGlobalParticipants);
+        setDealParticipants(newDealParticipants);
+
         logAction(newDeal.id, 'u_lawyer', 'CREATED_DEAL', `Started deal "${title}" with ${participants.length} participants`);
 
         return newDeal.id;
@@ -204,6 +295,55 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 ? { ...d, participants: [...d.participants, newParticipant] }
                 : d
         ));
+
+        // ===== SYNC WITH GLOBAL PARTICIPANTS SYSTEM =====
+        // Check if global participant already exists by email
+        let globalParticipant = globalParticipants.find(
+            gp => gp.email.toLowerCase().trim() === participantInput.email.toLowerCase().trim()
+        );
+
+        // If not exists, create new global participant
+        if (!globalParticipant) {
+            globalParticipant = {
+                id: `gp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                name: participantInput.fullName,
+                email: participantInput.email,
+                phone: participantInput.phone || undefined,
+                invitationStatus: participantInput.hasAcceptedInvite ? 'accepted' : 'pending',
+                invitationSentAt: participantInput.invitedAt || new Date().toISOString(),
+                invitationAcceptedAt: participantInput.hasAcceptedInvite ? new Date().toISOString() : undefined,
+                internalNotes: '',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            setGlobalParticipants([...globalParticipants, globalParticipant]);
+        }
+
+        // Check if this participant is already linked to this deal
+        const existingLink = dealParticipants.find(
+            dp => dp.dealId === dealId && dp.participantId === globalParticipant.id && dp.isActive
+        );
+
+        if (!existingLink) {
+            // Create DealParticipant link only if it doesn't exist
+            const dealParticipantLink: DealParticipant = {
+                id: `dp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                dealId: dealId,
+                participantId: globalParticipant.id,
+                role: participantInput.role,
+                permissions: {
+                    canViewDocuments: participantInput.canViewDocuments,
+                    canDownloadDocuments: participantInput.canDownload,
+                    canUploadDocuments: true,
+                    canViewTimeline: true
+                },
+                joinedAt: new Date().toISOString(),
+                isActive: true,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            setDealParticipants([...dealParticipants, dealParticipantLink]);
+        }
     };
 
     const removeParticipant = (dealId: string, participantId: string) => {
@@ -497,6 +637,51 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ));
     };
 
+    // ===== GLOBAL PARTICIPANTS FUNCTIONS =====
+
+    const createGlobalParticipant = (participant: Omit<GlobalParticipant, 'id' | 'createdAt' | 'updatedAt'>): string => {
+        const newParticipant: GlobalParticipant = {
+            ...participant,
+            id: `gp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        setGlobalParticipants([...globalParticipants, newParticipant]);
+        return newParticipant.id;
+    };
+
+    const updateGlobalParticipant = (id: string, updates: Partial<GlobalParticipant>) => {
+        setGlobalParticipants(globalParticipants.map(p =>
+            p.id === id
+                ? { ...p, ...updates, updatedAt: new Date().toISOString() }
+                : p
+        ));
+    };
+
+    const checkDuplicateEmail = (email: string): GlobalParticipant | null => {
+        const normalized = email.toLowerCase().trim();
+        return globalParticipants.find(p => p.email.toLowerCase().trim() === normalized) || null;
+    };
+
+    const getParticipantDeals = (participantId: string): Array<{ deal: Deal, dealParticipant: DealParticipant }> => {
+        const participantDealLinks = dealParticipants.filter(dp => dp.participantId === participantId);
+
+        return participantDealLinks.map(dp => {
+            const deal = deals.find(d => d.id === dp.dealId);
+            return { deal: deal!, dealParticipant: dp };
+        }).filter(item => item.deal !== undefined);
+    };
+
+    const getRecentParticipants = (days: number = 30): GlobalParticipant[] => {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - days);
+
+        return globalParticipants
+            .filter(p => new Date(p.createdAt) >= cutoffDate)
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    };
+
     return (
         <DataContext.Provider value={{
             users, activeDeal, deals, tasks, logs,
@@ -510,7 +695,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
             standardDocuments,
             addStandardDocument,
             updateStandardDocument,
-            deleteStandardDocument
+            deleteStandardDocument,
+            globalParticipants,
+            dealParticipants,
+            createGlobalParticipant,
+            updateGlobalParticipant,
+            checkDuplicateEmail,
+            getParticipantDeals,
+            getRecentParticipants
         }}>
             {children}
         </DataContext.Provider>

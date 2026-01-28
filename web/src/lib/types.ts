@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'lawyer' | 'staff' | 'viewer' | 'buyer' | 'seller' | 'agent';
+export type Role = 'admin' | 'lawyer' | 'staff' | 'viewer' | 'buyer' | 'seller' | 'agent' | 'notary' | 'bank_representative';
 
 export interface Permission {
   canCreateDeals: boolean;
@@ -24,6 +24,46 @@ export interface User {
   lastLogin?: string;
 }
 
+// Global Participant (one person across all deals)
+export interface GlobalParticipant {
+  id: string;
+  name: string;
+  email: string; // UNIQUE - one person should only exist once
+  phone?: string;
+
+  // Invitation tracking
+  invitationStatus: 'pending' | 'accepted' | 'declined';
+  invitationSentAt?: string;
+  invitationAcceptedAt?: string;
+
+  // Internal notes (never visible to participants)
+  internalNotes?: string;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Junction table linking participants to deals
+export interface DealParticipant {
+  id: string;
+  dealId: string;
+  participantId: string; // References GlobalParticipant.id
+
+  role: Role;
+  permissions: {
+    canViewDocuments: boolean;
+    canDownloadDocuments: boolean;
+    canUploadDocuments: boolean;
+    canViewTimeline: boolean;
+  };
+
+  joinedAt: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Legacy Participant (deal-specific, kept for backwards compatibility)
 export interface Participant {
   id: string;
   fullName: string;
