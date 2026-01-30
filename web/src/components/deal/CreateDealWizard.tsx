@@ -6,10 +6,12 @@ import { X, ChevronRight, ChevronLeft, UserPlus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Participant, Role, GlobalParticipant } from '@/lib/types';
 import DuplicateDetectionModal from '@/components/participants/DuplicateDetectionModal';
+import { useTranslation, TranslationKey } from '@/lib/useTranslation';
 
 export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () => void, onSuccess?: (dealId: string) => void }) {
     const { createDeal, checkDuplicateEmail, getParticipantDeals } = useData();
     const { user } = useAuth();
+    const { t } = useTranslation();
     const [step, setStep] = useState(1);
 
     // Step 1: Deal Info
@@ -51,7 +53,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
 
     const handleAddParticipant = () => {
         if (!currentParticipant.fullName || !currentParticipant.email) {
-            alert('Name and email are required');
+            alert(t('modal.addParticipant.errorRequired'));
             return;
         }
 
@@ -120,7 +122,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
 
     const handleSubmit = () => {
         if (!title) {
-            alert('Please provide a title');
+            alert(t('wizard.error.title'));
             return;
         }
 
@@ -134,7 +136,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
         }
 
         if (finalParticipants.length === 0) {
-            alert('Please add at least one participant');
+            alert(t('wizard.error.participants'));
             return;
         }
 
@@ -146,13 +148,18 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
         }
     };
 
+    const getTranslatedRole = (role: string) => {
+        const key = `role.${role}` as TranslationKey;
+        return t(key).startsWith('role.') ? role : t(key);
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in duration-200">
 
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-midnight text-white">
-                    <h2 className="text-lg font-bold">Start New Deal</h2>
+                    <h2 className="text-lg font-bold">{t('wizard.title')}</h2>
                     <button onClick={onClose} className="text-white/80 hover:text-white">
                         <X className="w-5 h-5" />
                     </button>
@@ -164,14 +171,14 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 1 ? 'bg-teal text-white' : 'bg-gray-200'}`}>
                             1
                         </div>
-                        <span className="text-sm">Deal Info</span>
+                        <span className="text-sm">{t('wizard.step.info')}</span>
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-400" />
                     <div className={`flex items-center gap-2 ${step === 2 ? 'text-teal font-bold' : 'text-gray-400'}`}>
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 2 ? 'bg-teal text-white' : 'bg-gray-200'}`}>
                             2
                         </div>
-                        <span className="text-sm">Participants</span>
+                        <span className="text-sm">{t('wizard.step.participants')}</span>
                     </div>
                 </div>
 
@@ -181,40 +188,40 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Deal ID / Reference Number
-                                    <span className="text-gray-400 font-normal ml-2">(Optional - from your CRM)</span>
+                                    {t('wizard.label.dealId')}
+                                    <span className="text-gray-400 font-normal ml-2">{t('wizard.label.optionalCrm')}</span>
                                 </label>
                                 <input
                                     type="text"
                                     value={dealNumber}
                                     onChange={(e) => setDealNumber(e.target.value)}
-                                    placeholder="e.g. AGZ-2024-001, DEAL-123"
+                                    placeholder={t('wizard.placeholder.dealId')}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
-                                    💡 Use your CRM's deal number for easy tracking
+                                    {t('wizard.hint.crm')}
                                 </p>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Deal Title / Property Name *</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('wizard.label.title')}</label>
                                 <input
                                     type="text"
                                     required
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    placeholder="e.g. Luxury Apartment in Lozenets"
+                                    placeholder={t('wizard.placeholder.title')}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Property Address</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('wizard.label.address')}</label>
                                 <input
                                     type="text"
                                     value={propertyAddress}
                                     onChange={(e) => setPropertyAddress(e.target.value)}
-                                    placeholder="e.g. 123 Main Street, Sofia"
+                                    placeholder={t('wizard.placeholder.address')}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none"
                                 />
                             </div>
@@ -226,13 +233,13 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                             {/* Participants List */}
                             {participants.length > 0 && (
                                 <div className="mb-6">
-                                    <h3 className="text-sm font-bold text-gray-700 uppercase mb-3">Added Participants</h3>
+                                    <h3 className="text-sm font-bold text-gray-700 uppercase mb-3">{t('wizard.section.added')}</h3>
                                     <div className="space-y-2">
                                         {participants.map((p, idx) => (
                                             <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                                                 <div className="flex-1">
                                                     <div className="font-bold text-midnight">{p.fullName}</div>
-                                                    <div className="text-xs text-gray-500">{p.email} • {p.role}</div>
+                                                    <div className="text-xs text-gray-500">{p.email} • {getTranslatedRole(p.role)}</div>
                                                 </div>
                                                 <button
                                                     onClick={() => handleRemoveParticipant(idx)}
@@ -249,11 +256,11 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                             {/* Add Participant Form */}
                             <div className="border-t pt-6">
                                 <h3 className="text-sm font-bold text-teal uppercase mb-3 flex items-center gap-2">
-                                    <UserPlus className="w-4 h-4" /> Add Participant
+                                    <UserPlus className="w-4 h-4" /> {t('wizard.section.add')}
                                 </h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">Full Name *</label>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('wizard.label.name')}</label>
                                         <input
                                             type="text"
                                             value={currentParticipant.fullName}
@@ -262,7 +269,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('wizard.label.email')}</label>
                                         <input
                                             type="email"
                                             value={currentParticipant.email}
@@ -272,7 +279,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('wizard.label.phone')}</label>
                                         <input
                                             type="tel"
                                             value={currentParticipant.phone}
@@ -281,18 +288,18 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">Role *</label>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('wizard.label.role')}</label>
                                         <select
                                             value={currentParticipant.role}
                                             onChange={(e) => setCurrentParticipant({ ...currentParticipant, role: e.target.value as Role })}
                                             className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white outline-none text-sm"
                                         >
-                                            <option value="buyer">Buyer</option>
-                                            <option value="seller">Seller</option>
-                                            <option value="broker">Broker (Agent)</option>
-                                            <option value="attorney">Attorney</option>
-                                            <option value="notary">Notary</option>
-                                            <option value="bank_representative">Bank Representative</option>
+                                            <option value="buyer">{t('role.buyer')}</option>
+                                            <option value="seller">{t('role.seller')}</option>
+                                            <option value="agent">{t('role.agent')}</option>
+                                            <option value="lawyer">{t('role.lawyer')}</option>
+                                            <option value="notary">{t('role.notary')}</option>
+                                            <option value="bank_representative">{t('role.bank_representative')}</option>
                                         </select>
                                     </div>
                                 </div>
@@ -303,13 +310,13 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                                         onChange={(e) => setCurrentParticipant({ ...currentParticipant, canViewDocuments: e.target.checked })}
                                         className="w-4 h-4"
                                     />
-                                    <label className="text-sm text-gray-700">Can view documents immediately</label>
+                                    <label className="text-sm text-gray-700">{t('wizard.label.canView')}</label>
                                 </div>
                                 <button
                                     onClick={handleAddParticipant}
                                     className="mt-4 w-full py-2 bg-teal/10 text-teal font-bold rounded-lg hover:bg-teal/20 transition-all"
                                 >
-                                    + Add to List
+                                    {t('wizard.btn.add')}
                                 </button>
                             </div>
                         </div>
@@ -321,28 +328,28 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                     {step === 1 ? (
                         <>
                             <button onClick={onClose} className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg">
-                                Cancel
+                                {t('common.cancel')}
                             </button>
                             <button
                                 onClick={() => setStep(2)}
                                 disabled={!title}
                                 className="px-6 py-2 bg-midnight text-white font-bold rounded-lg hover:bg-midnight/90 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Next: Add Participants
+                                {t('wizard.btn.next')}
                             </button>
                         </>
                     ) : (
                         <>
                             <button onClick={() => setStep(1)} className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg flex items-center gap-2">
                                 <ChevronLeft className="w-4 h-4" />
-                                Back
+                                {t('wizard.btn.back')}
                             </button>
                             <button
                                 onClick={handleSubmit}
                                 disabled={participants.length === 0}
                                 className="px-6 py-2 bg-teal text-white font-bold rounded-lg hover:bg-teal/90 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Create Deal
+                                {t('wizard.btn.create')}
                             </button>
                         </>
                     )}

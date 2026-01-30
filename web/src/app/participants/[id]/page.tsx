@@ -4,12 +4,14 @@ import { use, useState, useEffect } from 'react';
 import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, User, Mail, Phone, Send, Edit2, Check, Clock, XCircle, ExternalLink } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Send, Edit2, Check, Clock, XCircle, ExternalLink, Trash2 } from 'lucide-react';
+import { useTranslation } from '@/lib/useTranslation';
 
 export default function ParticipantDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
-    const { globalParticipants, getParticipantDeals, updateGlobalParticipant } = useData();
+    const { globalParticipants, getParticipantDeals, updateGlobalParticipant, deleteGlobalParticipant } = useData();
     const { user } = useAuth();
+    const { t } = useTranslation();
     const router = useRouter();
 
     // All hooks MUST be called unconditionally
@@ -33,8 +35,8 @@ export default function ParticipantDetailPage({ params }: { params: Promise<{ id
         return (
             <div className="flex items-center justify-center h-screen">
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h1>
-                    <p className="text-gray-600">You don't have permission to view this page.</p>
+                    <h1 className="text-2xl font-bold text-gray-800 mb-2">{t('participant.accessDenied')}</h1>
+                    <p className="text-gray-600">{t('participant.noPermission')}</p>
                 </div>
             </div>
         );
@@ -44,13 +46,13 @@ export default function ParticipantDetailPage({ params }: { params: Promise<{ id
         return (
             <div className="flex items-center justify-center h-screen">
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold text-gray-800 mb-2">Participant Not Found</h1>
-                    <p className="text-gray-600">The participant you're looking for doesn't exist.</p>
+                    <h1 className="text-2xl font-bold text-gray-800 mb-2">{t('participant.notFound')}</h1>
+                    <p className="text-gray-600">{t('participant.notFoundDesc')}</p>
                     <button
                         onClick={() => router.push('/participants')}
                         className="mt-4 px-4 py-2 bg-teal text-white rounded-lg font-bold hover:bg-teal/90"
                     >
-                        Back to Participants
+                        {t('participant.back')}
                     </button>
                 </div>
             </div>
@@ -70,6 +72,13 @@ export default function ParticipantDetailPage({ params }: { params: Promise<{ id
         }, 500);
     };
 
+    const handleDeleteParticipant = () => {
+        if (confirm(t('participant.deleteConfirm'))) {
+            deleteGlobalParticipant(participant.id);
+            router.push('/participants');
+        }
+    };
+
     const getInvitationStatusDisplay = () => {
         switch (participant.invitationStatus) {
             case 'accepted':
@@ -77,7 +86,7 @@ export default function ParticipantDetailPage({ params }: { params: Promise<{ id
                     <div className="flex items-center gap-2 text-green-600">
                         <Check className="w-5 h-5" />
                         <span className="font-medium">
-                            Accepted {participant.invitationAcceptedAt && `(${new Date(participant.invitationAcceptedAt).toLocaleDateString()})`}
+                            {t('participant.accepted')} {participant.invitationAcceptedAt && `(${new Date(participant.invitationAcceptedAt).toLocaleDateString()})`}
                         </span>
                     </div>
                 );
@@ -86,7 +95,7 @@ export default function ParticipantDetailPage({ params }: { params: Promise<{ id
                     <div className="flex items-center gap-2 text-orange-600">
                         <Clock className="w-5 h-5" />
                         <span className="font-medium">
-                            Pending {participant.invitationSentAt && `(${new Date(participant.invitationSentAt).toLocaleDateString()})`}
+                            {t('participant.pending')} {participant.invitationSentAt && `(${new Date(participant.invitationSentAt).toLocaleDateString()})`}
                         </span>
                     </div>
                 );
@@ -95,7 +104,7 @@ export default function ParticipantDetailPage({ params }: { params: Promise<{ id
                     <div className="flex items-center gap-2 text-red-600">
                         <XCircle className="w-5 h-5" />
                         <span className="font-medium">
-                            Declined {participant.invitationSentAt && `(${new Date(participant.invitationSentAt).toLocaleDateString()})`}
+                            {t('participant.declined')} {participant.invitationSentAt && `(${new Date(participant.invitationSentAt).toLocaleDateString()})`}
                         </span>
                     </div>
                 );
@@ -103,97 +112,120 @@ export default function ParticipantDetailPage({ params }: { params: Promise<{ id
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8">
-            <div className="max-w-4xl mx-auto">
+        <div className="flex-1 overflow-y-auto bg-gray-50/50 p-12">
+            <div className="max-w-4xl mx-auto space-y-6">
                 {/* Back Button */}
                 <button
                     onClick={() => router.push('/participants')}
-                    className="mb-6 flex items-center gap-2 text-gray-600 hover:text-gray-800 font-medium"
+                    className="flex items-center gap-2 text-text-light hover:text-navy-primary font-bold transition-colors group"
                 >
-                    <ArrowLeft className="w-5 h-5" />
-                    Back to Participants
+                    <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                    {t('participant.back')}
                 </button>
 
                 {/* Header Card */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-full bg-teal flex items-center justify-center text-white text-2xl font-bold">
+                <div className="bg-white rounded-3xl shadow-xl shadow-navy-primary/5 border border-white/20 p-8 backdrop-blur-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-teal/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 relative z-10">
+                        <div className="flex items-center gap-6">
+                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-navy-primary to-navy-secondary text-white flex items-center justify-center text-3xl font-serif font-bold shadow-lg shadow-navy-primary/20">
                                 {participant.name.charAt(0)}
                             </div>
                             <div>
-                                <h1 className="text-2xl font-bold text-midnight flex items-center gap-2">
-                                    <User className="w-6 h-6 text-teal" />
+                                <h1 className="text-3xl font-serif font-bold text-navy-primary flex items-center gap-3 mb-2">
                                     {participant.name}
+                                    <span className="text-base font-sans font-normal bg-gray-100 text-text-light px-3 py-1 rounded-full border border-gray-200">
+                                        Participant
+                                    </span>
                                 </h1>
-                                <div className="mt-2 space-y-1">
-                                    <div className="flex items-center gap-2 text-gray-600">
-                                        <Mail className="w-4 h-4" />
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center gap-2 text-text-secondary font-medium">
+                                        <Mail className="w-4 h-4 text-teal" />
                                         {participant.email}
                                     </div>
                                     {participant.phone && (
-                                        <div className="flex items-center gap-2 text-gray-600">
-                                            <Phone className="w-4 h-4" />
+                                        <div className="flex items-center gap-2 text-text-secondary font-medium">
+                                            <Phone className="w-4 h-4 text-teal" />
                                             {participant.phone}
                                         </div>
                                     )}
                                 </div>
                             </div>
                         </div>
-                        <button
-                            onClick={() => window.location.href = `mailto:${participant.email}`}
-                            className="px-4 py-2 bg-teal text-white rounded-lg font-bold hover:bg-teal/90 flex items-center gap-2"
-                        >
-                            <Send className="w-4 h-4" />
-                            Send Email
-                        </button>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <button
+                                onClick={() => window.location.href = `mailto:${participant.email}`}
+                                className="px-5 py-2.5 bg-teal text-white rounded-xl font-bold hover:bg-teal/90 flex items-center gap-2 shadow-lg shadow-teal/20 transition-all hover:scale-105"
+                            >
+                                <Send className="w-4 h-4" />
+                                {t('participant.sendEmail')}
+                            </button>
+                            {['admin', 'lawyer'].includes(user?.role || '') && (
+                                <button
+                                    onClick={handleDeleteParticipant}
+                                    className="px-5 py-2.5 bg-red-50 text-red-600 border border-red-100 rounded-xl font-bold hover:bg-red-100 flex items-center gap-2 transition-colors"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    {t('common.delete')}
+                                </button>
+                            )}
+                        </div>
                     </div>
 
-                    <div className="pt-4 border-t border-gray-200">
-                        <div className="text-sm text-gray-600 mb-1">Invitation Status:</div>
-                        {getInvitationStatusDisplay()}
+                    <div className="mt-8 pt-6 border-t border-gray-100 flex items-center gap-4">
+                        <span className="text-sm font-bold text-text-light uppercase tracking-wider">{t('participant.invitationStatus')}:</span>
+                        <div className="font-medium">
+                            {getInvitationStatusDisplay()}
+                        </div>
                     </div>
                 </div>
 
                 {/* Deals Section */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                    <h2 className="text-lg font-bold text-midnight mb-4">
-                        Deals ({activeDeals.length} active, {closedDeals.length} closed)
+                <div className="bg-white rounded-3xl shadow-lg shadow-navy-primary/5 border border-white/20 p-8">
+                    <h2 className="text-xl font-bold text-navy-primary mb-6 font-serif flex items-center gap-3">
+                        <User className="w-6 h-6 text-teal" />
+                        {t('dashboard.title')}
+                        <span className="text-sm font-sans font-normal text-text-light bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+                            {activeDeals.length} {t('participants.dealCount.active')}, {closedDeals.length} {t('participants.dealCount.closed')}
+                        </span>
                     </h2>
 
                     {participantDeals.length === 0 ? (
-                        <p className="text-gray-500 text-center py-8">Not currently involved in any deals</p>
+                        <div className="text-center py-12 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                            <p className="text-text-light font-medium">{t('participants.notFound')}</p>
+                        </div>
                     ) : (
-                        <div className="space-y-6">
+                        <div className="space-y-8">
                             {/* Active Deals */}
                             {activeDeals.length > 0 && (
                                 <div>
-                                    <h3 className="text-sm font-bold text-gray-700 uppercase mb-3 flex items-center gap-2">
-                                        <span className="w-3 h-3 rounded-full bg-green-500"></span>
-                                        Active Deals
+                                    <h3 className="text-xs font-bold text-text-light uppercase tracking-wider mb-4 flex items-center gap-2 pl-1">
+                                        <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></span>
+                                        {t('dashboard.activeDeals')}
                                     </h3>
-                                    <div className="space-y-2">
+                                    <div className="grid gap-3">
                                         {activeDeals.map(({ deal, dealParticipant }) => (
                                             <div
                                                 key={dealParticipant.id}
-                                                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                                                className="flex items-center justify-between p-5 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md hover:border-teal/30 hover:bg-teal/[0.02] transition-all group"
                                             >
                                                 <div className="flex-1">
-                                                    <div className="font-medium text-midnight">
+                                                    <div className="font-bold text-navy-primary text-lg group-hover:text-teal transition-colors">
                                                         {deal.title || deal.propertyAddress}
-                                                        <span className="ml-2 text-xs font-bold px-2 py-1 rounded uppercase bg-teal/10 text-teal">
-                                                            {dealParticipant.role}
+                                                        <span className="ml-3 text-xs font-bold px-2 py-1 rounded-md uppercase bg-teal/10 text-teal border border-teal/20 align-middle">
+                                                            {t(`role.${dealParticipant.role}` as any)}
                                                         </span>
                                                     </div>
                                                     {deal.propertyAddress && (
-                                                        <div className="text-sm text-gray-600 mt-1">{deal.propertyAddress}</div>
+                                                        <div className="text-sm text-text-light mt-1 font-medium">{deal.propertyAddress}</div>
                                                     )}
                                                 </div>
                                                 <button
                                                     onClick={() => router.push(`/deal/${deal.id}`)}
-                                                    className="px-3 py-1.5 text-teal hover:bg-teal/10 rounded font-medium flex items-center gap-1"
+                                                    className="px-4 py-2 text-teal bg-teal/5 hover:bg-teal/10 rounded-xl font-bold flex items-center gap-2 transition-colors"
                                                 >
-                                                    View Deal
+                                                    {t('common.view')}
                                                     <ExternalLink className="w-4 h-4" />
                                                 </button>
                                             </div>
@@ -205,35 +237,36 @@ export default function ParticipantDetailPage({ params }: { params: Promise<{ id
                             {/* Closed Deals */}
                             {closedDeals.length > 0 && (
                                 <div>
-                                    <h3 className="text-sm font-bold text-gray-700 uppercase mb-3 flex items-center gap-2">
-                                        <span className="w-3 h-3 rounded-full bg-gray-400"></span>
-                                        Closed Deals
+                                    <h3 className="text-xs font-bold text-text-light uppercase tracking-wider mb-4 flex items-center gap-2 pl-1">
+                                        <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                                        {t('archive.tab.closed')}
                                     </h3>
-                                    <div className="space-y-2">
+                                    <div className="grid gap-3">
                                         {closedDeals.map(({ deal, dealParticipant }) => (
                                             <div
                                                 key={dealParticipant.id}
-                                                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                                                className="flex items-center justify-between p-5 bg-gray-50/50 border border-gray-100 rounded-2xl hover:bg-white hover:shadow-sm transition-all"
                                             >
-                                                <div className="flex-1">
-                                                    <div className="font-medium text-gray-700">
+                                                <div className="flex-1 opacity-70 hover:opacity-100 transition-opacity">
+                                                    <div className="font-bold text-text-secondary">
                                                         {deal.title || deal.propertyAddress}
-                                                        <span className="ml-2 text-xs font-bold px-2 py-1 rounded uppercase bg-gray-100 text-gray-600">
-                                                            {dealParticipant.role}
+                                                        <span className="ml-3 text-xs font-bold px-2 py-1 rounded-md uppercase bg-gray-200 text-gray-600 border border-gray-300 align-middle">
+                                                            {t(`role.${dealParticipant.role}` as any)}
                                                         </span>
                                                     </div>
                                                     {deal.propertyAddress && (
-                                                        <div className="text-sm text-gray-500 mt-1">{deal.propertyAddress}</div>
+                                                        <div className="text-sm text-text-light mt-1">{deal.propertyAddress}</div>
                                                     )}
-                                                    <div className="text-xs text-gray-500 mt-1">
-                                                        Closed {deal.closedAt ? new Date(deal.closedAt).toLocaleDateString() : ''}
+                                                    <div className="text-xs text-text-light mt-1 font-medium flex items-center gap-1">
+                                                        <Clock className="w-3 h-3" />
+                                                        {t('deal.header.closed')} {deal.closedAt ? new Date(deal.closedAt).toLocaleDateString() : ''}
                                                     </div>
                                                 </div>
                                                 <button
                                                     onClick={() => router.push(`/deal/${deal.id}`)}
-                                                    className="px-3 py-1.5 text-gray-600 hover:bg-gray-200 rounded font-medium flex items-center gap-1"
+                                                    className="px-4 py-2 text-text-light hover:bg-gray-100 rounded-xl font-bold flex items-center gap-2 transition-colors"
                                                 >
-                                                    View Deal
+                                                    {t('common.view')}
                                                     <ExternalLink className="w-4 h-4" />
                                                 </button>
                                             </div>
@@ -246,67 +279,73 @@ export default function ParticipantDetailPage({ params }: { params: Promise<{ id
                 </div>
 
                 {/* Internal Notes Section */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold text-midnight">Internal Notes</h2>
+                <div className="bg-white rounded-3xl shadow-lg shadow-navy-primary/5 border border-white/20 p-8">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-bold text-navy-primary font-serif">{t('participant.internalNotes')}</h2>
                         {!isEditingNotes && (
                             <button
                                 onClick={() => setIsEditingNotes(true)}
-                                className="px-3 py-1.5 text-teal hover:bg-teal/10 rounded font-medium flex items-center gap-1"
+                                className="px-4 py-2 text-teal hover:bg-teal/5 rounded-xl font-bold flex items-center gap-2 transition-colors border border-transparent hover:border-teal/10"
                             >
                                 <Edit2 className="w-4 h-4" />
-                                Edit
+                                {t('common.edit')}
                             </button>
                         )}
                     </div>
-                    <p className="text-xs text-gray-500 mb-3">Only visible to your team</p>
+
+                    {!isEditingNotes && (
+                        <div className="bg-yellow-50/50 border border-yellow-100 rounded-xl p-4 mb-4 flex gap-3 text-sm text-yellow-800">
+                            <div className="mt-0.5">💡</div>
+                            <p>{t('participant.notesVisible')}</p>
+                        </div>
+                    )}
 
                     {isEditingNotes ? (
-                        <div>
+                        <div className="animate-in fade-in zoom-in-95 duration-200">
                             <textarea
                                 value={notes}
                                 onChange={(e) => setNotes(e.target.value)}
                                 maxLength={1000}
-                                rows={5}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal outline-none"
-                                placeholder="Add internal notes about this participant..."
+                                rows={6}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none bg-gray-50 focus:bg-white transition-all resize-none shadow-inner"
+                                placeholder={t('participant.addNotes')}
                             />
-                            <div className="flex items-center justify-between mt-2">
-                                <span className="text-xs text-gray-500">{notes.length}/1000 characters</span>
-                                <div className="flex gap-2">
+                            <div className="flex items-center justify-between mt-4">
+                                <span className="text-xs text-text-light font-medium">{notes.length}/1000 characters</span>
+                                <div className="flex gap-3">
                                     <button
                                         onClick={() => {
                                             setNotes(participant.internalNotes || '');
                                             setIsEditingNotes(false);
                                         }}
-                                        className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded font-medium"
+                                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl font-bold transition-colors"
                                     >
-                                        Cancel
+                                        {t('common.cancel')}
                                     </button>
                                     <button
                                         onClick={handleSaveNotes}
                                         disabled={saveStatus === 'saving'}
-                                        className="px-3 py-1.5 bg-teal text-white rounded font-bold hover:bg-teal/90 disabled:opacity-50"
+                                        className="px-6 py-2 bg-teal text-white rounded-xl font-bold hover:bg-teal/90 disabled:opacity-50 shadow-md shadow-teal/20 transition-all"
                                     >
-                                        {saveStatus === 'saving' ? 'Saving...' : 'Save'}
+                                        {saveStatus === 'saving' ? t('common.saving') : t('common.save')}
                                     </button>
                                 </div>
                             </div>
                         </div>
                     ) : (
-                        <div className="text-gray-700 whitespace-pre-wrap">
-                            {participant.internalNotes || <span className="text-gray-400 italic">No notes yet</span>}
+                        <div className="text-text-secondary whitespace-pre-wrap leading-relaxed bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                            {participant.internalNotes || <span className="text-text-light italic opacity-70">No notes yet</span>}
                         </div>
                     )}
 
                     {saveStatus === 'saved' && (
-                        <div className="mt-2 text-sm text-green-600 flex items-center gap-1">
+                        <div className="mt-4 text-sm text-green-600 font-bold flex items-center gap-2 bg-green-50 px-4 py-2 rounded-lg border border-green-100 inline-flex animate-in fade-in slide-in-from-bottom-2">
                             <Check className="w-4 h-4" />
-                            Saved successfully
+                            {t('participant.saved')}
                         </div>
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

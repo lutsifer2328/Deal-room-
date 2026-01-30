@@ -6,10 +6,12 @@ import { X, User } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Deal, Participant } from '@/lib/types';
 import AutocompleteInput from '@/components/common/AutocompleteInput';
+import { useTranslation, TranslationKey } from '@/lib/useTranslation';
 
 export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose: () => void }) {
     const { addTask, standardDocuments, tasks } = useData();
     const { user } = useAuth();
+    const { t } = useTranslation();
 
     const [title, setTitle] = useState('');
     const [selectedParticipantId, setSelectedParticipantId] = useState('');
@@ -51,7 +53,7 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
         e.preventDefault();
 
         if (!selectedParticipantId) {
-            alert('Please select a participant');
+            alert(t('modal.createTask.alertParticipant'));
             return;
         }
 
@@ -81,13 +83,18 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
         return colors[role] || 'bg-gray-100 text-gray-700';
     };
 
+    const getTranslatedRole = (role: string) => {
+        const key = `role.${role}` as TranslationKey;
+        return t(key).startsWith('role.') ? role : t(key);
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
 
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-midnight text-white">
-                    <h2 className="text-lg font-bold">Add Document Requirement</h2>
+                    <h2 className="text-lg font-bold">{t('modal.createTask.title')}</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-white">
                         <X className="w-5 h-5" />
                     </button>
@@ -95,7 +102,7 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Document Title *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('modal.createTask.docTitle')}</label>
                         <AutocompleteInput
                             value={title}
                             onChange={(newValue) => {
@@ -107,20 +114,20 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
                                 setSelectedStandardDocId(matchingDoc?.id);
                             }}
                             suggestions={suggestions}
-                            placeholder="e.g. Proof of Identity, Bank Statement, Tax Return"
+                            placeholder={t('modal.createTask.placeholderTitle')}
                             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none transition-all"
                             required
                         />
-                        <p className="text-xs text-gray-500 mt-1">Enter the document name that needs to be uploaded</p>
+                        <p className="text-xs text-gray-500 mt-1">{t('modal.createTask.docHelp')}</p>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Assign To Participant *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('modal.createTask.assign')}</label>
                         <div className="space-y-2 max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-2">
                             {activeParticipants.length === 0 ? (
                                 <div className="text-center py-8 text-gray-400">
                                     <User className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                    <p className="text-sm">No participants in this deal yet</p>
+                                    <p className="text-sm">{t('modal.createTask.noParticipants')}</p>
                                 </div>
                             ) : (
                                 activeParticipants.map((participant) => (
@@ -141,7 +148,7 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
                                             <div className="text-xs text-gray-500">{participant.email}</div>
                                         </div>
                                         <span className={`text-xs font-bold px-2 py-1 rounded uppercase ${getRoleBadgeColor(participant.role)}`}>
-                                            {participant.role.replace('_', ' ')}
+                                            {getTranslatedRole(participant.role)}
                                         </span>
                                     </button>
                                 ))
@@ -151,7 +158,7 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Expiration Date (optional)
+                            {t('modal.createTask.expiration')}
                         </label>
                         <input
                             type="date"
@@ -161,7 +168,7 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
                             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none transition-all"
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                            Set an expiration date for time-sensitive documents (e.g., ID cards, permits)
+                            {t('modal.createTask.expirationHelp')}
                         </p>
                     </div>
 
@@ -171,14 +178,14 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
                             onClick={onClose}
                             className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg"
                         >
-                            Cancel
+                            {t('common.cancel')}
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting || !selectedParticipantId}
                             className="px-6 py-2 bg-midnight text-white font-bold rounded-lg shadow-lg hover:bg-midnight/90 disabled:opacity-50 transition-all"
                         >
-                            {isSubmitting ? 'Adding...' : 'Add Requirement'}
+                            {isSubmitting ? t('modal.createTask.submitting') : t('modal.createTask.submit')}
                         </button>
                     </div>
                 </form>

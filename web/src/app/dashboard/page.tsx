@@ -8,6 +8,7 @@ import { useState } from 'react';
 import CreateDealWizard from '@/components/deal/CreateDealWizard';
 import DealStatusBadge from '@/components/deal/DealStatusBadge';
 import { DealStatus } from '@/lib/types';
+import { useTranslation } from '@/lib/useTranslation';
 
 type StatusFilter = 'active' | 'on_hold' | 'closed';
 
@@ -15,11 +16,12 @@ export default function DashboardPage() {
     const { deals } = useData();
     const { user } = useAuth();
     const router = useRouter();
+    const { t } = useTranslation();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
 
     if (!user || (user.role !== 'lawyer' && user.role !== 'admin')) {
-        return <div className="p-10 text-center">Access Denied. Admin/Lawyer only.</div>;
+        return <div className="p-10 text-center">{t('dashboard.accessDenied')}</div>;
     }
 
     // Filter deals by status
@@ -34,95 +36,97 @@ export default function DashboardPage() {
 
     const getStepLabel = (step: string) => {
         const labels: Record<string, string> = {
-            'onboarding': 'Onboarding',
-            'documents': 'Documents',
-            'preliminary_contract': 'Preliminary Contract',
-            'final_review': 'Final Review',
-            'closing': 'Closing'
+            'onboarding': t('dashboard.phase.onboarding'),
+            'documents': t('dashboard.phase.documents'),
+            'preliminary_contract': t('dashboard.phase.preliminary_contract'),
+            'final_review': t('dashboard.phase.final_review'),
+            'closing': t('dashboard.phase.closing')
         };
         return labels[step] || step;
     };
 
     const tabs: { id: StatusFilter; label: string; count: number }[] = [
-        { id: 'active', label: 'Active', count: statusCounts.active },
-        { id: 'on_hold', label: 'On Hold', count: statusCounts.on_hold },
-        { id: 'closed', label: 'Closed', count: statusCounts.closed }
+        { id: 'active', label: t('dashboard.tab.active'), count: statusCounts.active },
+        { id: 'on_hold', label: t('dashboard.tab.onHold'), count: statusCounts.on_hold },
+        { id: 'closed', label: t('dashboard.tab.closed'), count: statusCounts.closed }
     ];
 
     return (
-        <div className="max-w-7xl mx-auto p-8">
-            <div className="flex justify-between items-center mb-8">
+        <div className="max-w-7xl mx-auto py-8 px-4">
+            <div className="flex justify-between items-end mb-10">
                 <div>
-                    <h1 className="text-3xl font-bold text-midnight">Deals</h1>
-                    <p className="text-gray-500 mt-1">Manage and monitor your property transactions</p>
+                    <h1 className="text-4xl font-serif font-bold text-navy-primary mb-2">{t('dashboard.title')}</h1>
+                    <p className="text-text-secondary text-lg">{t('dashboard.subtitle')}</p>
                 </div>
                 <button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="flex items-center gap-2 px-6 py-3 bg-teal text-white font-bold rounded-lg hover:bg-teal/90 shadow-lg transition-all"
+                    className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-teal to-teal/90 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:translate-y-[-2px] transition-all duration-300"
                 >
                     <Plus className="w-5 h-5" />
-                    New Deal
+                    {t('dashboard.newDeal')}
                 </button>
             </div>
 
             {/* Status Tabs */}
-            <div className="mb-6 border-b border-gray-200">
-                <div className="flex gap-1">
+            <div className="mb-8">
+                <div className="flex gap-4 p-1 bg-white/50 backdrop-blur-sm rounded-2xl inline-flex border border-white/20">
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setStatusFilter(tab.id)}
-                            className={`px-6 py-3 font-bold text-sm transition-colors relative ${statusFilter === tab.id
-                                    ? 'text-teal'
-                                    : 'text-gray-500 hover:text-gray-700'
+                            className={`px-6 py-3 font-bold text-sm rounded-xl transition-all duration-300 flex items-center gap-3 ${statusFilter === tab.id
+                                ? 'bg-navy-primary text-white shadow-lg transform scale-105'
+                                : 'text-text-secondary hover:bg-white hover:text-navy-primary'
                                 }`}
                         >
                             {tab.label}
-                            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${statusFilter === tab.id
-                                    ? 'bg-teal text-white'
-                                    : 'bg-gray-200 text-gray-600'
+                            <span className={`px-2 py-0.5 rounded-md text-xs font-bold ${statusFilter === tab.id
+                                ? 'bg-white/20 text-white'
+                                : 'bg-gray-200 text-gray-600'
                                 }`}>
                                 {tab.count}
                             </span>
-                            {statusFilter === tab.id && (
-                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-teal"></div>
-                            )}
                         </button>
                     ))}
                 </div>
             </div>
 
             {/* Deals Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-3xl shadow-xl shadow-navy-primary/5 border border-white/20 overflow-hidden backdrop-blur-xl">
                 <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                Property
+                    <thead>
+                        <tr className="border-b border-gray-100 bg-gray-50/50">
+                            <th className="px-8 py-6 text-left text-xs font-bold text-text-light uppercase tracking-widest font-sans">
+                                {t('dashboard.table.property')}
                             </th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                Address
+                            <th className="px-8 py-6 text-left text-xs font-bold text-text-light uppercase tracking-widest font-sans">
+                                {t('dashboard.table.address')}
                             </th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                Status
+                            <th className="px-8 py-6 text-left text-xs font-bold text-text-light uppercase tracking-widest font-sans">
+                                {t('dashboard.table.status')}
                             </th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                Phase
+                            <th className="px-8 py-6 text-left text-xs font-bold text-text-light uppercase tracking-widest font-sans">
+                                {t('dashboard.table.phase')}
                             </th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                Date
+                            <th className="px-8 py-6 text-left text-xs font-bold text-text-light uppercase tracking-widest font-sans">
+                                {t('dashboard.table.date')}
                             </th>
-                            <th className="px-6 py-4"></th>
+                            <th className="px-8 py-6"></th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-50">
                         {filteredDeals.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="px-6 py-12 text-center">
-                                    <div className="text-gray-400">
-                                        {statusFilter === 'active' && 'No active deals. Click "New Deal" to get started.'}
-                                        {statusFilter === 'on_hold' && 'No deals on hold.'}
-                                        {statusFilter === 'closed' && 'No closed deals yet.'}
+                                <td colSpan={6} className="px-8 py-20 text-center">
+                                    <div className="flex flex-col items-center justify-center text-text-light">
+                                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                            <Calendar className="w-8 h-8 opacity-20" />
+                                        </div>
+                                        <p className="text-lg font-medium text-text-secondary">
+                                            {statusFilter === 'active' && t('dashboard.empty.active')}
+                                            {statusFilter === 'on_hold' && t('dashboard.empty.onHold')}
+                                            {statusFilter === 'closed' && t('dashboard.empty.closed')}
+                                        </p>
                                     </div>
                                 </td>
                             </tr>
@@ -131,31 +135,35 @@ export default function DashboardPage() {
                                 <tr
                                     key={deal.id}
                                     onClick={() => router.push(`/deal/${deal.id}`)}
-                                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                                    className="hover:bg-teal/[0.02] cursor-pointer transition-colors group"
                                 >
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <Building className="w-5 h-5 text-teal" />
+                                    <td className="px-8 py-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-teal/10 flex items-center justify-center text-teal group-hover:bg-teal group-hover:text-white transition-colors duration-300">
+                                                <Building className="w-5 h-5" />
+                                            </div>
                                             <div>
-                                                <div className="font-medium text-midnight">{deal.title}</div>
+                                                <div className="font-serif font-bold text-lg text-navy-primary mb-1">{deal.title}</div>
                                                 {deal.dealNumber && (
-                                                    <div className="text-xs text-gray-400 font-mono">#{deal.dealNumber}</div>
+                                                    <div className="text-xs text-text-light font-bold font-mono tracking-wide">#{deal.dealNumber}</div>
                                                 )}
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-gray-600">
+                                    <td className="px-8 py-6 text-sm text-text-secondary font-medium">
                                         {deal.propertyAddress || 'N/A'}
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <DealStatusBadge status={deal.status} />
+                                    <td className="px-8 py-6">
+                                        <div className="transform scale-90 origin-left">
+                                            <DealStatusBadge status={deal.status} />
+                                        </div>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-teal/10 text-teal">
+                                    <td className="px-8 py-6">
+                                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold bg-navy-primary/5 text-navy-secondary border border-transparent group-hover:border-teal/20 group-hover:bg-teal/5 transition-all">
                                             {getStepLabel(deal.currentStep || 'onboarding')}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-gray-600">
+                                    <td className="px-8 py-6 text-sm text-text-light font-medium">
                                         <div className="flex items-center gap-2">
                                             <Calendar className="w-4 h-4" />
                                             {statusFilter === 'closed' && deal.closedAt
@@ -163,9 +171,9 @@ export default function DashboardPage() {
                                                 : new Date(deal.createdAt).toLocaleDateString()}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button className="text-teal font-medium hover:text-teal/80">
-                                            View →
+                                    <td className="px-8 py-6 text-right">
+                                        <button className="w-8 h-8 rounded-full flex items-center justify-center text-text-light hover:text-teal hover:bg-teal/10 transition-all transform hover:translate-x-1">
+                                            →
                                         </button>
                                     </td>
                                 </tr>

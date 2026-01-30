@@ -5,6 +5,7 @@ import { useData } from '@/lib/store';
 import { X, UserPlus } from 'lucide-react';
 import { Role, GlobalParticipant } from '@/lib/types';
 import DuplicateDetectionModal from './DuplicateDetectionModal';
+import { useTranslation, TranslationKey } from '@/lib/useTranslation';
 
 interface AddParticipantModalProps {
     onClose: () => void;
@@ -12,6 +13,7 @@ interface AddParticipantModalProps {
 
 export default function AddParticipantModal({ onClose }: AddParticipantModalProps) {
     const { createGlobalParticipant, checkDuplicateEmail, getParticipantDeals } = useData();
+    const { t } = useTranslation();
 
     const [formData, setFormData] = useState({
         name: '',
@@ -41,7 +43,7 @@ export default function AddParticipantModal({ onClose }: AddParticipantModalProp
         e.preventDefault();
 
         if (!formData.name || !formData.email) {
-            alert('Name and email are required');
+            alert(t('modal.addParticipant.errorRequired'));
             return;
         }
 
@@ -93,12 +95,14 @@ export default function AddParticipantModal({ onClose }: AddParticipantModalProp
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                 <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
                     {/* Header */}
-                    <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-midnight text-white">
-                        <h2 className="text-lg font-bold flex items-center gap-2">
-                            <UserPlus className="w-5 h-5" />
-                            Add New Participant
+                    <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 text-navy-primary">
+                        <h2 className="text-xl font-bold font-serif flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-teal flex items-center justify-center text-white shadow-md shadow-teal/20">
+                                <UserPlus className="w-4 h-4" />
+                            </div>
+                            {t('modal.addParticipant.title')}
                         </h2>
-                        <button onClick={onClose} className="text-white/80 hover:text-white">
+                        <button onClick={onClose} className="text-gray-400 hover:text-navy-primary transition-colors p-1 hover:bg-gray-100 rounded-lg">
                             <X className="w-5 h-5" />
                         </button>
                     </div>
@@ -108,7 +112,7 @@ export default function AddParticipantModal({ onClose }: AddParticipantModalProp
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Full Name *
+                                    {t('modal.addParticipant.name')}
                                 </label>
                                 <input
                                     type="text"
@@ -116,13 +120,13 @@ export default function AddParticipantModal({ onClose }: AddParticipantModalProp
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal outline-none"
-                                    placeholder="e.g. John Smith"
+                                    placeholder={t('modal.addParticipant.placeholderName')}
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Email *
+                                    {t('modal.addParticipant.email')}
                                 </label>
                                 <input
                                     type="email"
@@ -131,26 +135,26 @@ export default function AddParticipantModal({ onClose }: AddParticipantModalProp
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     onBlur={handleEmailBlur}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal outline-none"
-                                    placeholder="e.g. john@example.com"
+                                    placeholder={t('modal.addParticipant.placeholderEmail')}
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Phone
+                                    {t('modal.addParticipant.phone')}
                                 </label>
                                 <input
                                     type="tel"
                                     value={formData.phone}
                                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal outline-none"
-                                    placeholder="e.g. +359 888 123 456"
+                                    placeholder={t('modal.addParticipant.placeholderPhone')}
                                 />
                             </div>
 
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                                 <p className="text-xs text-blue-800">
-                                    💡 This creates a participant record. You can add them to specific deals later from the deal's participant management.
+                                    {t('modal.addParticipant.help')}
                                 </p>
                             </div>
                         </div>
@@ -160,15 +164,15 @@ export default function AddParticipantModal({ onClose }: AddParticipantModalProp
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg"
+                                className="px-5 py-2.5 text-gray-600 font-bold hover:bg-gray-50 rounded-xl transition-colors"
                             >
-                                Cancel
+                                {t('common.cancel')}
                             </button>
                             <button
                                 type="submit"
-                                className="px-6 py-2 bg-teal text-white font-bold rounded-lg hover:bg-teal/90"
+                                className="px-6 py-2.5 bg-teal text-white font-bold rounded-xl hover:bg-teal/90 shadow-lg shadow-teal/20 transition-all hover:scale-105"
                             >
-                                Add Participant
+                                {t('modal.addParticipant.submit')}
                             </button>
                         </div>
                     </form>

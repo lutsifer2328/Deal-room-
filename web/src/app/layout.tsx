@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Playfair_Display, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/authContext";
-import Sidebar from "@/components/layout/Sidebar";
-import Navbar from "@/components/layout/Navbar";
-import RoleSwitcher from "@/components/debug/RoleSwitcher";
 import { DataProvider } from "@/lib/store";
+import { LanguageProvider } from "@/lib/LanguageContext";
+import ClientLayout from "@/components/layout/ClientLayout";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
 });
 
@@ -30,23 +29,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-midnight`}
+        className={`${playfair.variable} ${dmSans.variable} antialiased text-text-main`}
       >
         <AuthProvider>
-          <DataProvider>
-            <div className="flex h-screen overflow-hidden">
-              <Sidebar />
-
-              <div className="flex-1 flex flex-col ml-64 h-full relative z-0">
-                <Navbar />
-                <main className="flex-1 overflow-y-auto p-8">
-                  {children}
-                </main>
-              </div>
-
-              <RoleSwitcher />
-            </div>
-          </DataProvider>
+          <LanguageProvider>
+            <DataProvider>
+              <ClientLayout>
+                {children}
+              </ClientLayout>
+            </DataProvider>
+          </LanguageProvider>
         </AuthProvider>
       </body>
     </html>

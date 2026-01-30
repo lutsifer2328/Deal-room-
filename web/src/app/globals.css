@@ -1,38 +1,83 @@
 @import "tailwindcss";
 
 :root {
-  --background: #F8F9FA;
-  --foreground: #0A1F33;
-  
-  /* Brand Colors */
-  --prop-midnight: #0A1F33;
-  --prop-teal: #17A2B8;
-  --prop-gold: #C5A059;
-  --prop-offwhite: #F8F9FA;
+  /* Core Palette */
+  --primary-navy: #1a2332;
+  --secondary-navy: #243447;
+  --accent-gold: #d4af37;
+  --accent-teal: #2dd4bf;
+
+  /* Text Colors */
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-light: #94a3b8;
+
+  /* Backgrounds */
+  --bg-white: #ffffff;
+  --bg-gray: #f8fafc;
+
+  /* Borders & Status */
+  --border-light: #e2e8f0;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+
+  /* Legacy Mappings (soft migration) */
+  --background: var(--bg-gray);
+  --foreground: var(--text-primary);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  
-  --color-midnight: var(--prop-midnight);
-  --color-teal: var(--prop-teal);
-  --color-gold: var(--prop-gold);
-  --color-offwhite: var(--prop-offwhite);
-  
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0A1F33;
-    --foreground: #F8F9FA;
-  }
+  /* New Tokens */
+  --color-navy-primary: var(--primary-navy);
+  --color-navy-secondary: var(--secondary-navy);
+  --color-gold: var(--accent-gold);
+  --color-teal: var(--accent-teal);
+
+  /* Text Tokens */
+  --color-text-main: var(--text-primary);
+  --color-text-muted: var(--text-secondary);
+  --color-text-light: var(--text-light);
+
+  /* Legacy/Color mappings for existing components */
+  --color-midnight: var(--primary-navy);
+  --color-teal: var(--accent-teal);
+
+  --font-serif: var(--font-playfair);
+  --font-sans: var(--font-dm-sans);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  color: var(--text-primary);
+  font-family: var(--font-dm-sans), sans-serif;
+  overflow-x: hidden;
+}
+
+/* Global Animation Utilities */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

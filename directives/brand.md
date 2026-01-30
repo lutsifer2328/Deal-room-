@@ -14,4 +14,4 @@ Background: Off-White/Cool Gray (#F8F9FA) — To keep the interface clean and re
 
 Typography: Professional Sans-Serif (e.g., Montserrat or Open Sans) with heavy weights for headings to convey strength.
 
-The "Feel": Minimalist. No cluttered sidebars. Only show the user what they need to do now.
+The "Feel": Minimalist. No cluttered sidebars. Only show the user what they need to do now. 

@@ -2,6 +2,7 @@
 
 import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
+import { useTranslation } from '@/lib/useTranslation';
 import { Search, FileText, Eye, ExternalLink, Filter } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -12,6 +13,7 @@ export default function SearchAllDocumentsTab() {
     const { deals, tasks } = useData();
     const { user } = useAuth();
     const router = useRouter();
+    const { t } = useTranslation();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'private' | 'verified' | 'released' | 'rejected'>('all');
@@ -119,150 +121,170 @@ export default function SearchAllDocumentsTab() {
     return (
         <div>
             {/* Header */}
-            <div className="mb-6">
-                <h2 className="text-xl font-bold text-midnight mb-2">🔍 Search All Documents</h2>
-                <p className="text-sm text-gray-600">
-                    Search and filter documents across all deals
+            <div className="mb-8">
+                <h2 className="text-2xl font-bold text-navy-primary font-serif mb-2 flex items-center gap-2">
+                    🔍 {t('archive.search.title') || 'Search All Documents'}
+                </h2>
+                <p className="text-text-secondary">
+                    {t('archive.search.subtitle') || 'Search and filter documents across all deals'}
                 </p>
             </div>
 
             {/* Search and Filters */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-4">
+            <div className="bg-white rounded-2xl p-6 mb-8 shadow-sm border border-gray-100">
                 {/* Search Bar */}
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <div className="relative mb-6">
+                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search by document name, deal, address, or participant..."
-                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none transition-all"
+                        className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all placeholder:text-gray-400 text-navy-primary"
                     />
                 </div>
 
                 {/* Filters */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            <Filter className="w-4 h-4 inline mr-1" />
+                        <label className="block text-sm font-bold text-navy-primary mb-2">
+                            <Filter className="w-4 h-4 inline mr-1.5 text-teal" />
                             Status
                         </label>
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value as any)}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none transition-all"
-                        >
-                            <option value="all">All Statuses</option>
-                            <option value="private">Private</option>
-                            <option value="verified">Verified</option>
-                            <option value="released">Released</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
+                        <div className="relative">
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value as any)}
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all appearance-none bg-white text-navy-primary font-medium"
+                            >
+                                <option value="all">All Statuses</option>
+                                <option value="private">Private</option>
+                                <option value="verified">Verified</option>
+                                <option value="released">Released</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400">
+                                ▼
+                            </div>
+                        </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            <Filter className="w-4 h-4 inline mr-1" />
+                        <label className="block text-sm font-bold text-navy-primary mb-2">
+                            <Filter className="w-4 h-4 inline mr-1.5 text-teal" />
                             Deal
                         </label>
-                        <select
-                            value={dealFilter}
-                            onChange={(e) => setDealFilter(e.target.value)}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none transition-all"
-                        >
-                            <option value="all">All Deals</option>
-                            {deals.map(deal => (
-                                <option key={deal.id} value={deal.id}>
-                                    {deal.title} - {deal.propertyAddress}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="relative">
+                            <select
+                                value={dealFilter}
+                                onChange={(e) => setDealFilter(e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all appearance-none bg-white text-navy-primary font-medium"
+                            >
+                                <option value="all">All Deals</option>
+                                {deals.map(deal => (
+                                    <option key={deal.id} value={deal.id}>
+                                        {deal.title} - {deal.propertyAddress}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400">
+                                ▼
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Results Count */}
-            <div className="mb-4 text-sm text-gray-600">
-                Found <strong>{filteredDocuments.length}</strong> document{filteredDocuments.length !== 1 ? 's' : ''}
-                {searchQuery && ` matching "${searchQuery}"`}
+            <div className="mb-4 text-sm font-medium text-text-light flex items-center gap-2">
+                <div className="h-px bg-gray-200 flex-grow"></div>
+                <span>
+                    Found <strong className="text-navy-primary">{filteredDocuments.length}</strong> document{filteredDocuments.length !== 1 ? 's' : ''}
+                    {searchQuery && <span className="text-text-secondary"> matching "{searchQuery}"</span>}
+                </span>
+                <div className="h-px bg-gray-200 flex-grow"></div>
             </div>
 
             {/* Table */}
             {filteredDocuments.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600 font-medium">No documents found</p>
-                    <p className="text-sm text-gray-500">Try adjusting your search or filters</p>
+                <div className="text-center py-16 bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-200">
+                    <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-navy-primary font-bold text-lg mb-2">No documents found</p>
+                    <p className="text-text-secondary">Try adjusting your search or filters</p>
                 </div>
             ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-gray-200 bg-gray-50">
-                                <th className="text-left py-3 px-4 font-bold text-midnight">Document</th>
-                                <th className="text-left py-3 px-4 font-bold text-midnight">Deal</th>
-                                <th className="text-left py-3 px-4 font-bold text-midnight">Participant</th>
-                                <th className="text-left py-3 px-4 font-bold text-midnight">Uploaded</th>
-                                <th className="text-left py-3 px-4 font-bold text-midnight">Status</th>
-                                <th className="text-right py-3 px-4 font-bold text-midnight">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredDocuments.map((item, index) => (
-                                <tr key={`${item.taskId}-${item.doc.id}`} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                    <td className="py-3 px-4">
-                                        <div className="flex items-center gap-2">
-                                            <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                            <div>
-                                                <div className="font-medium text-midnight">{item.doc.title_en}</div>
-                                                <div className="text-xs text-gray-500">{item.taskTitle}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <div className="font-medium text-midnight">{item.dealTitle}</div>
-                                        <div className="text-xs text-gray-500">{item.dealAddress}</div>
-                                        {item.dealStatus === 'closed' && (
-                                            <span className="inline-block mt-1 px-2 py-0.5 bg-gray-200 text-gray-700 text-xs font-bold rounded">
-                                                CLOSED
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="py-3 px-4 text-gray-600 text-sm">
-                                        {item.participantName}
-                                    </td>
-                                    <td className="py-3 px-4 text-gray-600 text-sm">
-                                        {new Date(item.doc.uploadedAt).toLocaleDateString()}
-                                        <div className="text-xs text-gray-400">
-                                            {new Date(item.doc.uploadedAt).toLocaleTimeString()}
-                                        </div>
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-bold rounded ${getStatusBadge(item.doc.status)}`}>
-                                            {getStatusLabel(item.doc.status)}
-                                        </span>
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <div className="flex justify-end gap-2">
-                                            <button
-                                                onClick={() => setPreviewDoc(item.doc)}
-                                                className="p-2 text-gray-600 hover:text-teal hover:bg-teal/10 rounded transition-colors"
-                                                title="View Document"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleViewDeal(item.dealId)}
-                                                className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                                title="View Deal"
-                                            >
-                                                <ExternalLink className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </td>
+                <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="bg-gray-50/50 border-b border-gray-100">
+                                    <th className="text-left py-4 px-6 text-xs font-bold text-text-light uppercase tracking-wider">Document</th>
+                                    <th className="text-left py-4 px-6 text-xs font-bold text-text-light uppercase tracking-wider">Deal</th>
+                                    <th className="text-left py-4 px-6 text-xs font-bold text-text-light uppercase tracking-wider">Participant</th>
+                                    <th className="text-left py-4 px-6 text-xs font-bold text-text-light uppercase tracking-wider">Uploaded</th>
+                                    <th className="text-left py-4 px-6 text-xs font-bold text-text-light uppercase tracking-wider">Status</th>
+                                    <th className="text-right py-4 px-6 text-xs font-bold text-text-light uppercase tracking-wider">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {filteredDocuments.map((item) => (
+                                    <tr key={`${item.taskId}-${item.doc.id}`} className="hover:bg-teal/[0.02] transition-colors group">
+                                        <td className="py-4 px-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-gray-50 rounded-lg text-gray-400 group-hover:text-teal group-hover:bg-teal/10 transition-colors">
+                                                    <FileText className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold text-navy-primary group-hover:text-teal transition-colors">{item.doc.title_en}</div>
+                                                    <div className="text-xs text-text-light font-medium">{item.taskTitle}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-6">
+                                            <div className="font-bold text-navy-primary text-sm">{item.dealTitle}</div>
+                                            <div className="text-xs text-text-light font-medium mt-0.5">{item.dealAddress}</div>
+                                            {item.dealStatus === 'closed' && (
+                                                <span className="inline-block mt-1.5 px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-wider rounded border border-gray-200">
+                                                    CLOSED
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="py-4 px-6 text-text-secondary text-sm font-medium">
+                                            {item.participantName}
+                                        </td>
+                                        <td className="py-4 px-6 text-text-secondary text-sm">
+                                            {new Date(item.doc.uploadedAt).toLocaleDateString()}
+                                            <div className="text-xs text-text-light opacity-60 font-medium">
+                                                {new Date(item.doc.uploadedAt).toLocaleTimeString()}
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-6">
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-md shadow-sm border ${getStatusBadge(item.doc.status)} border-opacity-20`}>
+                                                {getStatusLabel(item.doc.status)}
+                                            </span>
+                                        </td>
+                                        <td className="py-4 px-6">
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => setPreviewDoc(item.doc)}
+                                                    className="p-2 text-text-light hover:text-teal hover:bg-teal/10 rounded-lg transition-colors"
+                                                    title="View Document"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleViewDeal(item.dealId)}
+                                                    className="p-2 text-text-light hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="View Deal"
+                                                >
+                                                    <ExternalLink className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 

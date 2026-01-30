@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, DealStatus, Role, StandardDocument, GlobalParticipant, DealParticipant } from './types';
+import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, DealStatus, Role, StandardDocument, GlobalParticipant, DealParticipant, Notification } from './types';
 import * as InitialData from './mockData';
 import { MOCK_STANDARD_DOCUMENTS } from './mockStandardDocuments';
 import { MOCK_GLOBAL_PARTICIPANTS } from './mockGlobalParticipants';
@@ -53,12 +53,18 @@ interface DataContextType {
     dealParticipants: DealParticipant[];
     createGlobalParticipant: (participant: Omit<GlobalParticipant, 'id' | 'createdAt' | 'updatedAt'>) => string;
     updateGlobalParticipant: (id: string, updates: Partial<GlobalParticipant>) => void;
+    deleteGlobalParticipant: (id: string) => void;
     checkDuplicateEmail: (email: string) => GlobalParticipant | null;
     getParticipantDeals: (participantId: string) => Array<{ deal: Deal, dealParticipant: DealParticipant }>;
     getRecentParticipants: (days?: number) => GlobalParticipant[];
 
     // Logs
     logs: AuditLogEntry[];
+
+    // Notifications
+    notifications: Notification[];
+    markAsRead: (id: string) => void;
+    markAllAsRead: () => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -91,6 +97,45 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         return MOCK_DEAL_PARTICIPANTS;
     });
+
+    const [notifications, setNotifications] = useState<Notification[]>([
+        {
+            id: 'n1',
+            type: 'info',
+            title: 'New Deal Assigned',
+            message: 'You have been assigned to the "Luxury Apartment in Lozenets" deal.',
+            timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 mins ago
+            read: false,
+            link: '/deal/d_123'
+        },
+        {
+            id: 'n2',
+            type: 'warning',
+            title: 'Document Expiring Soon',
+            message: 'The "Cadastral Sketch" for "Sunny Beach Villa" expires in 3 days.',
+            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
+            read: false
+        },
+        {
+            id: 'n3',
+            type: 'success',
+            title: 'Deal Closed',
+            message: 'The "City Center Office" deal has been successfully closed.',
+            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
+            read: true,
+            link: '/archive'
+        }
+    ]);
+
+    const markAsRead = (id: string) => {
+        setNotifications(notifications.map(n =>
+            n.id === id ? { ...n, read: true } : n
+        ));
+    };
+
+    const markAllAsRead = () => {
+        setNotifications(notifications.map(n => ({ ...n, read: true })));
+    };
 
     // Persist to localStorage
     React.useEffect(() => {
@@ -659,6 +704,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ));
     };
 
+    const deleteGlobalParticipant = (id: string) => {
+        // Remove from global participants
+        setGlobalParticipants(prev => prev.filter(p => p.id !== id));
+        // Remove from deal links
+        setDealParticipants(prev => prev.filter(dp => dp.participantId !== id));
+    };
+
     const checkDuplicateEmail = (email: string): GlobalParticipant | null => {
         const normalized = email.toLowerCase().trim();
         return globalParticipants.find(p => p.email.toLowerCase().trim() === normalized) || null;
@@ -700,9 +752,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
             dealParticipants,
             createGlobalParticipant,
             updateGlobalParticipant,
+            deleteGlobalParticipant,
             checkDuplicateEmail,
             getParticipantDeals,
-            getRecentParticipants
+
+            getRecentParticipants,
+
+            notifications,
+            markAsRead,
+            markAllAsRead
         }}>
             {children}
         </DataContext.Provider>

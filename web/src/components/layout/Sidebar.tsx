@@ -1,66 +1,137 @@
 'use client';
 
-import { LayoutDashboard, Archive, Users, CreditCard, Building, Settings } from 'lucide-react';
+import { LayoutDashboard, Archive, Users, CreditCard, Settings, Globe, ChevronUp, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/authContext';
+import { useTranslation } from '@/lib/useTranslation';
+import { useState } from 'react';
+import { MOCK_USERS } from '@/lib/mockData';
 
 export default function Sidebar() {
-    const { user } = useAuth();
+    const { user, loginAs } = useAuth();
     const pathname = usePathname();
+    const { t, language, setLanguage } = useTranslation();
+    const [showUserMenu, setShowUserMenu] = useState(false);
 
     if (!user) return null;
 
     const navItems = [
-        { icon: LayoutDashboard, label: 'Deal Room', href: '/dashboard', roles: ['lawyer', 'admin', 'staff', 'viewer'] },
-        { icon: Archive, label: 'Archive', href: '/archive', roles: ['lawyer', 'admin', 'buyer', 'seller', 'agent', 'staff'] },
-        { icon: Users, label: 'Participants', href: '/participants', roles: ['lawyer', 'admin', 'staff'] },
-        { icon: CreditCard, label: 'Finances', href: '/finances', roles: ['lawyer', 'admin'] },
-        { icon: Settings, label: 'Settings', href: '/settings', roles: ['admin'] },
+        { icon: LayoutDashboard, label: t('nav.dealRoom'), href: '/dashboard', roles: ['lawyer', 'admin', 'staff', 'viewer'] },
+        { icon: Archive, label: t('nav.archive'), href: '/archive', roles: ['lawyer', 'admin', 'buyer', 'seller', 'agent', 'staff'] },
+        { icon: Users, label: t('nav.participants'), href: '/participants', roles: ['lawyer', 'admin', 'staff'] },
+        { icon: CreditCard, label: t('nav.finances'), href: '/finances', roles: ['lawyer', 'admin'] },
+        { icon: Settings, label: t('nav.settings'), href: '/settings', roles: ['admin'] },
     ];
 
 
     const visibleItems = navItems.filter(item => item.roles.includes(user.role));
 
+    // Get all mock users for the switcher
+    const switchableUsers = Object.values(MOCK_USERS);
+
     return (
-        <div className="w-64 bg-midnight text-white min-h-screen p-6 flex flex-col">
-            {/* Logo */}
-            <div className="mb-8">
-                <div className="flex items-center gap-2 text-2xl font-bold">
-                    <Building className="w-8 h-8 text-teal" />
-                    <span>AGENZIA<span className="text-gold">.BG</span></span>
+        <aside className="w-[280px] bg-gradient-to-b from-navy-primary to-navy-secondary text-white min-h-screen py-8 fixed h-screen shadow-2xl z-50 flex flex-col overflow-y-auto">
+            {/* Logo Section */}
+            <div className="px-8 pb-4 border-b border-white/10 mb-4">
+                <div className="font-serif text-[1.75rem] font-bold text-white tracking-[0.5px] mb-4">DEAL ROOM</div>
+                <div className="flex flex-col gap-1">
+                    <div className="text-xs text-teal font-bold uppercase tracking-[2px]">Powered by</div>
+                    <img
+                        src="/logo.png"
+                        alt="Agenzia"
+                        className="h-44 w-auto object-contain brightness-0 invert opacity-90 -ml-4 -my-4"
+                    />
                 </div>
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 space-y-2">
-                {visibleItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = pathname === item.href || pathname?.startsWith(item.href);
+            <nav className="flex-1 px-0">
+                <div className="space-y-1">
+                    {visibleItems.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = pathname === item.href || pathname?.startsWith(item.href);
 
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
-                                ? 'bg-teal text-white font-bold shadow-lg'
-                                : 'text-white/70 hover:bg-white/10 hover:text-white'
-                                }`}
-                        >
-                            <Icon className="w-5 h-5" />
-                            <span>{item.label}</span>
-                        </Link>
-                    );
-                })}
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`flex items-center gap-4 px-8 py-4 transition-all duration-300 font-medium border-l-[3px] ${isActive
+                                    ? 'bg-teal/10 text-teal border-teal'
+                                    : 'text-white/70 hover:bg-white/5 hover:text-white border-transparent hover:border-teal'
+                                    }`}
+                            >
+                                <Icon className={`w-5 h-5 ${isActive ? 'opacity-100' : 'opacity-80'}`} />
+                                <span className="tracking-wide">{item.label}</span>
+                            </Link>
+                        );
+                    })}
+                </div>
             </nav>
 
-            {/* Footer Info */}
-            <div className="mt-auto pt-6 border-t border-white/10">
-                <p className="text-xs text-white/50">
-                    Logged in as <strong className="text-white">{user.name}</strong>
-                </p>
-                <p className="text-xs text-white/30 capitalize">{user.role}</p>
+            {/* Language Switcher & User Profile */}
+            <div className="px-8 pb-8 space-y-6 relative">
+                {/* Language Toggles */}
+                <div className="flex gap-2 justify-center bg-white/5 rounded-lg p-1 border border-white/10">
+                    <button
+                        onClick={() => setLanguage('en')}
+                        className={`flex-1 py-1 text-xs font-bold rounded ${language === 'en' ? 'bg-teal text-white shadow-sm' : 'text-white/50 hover:text-white'}`}
+                    >
+                        EN
+                    </button>
+                    <button
+                        onClick={() => setLanguage('bg')}
+                        className={`flex-1 py-1 text-xs font-bold rounded ${language === 'bg' ? 'bg-teal text-white shadow-sm' : 'text-white/50 hover:text-white'}`}
+                    >
+                        BG
+                    </button>
+                </div>
+
+                {/* User Profile / Role Switcher Trigger */}
+                <div className="relative">
+                    {showUserMenu && (
+                        <div className="absolute bottom-full left-0 w-full mb-2 bg-white rounded-xl shadow-2xl p-2 z-50 animate-in slide-in-from-bottom-2 fade-in duration-200 border border-gray-100 max-h-64 overflow-y-auto">
+                            <div className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Switch Role</div>
+                            {switchableUsers.map((u) => (
+                                <button
+                                    key={u.id}
+                                    onClick={() => {
+                                        loginAs(u.id);
+                                        setShowUserMenu(false);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between mb-1 ${user.id === u.id
+                                        ? 'bg-teal/10 text-teal font-bold'
+                                        : 'text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <span>{u.name}</span>
+                                    <span className="text-[10px] uppercase bg-gray-100 px-1 rounded text-gray-500">{u.role}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    <div
+                        onClick={() => setShowUserMenu(!showUserMenu)}
+                        className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-200 ${showUserMenu
+                            ? 'bg-white text-navy-primary border-white shadow-lg transform -translate-y-1'
+                            : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                            }`}
+                    >
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg transition-colors ${showUserMenu ? 'bg-teal text-white' : 'bg-gradient-to-br from-teal to-gold text-navy-primary'
+                            }`}>
+                            {user.name.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold truncate">{user.name}</div>
+                            <div className={`text-xs truncate capitalize ${showUserMenu ? 'text-gray-500' : 'text-white/60'}`}>
+                                {t(`role.${user.role}` as any)}
+                            </div>
+                        </div>
+                        <ChevronUp className={`w-4 h-4 transition-transform ${showUserMenu ? 'rotate-180 text-gray-400' : 'text-white/30'}`} />
+                    </div>
+                </div>
             </div>
-        </div>
+        </aside>
     );
 }

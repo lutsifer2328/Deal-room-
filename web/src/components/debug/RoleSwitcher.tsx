@@ -28,8 +28,9 @@ export default function RoleSwitcher() {
             role: p.role
         }));
 
-    // Add lawyer
+    // Add lawyer and Admin
     const allUsers = [
+        { id: 'u_admin', name: 'Admin User', email: 'admin@agenzia.bg', role: 'admin' },
         { id: 'u_lawyer', name: 'Elena Petrova', email: 'elena@agenzia.bg', role: 'lawyer' },
         ...participantUsers
     ];
@@ -43,6 +44,7 @@ export default function RoleSwitcher() {
             'attorney': 'bg-orange-600 text-white',
             'notary': 'bg-green-600 text-white',
             'bank_representative': 'bg-gray-600 text-white',
+            'admin': 'bg-red-600 text-white',
         };
         return colors[role] || 'bg-gray-500 text-white';
     };
@@ -50,10 +52,7 @@ export default function RoleSwitcher() {
     return (
         <div className="fixed bottom-4 left-4 z-50">
             <div className="relative">
-                {/* Warning Badge */}
-                <div className="absolute -top-2 -left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase">
-                    DEV ONLY - Debug Tool
-                </div>
+                {/* Warning Badge Removed */}
 
                 {/* Current User Display */}
                 <button

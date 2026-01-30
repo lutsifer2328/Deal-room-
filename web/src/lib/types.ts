@@ -173,3 +173,13 @@ export interface Deal {
   agentId?: string;
   createdAt: string;
 }
+
+export interface Notification {
+  id: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  link?: string;
+}

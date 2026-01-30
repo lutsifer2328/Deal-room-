@@ -2,30 +2,37 @@
 
 import { useAuth } from '@/lib/authContext';
 import { useData } from '@/lib/store';
-import { Bell, Search, X } from 'lucide-react';
+import { Bell, Search, X, Clock, Check, Info, AlertTriangle } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Notification } from '@/lib/types';
+import Link from 'next/link';
 
 export default function Navbar() {
     const { user } = useAuth();
-    const { deals } = useData();
+    const { deals, notifications, markAsRead, markAllAsRead } = useData();
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
     const [showResults, setShowResults] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const notificationRef = useRef<HTMLDivElement>(null);
 
-    // Close search results when clicking outside
+    // Close dropdowns when clicking outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
                 setShowResults(false);
+            }
+            if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+                setShowNotifications(false);
             }
         }
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Search across deals and participants
+    // Search logic...
     const searchResults = deals.filter(deal => {
         const query = searchQuery.toLowerCase().trim();
         if (!query) return false;
@@ -44,7 +51,7 @@ export default function Navbar() {
         );
 
         return dealMatches || participantMatches;
-    }).slice(0, 5); // Limit to 5 results
+    }).slice(0, 5);
 
     const handleResultClick = (dealId: string) => {
         router.push(`/deal/${dealId}`);
@@ -57,12 +64,14 @@ export default function Navbar() {
         setShowResults(false);
     };
 
+    const unreadCount = notifications.filter(n => !n.read).length;
+
     return (
-        <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-6 sticky top-0 z-30">
+        <header className="h-24 bg-transparent flex items-center justify-between px-12 mb-8 sticky top-0 z-30">
             {/* Search */}
             <div className="flex-1 max-w-2xl relative" ref={searchRef}>
-                <div className="relative">
-                    <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <div className="relative group">
+                    <Search className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-text-light group-focus-within:text-teal transition-colors" />
                     <input
                         type="text"
                         value={searchQuery}
@@ -72,21 +81,21 @@ export default function Navbar() {
                         }}
                         onFocus={() => setShowResults(true)}
                         placeholder="Search deals, clients, phone, email..."
-                        className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal focus:border-teal outline-none text-sm"
+                        className="w-full pl-14 pr-10 py-3 bg-white border-2 border-border-light rounded-2xl focus:border-teal/50 focus:ring-4 focus:ring-teal/10 outline-none text-base font-medium shadow-sm transition-all text-text-main placeholder:text-text-light/70"
                     />
                     {searchQuery && (
                         <button
                             onClick={handleClearSearch}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-text-light hover:text-text-secondary"
                         >
-                            <X className="w-4 h-4" />
+                            <X className="w-5 h-5" />
                         </button>
                     )}
                 </div>
 
                 {/* Search Results Dropdown */}
                 {showResults && searchQuery && (
-                    <div className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto z-50">
+                    <div className="absolute top-full mt-4 w-full bg-white rounded-2xl shadow-xl border border-border-light max-h-96 overflow-y-auto z-50 p-2">
                         {searchResults.length > 0 ? (
                             <div className="py-2">
                                 {searchResults.map((deal) => {
@@ -101,24 +110,24 @@ export default function Navbar() {
                                         <button
                                             key={deal.id}
                                             onClick={() => handleResultClick(deal.id)}
-                                            className="w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-100 last:border-0"
+                                            className="w-full px-4 py-4 rounded-xl hover:bg-gray-50 transition-colors text-left mb-1 last:mb-0 group"
                                         >
                                             <div className="flex items-start justify-between gap-4">
                                                 <div className="flex-1">
-                                                    <div className="font-bold text-midnight mb-1">
+                                                    <div className="font-serif font-bold text-lg text-navy-primary mb-1 group-hover:text-teal transition-colors">
                                                         {deal.title}
                                                     </div>
-                                                    <div className="text-xs text-gray-500">
+                                                    <div className="text-sm text-text-secondary flex items-center gap-2">
                                                         {deal.propertyAddress || 'No address'}
                                                     </div>
                                                     {matchingParticipant && (
-                                                        <div className="mt-2 text-xs text-teal font-medium">
+                                                        <div className="mt-2 text-xs text-teal font-bold bg-teal/10 px-2 py-1 rounded inline-block">
                                                             👤 {matchingParticipant.fullName} • {matchingParticipant.role}
                                                         </div>
                                                     )}
                                                 </div>
                                                 {deal.dealNumber && (
-                                                    <div className="text-xs text-gray-400 font-mono bg-gray-100 px-2 py-1 rounded">
+                                                    <div className="text-xs font-mono font-bold text-text-light bg-gray-100 px-2 py-1 rounded">
                                                         #{deal.dealNumber}
                                                     </div>
                                                 )}
@@ -128,10 +137,10 @@ export default function Navbar() {
                                 })}
                             </div>
                         ) : (
-                            <div className="px-4 py-8 text-center text-gray-500">
-                                <Search className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                                <p className="text-sm">No deals found for "{searchQuery}"</p>
-                                <p className="text-xs mt-1">Try searching by deal name, client, phone, or email</p>
+                            <div className="px-4 py-12 text-center text-text-light">
+                                <Search className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                                <p className="font-medium text-text-secondary">No deals found for "{searchQuery}"</p>
+                                <p className="text-sm mt-1">Try searching by deal name, client, phone, or email</p>
                             </div>
                         )}
                     </div>
@@ -140,13 +149,106 @@ export default function Navbar() {
 
 
             {/* Right Actions */}
-            <div className="flex items-center gap-6 ml-6">
-                <button className="relative text-gray-400 hover:text-midnight transition-colors">
-                    <Bell className="w-5 h-5" />
-                    <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white translate-x-1/3 -translate-y-1/3"></span>
-                </button>
+            <div className="flex items-center gap-4 ml-6">
 
-                <div className="h-8 w-px bg-gray-200"></div>
+                {/* Notifications */}
+                <div className="relative" ref={notificationRef}>
+                    <button
+                        onClick={() => setShowNotifications(!showNotifications)}
+                        className={`relative w-12 h-12 flex items-center justify-center rounded-xl border transition-all ${showNotifications
+                                ? 'bg-teal text-white border-teal shadow-md'
+                                : 'bg-white border-border-light text-text-secondary hover:text-teal hover:border-teal hover:shadow-md'
+                            }`}
+                    >
+                        <Bell className="w-5 h-5" />
+                        {unreadCount > 0 && (
+                            <span className="absolute top-3 right-3 w-2 h-2 bg-danger rounded-full ring-2 ring-white"></span>
+                        )}
+                    </button>
+
+                    {showNotifications && (
+                        <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-border-light z-50 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
+                            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between bg-navy-primary/5">
+                                <h3 className="font-bold text-navy-primary">Notifications</h3>
+                                {unreadCount > 0 && (
+                                    <button
+                                        onClick={markAllAsRead}
+                                        className="text-xs font-bold text-teal hover:text-teal/80 transition-colors"
+                                    >
+                                        Mark all as read
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="max-h-[400px] overflow-y-auto">
+                                {notifications.length > 0 ? (
+                                    <div className="divide-y divide-gray-50">
+                                        {notifications.map((notification) => (
+                                            <div
+                                                key={notification.id}
+                                                className={`p-4 transition-colors hover:bg-gray-50 ${!notification.read ? 'bg-teal/[0.03]' : ''}`}
+                                            >
+                                                <div className="flex gap-3">
+                                                    <div className={`mt-1 min-w-[32px] h-8 rounded-full flex items-center justify-center ${notification.type === 'success' ? 'bg-green-100 text-green-600' :
+                                                            notification.type === 'warning' ? 'bg-orange-100 text-orange-600' :
+                                                                notification.type === 'error' ? 'bg-red-100 text-red-600' :
+                                                                    'bg-blue-100 text-blue-600'
+                                                        }`}>
+                                                        {notification.type === 'success' ? <Check className="w-4 h-4" /> :
+                                                            notification.type === 'warning' ? <AlertTriangle className="w-4 h-4" /> :
+                                                                notification.type === 'error' ? <AlertTriangle className="w-4 h-4" /> :
+                                                                    <Info className="w-4 h-4" />}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <h4 className={`text-sm font-bold ${!notification.read ? 'text-navy-primary' : 'text-gray-600'}`}>
+                                                                {notification.title}
+                                                            </h4>
+                                                            <span className="text-[10px] text-gray-400 whitespace-nowrap ml-2">
+                                                                {new Date(notification.timestamp).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-gray-500 mb-2 leading-relaxed">
+                                                            {notification.message}
+                                                        </p>
+
+                                                        <div className="flex items-center gap-3">
+                                                            {notification.link && (
+                                                                <Link
+                                                                    href={notification.link}
+                                                                    onClick={() => {
+                                                                        markAsRead(notification.id);
+                                                                        setShowNotifications(false);
+                                                                    }}
+                                                                    className="text-xs font-bold text-teal hover:underline flex items-center gap-1"
+                                                                >
+                                                                    View Details →
+                                                                </Link>
+                                                            )}
+                                                            {!notification.read && (
+                                                                <button
+                                                                    onClick={() => markAsRead(notification.id)}
+                                                                    className="text-xs font-medium text-gray-400 hover:text-navy-primary transition-colors"
+                                                                >
+                                                                    Mark as read
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="p-8 text-center text-gray-400">
+                                        <Bell className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                                        <p className="text-sm">No notifications yet</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 {user && <UserMenu user={user} />}
             </div>
@@ -179,28 +281,28 @@ function UserMenu({ user }: { user: any }) {
         <div className="relative" ref={menuRef}>
             <button
                 onClick={() => setShowMenu(!showMenu)}
-                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                className="flex items-center gap-3 bg-white pl-4 pr-2 py-2 rounded-xl border border-border-light hover:border-teal hover:shadow-md transition-all group"
             >
                 <div className="text-right hidden sm:block">
-                    <div className="text-sm font-semibold text-midnight">{user.name}</div>
-                    <div className="text-xs text-gray-500 capitalize">{user.role}</div>
+                    <div className="text-sm font-bold text-navy-primary group-hover:text-teal transition-colors">{user.name}</div>
+                    <div className="text-xs text-text-light font-medium capitalize">{user.role}</div>
                 </div>
-                <div className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-teal to-gold flex items-center justify-center text-white font-bold shadow-sm">
                     {user.name.charAt(0)}
                 </div>
             </button>
 
             {showMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                        <p className="text-sm font-semibold text-gray-900">{user.name}</p>
-                        <p className="text-xs text-gray-500">{user.email}</p>
+                <div className="absolute right-0 mt-3 w-56 bg-white rounded-xl shadow-xl border border-border-light py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="px-5 py-3 border-b border-gray-50 mb-1">
+                        <p className="text-sm font-bold text-navy-primary">{user.name}</p>
+                        <p className="text-xs text-text-light">{user.email}</p>
                     </div>
                     <button
                         onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        className="w-full text-left px-5 py-3 text-sm font-medium text-danger hover:bg-danger/5 transition-colors flex items-center gap-2"
                     >
-                        Logout
+                        <span>Sign Out</span>
                     </button>
                 </div>
             )}

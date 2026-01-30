@@ -49,11 +49,15 @@ export default function LoginPage() {
             <div className="w-full max-w-md">
                 {/* Logo/Header */}
                 <div className="text-center mb-8">
-                    <div className="flex items-center justify-center gap-3 mb-2">
-                        <Building className="w-12 h-12 text-teal" />
-                        <h1 className="text-5xl font-bold text-white">AGENZIA<span className="text-gold">.BG</span></h1>
+                    <div className="font-serif text-[1.75rem] font-bold text-white tracking-[0.5px] mb-4">DEAL ROOM</div>
+                    <div className="flex flex-col gap-1 items-center justify-center">
+                        <div className="text-xs text-teal font-bold uppercase tracking-[2px]">Powered by</div>
+                        <img
+                            src="/logo.png"
+                            alt="Agenzia"
+                            className="h-32 w-auto object-contain brightness-0 invert opacity-90 -my-2"
+                        />
                     </div>
-                    <p className="text-gold text-sm uppercase tracking-widest">Real Estate Deal Room</p>
                 </div>
 
                 {/* Login Card */}
@@ -120,30 +124,30 @@ export default function LoginPage() {
 
                 {/* Dev Quick Login */}
                 {process.env.NODE_ENV === 'development' && (
-                    <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <p className="text-xs font-semibold text-yellow-800 mb-2">DEV MODE - Quick Login:</p>
+                    <div className="mt-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 text-white">
+                        <p className="text-xs font-bold text-teal mb-2 uppercase tracking-wider">DEV MODE - Quick Login:</p>
                         <div className="grid grid-cols-2 gap-2">
                             <button
                                 onClick={() => quickLogin('u_admin')}
-                                className="px-3 py-2 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                                className="px-3 py-2 bg-navy-secondary text-white text-xs font-bold rounded hover:bg-navy-primary border border-white/10 transition-colors"
                             >
                                 Admin
                             </button>
                             <button
                                 onClick={() => quickLogin('u_lawyer')}
-                                className="px-3 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                                className="px-3 py-2 bg-navy-secondary text-white text-xs font-bold rounded hover:bg-navy-primary border border-white/10 transition-colors"
                             >
                                 Lawyer
                             </button>
                             <button
                                 onClick={() => quickLogin('u_staff')}
-                                className="px-3 py-2 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                                className="px-3 py-2 bg-navy-secondary text-white text-xs font-bold rounded hover:bg-navy-primary border border-white/10 transition-colors"
                             >
                                 Staff
                             </button>
                             <button
                                 onClick={() => quickLogin('u_viewer')}
-                                className="px-3 py-2 bg-gray-600 text-white text-xs rounded hover:bg-gray-700"
+                                className="px-3 py-2 bg-navy-secondary text-white text-xs font-bold rounded hover:bg-navy-primary border border-white/10 transition-colors"
                             >
                                 Viewer
                             </button>
