@@ -24,12 +24,25 @@ export interface User {
   lastLogin?: string;
 }
 
+export interface AgencyContract {
+  id: string;
+  title: string;
+  uploadedAt: string;
+  uploadedBy: string; // User ID
+  url: string;
+}
+
 // Global Participant (one person across all deals)
 export interface GlobalParticipant {
   id: string;
+  userId?: string; // Link to internal system user (if staff/admin)
   name: string;
   email: string; // UNIQUE - one person should only exist once
   phone?: string;
+  agency?: string; // For external agents/brokers
+
+  // Agency Contracts
+  contracts?: AgencyContract[];
 
   // Invitation tracking
   invitationStatus: 'pending' | 'accepted' | 'declined';
@@ -50,6 +63,7 @@ export interface DealParticipant {
   participantId: string; // References GlobalParticipant.id
 
   role: Role;
+  agency?: string; // Override agency for this specific deal if needed (optional)
   permissions: {
     canViewDocuments: boolean;
     canDownloadDocuments: boolean;
@@ -66,9 +80,11 @@ export interface DealParticipant {
 // Legacy Participant (deal-specific, kept for backwards compatibility)
 export interface Participant {
   id: string;
+  userId?: string; // Link to internal system user
   fullName: string;
   email: string;
   phone: string;
+  agency?: string; // For external agents
   role: Role;
   canViewDocuments: boolean;  // Legacy - kept for backwards compatibility
   canDownload: boolean;  // Can download documents they have access to
@@ -138,7 +154,7 @@ export interface AuditLogEntry {
   dealId: string;
   actorId: string;
   actorName: string; // Denormalized for display speed
-  action: 'CREATED_DEAL' | 'ADDED_TASK' | 'UPLOADED_DOC' | 'VERIFIED_DOC' | 'REJECTED_DOC' | 'RELEASED_DOC' | 'UPDATED_PARTICIPANT' | 'UPDATED_DEAL_STEP' | 'ADDED_COMMENT' | 'UPDATED_TIMELINE' | 'UPDATED_DEAL_STATUS';
+  action: 'CREATED_DEAL' | 'ADDED_TASK' | 'REMOVED_TASK' | 'UPLOADED_DOC' | 'VERIFIED_DOC' | 'REJECTED_DOC' | 'RELEASED_DOC' | 'UPDATED_PARTICIPANT' | 'UPDATED_DEAL_STEP' | 'ADDED_COMMENT' | 'UPDATED_TIMELINE' | 'UPDATED_DEAL_STATUS';
   details: string;
   timestamp: string;
 }

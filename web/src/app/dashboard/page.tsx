@@ -20,18 +20,31 @@ export default function DashboardPage() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
 
-    if (!user || (user.role !== 'lawyer' && user.role !== 'admin')) {
+    if (!user || !['admin', 'lawyer', 'staff', 'viewer'].includes(user.role)) {
         return <div className="p-10 text-center">{t('dashboard.accessDenied')}</div>;
     }
 
-    // Filter deals by status
-    const filteredDeals = deals.filter(deal => deal.status === statusFilter);
+    // Filter deals based on user role and participation
+    // Admin & Lawyer: See ALL deals
+    // Staff/Others: See ONLY deals they participate in (by email or userId)
+    const accessibleDeals = deals.filter(deal => {
+        if (user.role === 'admin' || user.role === 'lawyer') return true;
 
-    // Count deals by status
+        // Check if user is a participant in this deal
+        return deal.participants?.some(p =>
+            (p.userId === user.id) ||
+            (p.email.toLowerCase().trim() === user.email.toLowerCase().trim())
+        );
+    });
+
+    // Filter accessible deals by status
+    const filteredDeals = accessibleDeals.filter(deal => deal.status === statusFilter);
+
+    // Count deals by status (using accessible deals filtered)
     const statusCounts = {
-        active: deals.filter(d => d.status === 'active').length,
-        on_hold: deals.filter(d => d.status === 'on_hold').length,
-        closed: deals.filter(d => d.status === 'closed').length
+        active: accessibleDeals.filter(d => d.status === 'active').length,
+        on_hold: accessibleDeals.filter(d => d.status === 'on_hold').length,
+        closed: accessibleDeals.filter(d => d.status === 'closed').length
     };
 
     const getStepLabel = (step: string) => {
@@ -58,13 +71,15 @@ export default function DashboardPage() {
                     <h1 className="text-4xl font-serif font-bold text-navy-primary mb-2">{t('dashboard.title')}</h1>
                     <p className="text-text-secondary text-lg">{t('dashboard.subtitle')}</p>
                 </div>
-                <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-teal to-teal/90 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:translate-y-[-2px] transition-all duration-300"
-                >
-                    <Plus className="w-5 h-5" />
-                    {t('dashboard.newDeal')}
-                </button>
+                {user.permissions.canCreateDeals && (
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-teal to-teal/90 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:translate-y-[-2px] transition-all duration-300"
+                    >
+                        <Plus className="w-5 h-5" />
+                        {t('dashboard.newDeal')}
+                    </button>
+                )}
             </div>
 
             {/* Status Tabs */}

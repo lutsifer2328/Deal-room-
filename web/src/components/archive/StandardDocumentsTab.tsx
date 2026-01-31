@@ -125,12 +125,12 @@ export default function StandardDocumentsTab() {
                                         <td className="py-4 px-6 text-text-secondary text-sm">
                                             {doc.description || <span className="italic text-text-light opacity-60">No description</span>}
                                         </td>
-                                        <td className="py-4 px-6 text-text-secondary text-sm">
-                                            <span className="bg-gray-100 text-text-light px-2.5 py-1 rounded-md text-xs font-bold border border-gray-200">
+                                        <td className="py-4 px-6 text-text-secondary text-sm whitespace-nowrap">
+                                            <span className="bg-gray-100 text-text-light px-2.5 py-1 rounded-md text-xs font-bold border border-gray-200 inline-flex items-center gap-1">
                                                 Used {doc.usageCount}x
                                             </span>
                                         </td>
-                                        <td className="py-4 px-6 text-right">
+                                        <td className="py-4 px-6 text-right whitespace-nowrap">
                                             <div className="flex justify-end gap-2">
                                                 <button
                                                     onClick={() => handleEdit(doc)}

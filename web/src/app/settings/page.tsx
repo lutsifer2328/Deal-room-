@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/authContext';
 import { useRouter } from 'next/navigation';
 import UserManagementTable from '@/components/settings/UserManagementTable';
@@ -14,16 +14,21 @@ export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<'users' | 'general'>('users');
 
     // Redirect if not admin
+    useEffect(() => {
+        if (user && user.role !== 'admin') {
+            router.push('/dashboard');
+        }
+    }, [user, router]);
+
     if (!user || user.role !== 'admin') {
-        router.push('/dashboard');
         return null;
     }
 
     return (
         <div className="p-8">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">{t('settings.title')}</h1>
-                <p className="text-gray-600 mt-2">{t('settings.subtitle')}</p>
+                <h1 className="text-3xl font-serif font-bold text-navy-primary">{t('settings.title')}</h1>
+                <p className="text-text-secondary mt-2">{t('settings.subtitle')}</p>
             </div>
 
             {/* Tabs */}
@@ -31,18 +36,18 @@ export default function SettingsPage() {
                 <nav className="-mb-px flex space-x-8">
                     <button
                         onClick={() => setActiveTab('users')}
-                        className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'users'
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        className={`py-4 px-1 border-b-2 font-bold text-sm transition-colors ${activeTab === 'users'
+                            ? 'border-teal text-teal'
+                            : 'border-transparent text-text-light hover:text-navy-primary hover:border-gray-300'
                             }`}
                     >
                         {t('settings.tab.users')}
                     </button>
                     <button
                         onClick={() => setActiveTab('general')}
-                        className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'general'
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        className={`py-4 px-1 border-b-2 font-bold text-sm transition-colors ${activeTab === 'general'
+                            ? 'border-teal text-teal'
+                            : 'border-transparent text-text-light hover:text-navy-primary hover:border-gray-300'
                             }`}
                     >
                         {t('settings.tab.general')}
@@ -54,17 +59,17 @@ export default function SettingsPage() {
             {activeTab === 'users' && (
                 <div className="space-y-6">
                     {/* Permissions Legend */}
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-6">
-                        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                            <Shield className="w-5 h-5 text-blue-600" />
+                    <div className="bg-gradient-to-br from-navy-primary/5 to-teal/5 rounded-2xl border border-teal/10 p-6">
+                        <h2 className="text-lg font-bold text-navy-primary mb-4 flex items-center gap-2">
+                            <Shield className="w-5 h-5 text-teal" />
                             {t('settings.permissions.title')}
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             {/* Admin */}
-                            <div className="bg-white rounded-lg p-4 border border-purple-200">
+                            <div className="bg-white rounded-xl p-4 border border-navy-primary/10 shadow-sm">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <Shield className="w-5 h-5 text-purple-600" />
-                                    <h3 className="font-bold text-purple-900">{t('settings.role.admin')}</h3>
+                                    <Shield className="w-5 h-5 text-navy-primary" />
+                                    <h3 className="font-bold text-navy-primary">{t('settings.role.admin')}</h3>
                                 </div>
                                 <ul className="space-y-1.5 text-sm">
                                     <li className="flex items-center gap-2 text-green-700">
@@ -92,10 +97,10 @@ export default function SettingsPage() {
                             </div>
 
                             {/* Lawyer */}
-                            <div className="bg-white rounded-lg p-4 border border-blue-200">
+                            <div className="bg-white rounded-xl p-4 border border-gold/20 shadow-sm">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <Briefcase className="w-5 h-5 text-blue-600" />
-                                    <h3 className="font-bold text-blue-900">{t('settings.role.lawyer')}</h3>
+                                    <Briefcase className="w-5 h-5 text-gold" />
+                                    <h3 className="font-bold text-gold">{t('settings.role.lawyer')}</h3>
                                 </div>
                                 <ul className="space-y-1.5 text-sm">
                                     <li className="flex items-center gap-2 text-red-600">
@@ -123,10 +128,10 @@ export default function SettingsPage() {
                             </div>
 
                             {/* Staff */}
-                            <div className="bg-white rounded-lg p-4 border border-green-200">
+                            <div className="bg-white rounded-xl p-4 border border-teal/20 shadow-sm">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <UsersIcon className="w-5 h-5 text-green-600" />
-                                    <h3 className="font-bold text-green-900">{t('settings.role.staff')}</h3>
+                                    <UsersIcon className="w-5 h-5 text-teal" />
+                                    <h3 className="font-bold text-teal">{t('settings.role.staff')}</h3>
                                 </div>
                                 <ul className="space-y-1.5 text-sm">
                                     <li className="flex items-center gap-2 text-red-600">

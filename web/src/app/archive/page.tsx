@@ -18,18 +18,13 @@ export default function ArchivePage() {
 
     if (!user) return <div className="p-10 text-center">Loading...</div>;
 
-    // Only lawyers and admins can access Archive
-    if (user.role !== 'lawyer' && user.role !== 'admin') {
-        return (
-            <div className="p-10 text-center">
-                <h1 className="text-2xl font-bold text-midnight mb-4">{t('archive.accessDenied')}</h1>
-                <p className="text-gray-600">{t('archive.noPermission')}</p>
-            </div>
-        );
+    // Access Control: Everyone can access archive, but content varies by role
+    if (!user) {
+        return <div className="p-10 text-center">Loading...</div>;
     }
 
     return (
-        <div className="flex-1 overflow-y-auto bg-gray-50/50 p-12">
+        <div className="flex-1 overflow-y-auto bg-gray-50/50 p-6 md:p-8">
             <div className="max-w-7xl mx-auto space-y-8">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -64,7 +59,7 @@ export default function ArchivePage() {
                 </div>
 
                 {/* Tab Content */}
-                <div className="bg-white rounded-3xl shadow-xl shadow-navy-primary/5 border border-white/20 p-8 backdrop-blur-xl min-h-[500px]">
+                <div className="bg-white rounded-3xl shadow-xl shadow-navy-primary/5 border border-white/20 p-6 backdrop-blur-xl min-h-[500px]">
                     {activeTab === 'standard' && <StandardDocumentsTab />}
                     {activeTab === 'search' && <SearchAllDocumentsTab />}
                     {activeTab === 'pending' && <PendingReviewTab />}

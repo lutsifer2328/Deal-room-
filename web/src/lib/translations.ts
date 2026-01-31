@@ -234,11 +234,16 @@ export const translations = {
 
         // Statuses
         "status.pending": "Pending",
+        "status.in_review": "In Review",
         "status.completed": "Completed",
         "status.rejected": "Rejected",
         "status.verified": "Verified",
         "status.released": "Released",
         "status.private": "Private",
+        "status.active": "Active",
+        "status.on_hold": "On Hold",
+        "status.closed": "Closed",
+        "status.draft": "Draft",
 
         // Common
         "common.loading": "Loading...",
@@ -250,7 +255,8 @@ export const translations = {
         "common.add": "Add",
         "common.view": "View",
         "common.viewDeal": "View Deal",
-        "common.search": "Search..."
+        "common.search": "Search...",
+        "common.confirmDelete": "Are you sure you want to delete this requirement?"
     },
     bg: {
         // Sidebar & Layout
@@ -486,11 +492,16 @@ export const translations = {
 
         // Statuses
         "status.pending": "Изчакващ",
+        "status.in_review": "В преглед",
         "status.completed": "Завършен",
         "status.rejected": "Отхвърлен",
         "status.verified": "Потвърден",
         "status.released": "Освободен",
         "status.private": "Частен",
+        "status.active": "Активен",
+        "status.on_hold": "Задържан",
+        "status.closed": "Приключен",
+        "status.draft": "Чернови",
 
         // Common
         "common.loading": "Зареждане...",
@@ -502,6 +513,7 @@ export const translations = {
         "common.add": "Добави",
         "common.view": "Преглед",
         "common.viewDeal": "Преглед сделка",
-        "common.search": "Търсене..."
+        "common.search": "Търсене...",
+        "common.confirmDelete": "Сигурни ли сте, че искате да изтриете това изискване?"
     }
 };

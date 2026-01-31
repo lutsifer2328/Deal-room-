@@ -119,22 +119,22 @@ export default function PendingReviewTab() {
                         <table className="w-full">
                             <thead>
                                 <tr className="bg-gray-50/50 border-b border-gray-100">
-                                    <th className="text-left py-4 px-6 text-xs font-bold text-text-light uppercase tracking-wider">{t('deal.header.deal')}</th>
-                                    <th className="text-left py-4 px-6 text-xs font-bold text-text-light uppercase tracking-wider">{t('common.view')}</th>
-                                    <th className="text-left py-4 px-6 text-xs font-bold text-text-light uppercase tracking-wider">{t('participants.table.role')}</th>
-                                    <th className="text-left py-4 px-6 text-xs font-bold text-text-light uppercase tracking-wider">{t('dashboard.table.date')}</th>
-                                    <th className="text-left py-4 px-6 text-xs font-bold text-text-light uppercase tracking-wider">{t('deal.header.status')}</th>
-                                    <th className="text-right py-4 px-6 text-xs font-bold text-text-light uppercase tracking-wider">{t('participants.pagination.of')}</th>
+                                    <th className="text-left py-4 px-4 text-xs font-bold text-text-light uppercase tracking-wider">{t('deal.header.deal')}</th>
+                                    <th className="text-left py-4 px-4 text-xs font-bold text-text-light uppercase tracking-wider">{t('common.view')}</th>
+                                    <th className="text-left py-4 px-4 text-xs font-bold text-text-light uppercase tracking-wider">{t('participants.table.role')}</th>
+                                    <th className="text-left py-4 px-4 text-xs font-bold text-text-light uppercase tracking-wider">{t('dashboard.table.date')}</th>
+                                    <th className="text-left py-4 px-4 text-xs font-bold text-text-light uppercase tracking-wider">{t('deal.header.status')}</th>
+                                    <th className="text-right py-4 px-4 text-xs font-bold text-text-light uppercase tracking-wider">{t('participants.pagination.of')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {pendingDocuments.map((item, index) => (
                                     <tr key={`${item.taskId}-${item.doc.id}`} className="hover:bg-teal/[0.02] transition-colors group">
-                                        <td className="py-4 px-6">
+                                        <td className="py-4 px-4">
                                             <div className="font-bold text-navy-primary group-hover:text-teal transition-colors">{item.dealTitle}</div>
                                             <div className="text-xs text-text-light font-medium mt-0.5">{item.dealAddress}</div>
                                         </td>
-                                        <td className="py-4 px-6">
+                                        <td className="py-4 px-4">
                                             <div className="flex items-center gap-3">
                                                 <FileText className="w-4 h-4 text-teal opacity-70" />
                                                 <div>
@@ -143,16 +143,16 @@ export default function PendingReviewTab() {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-4 px-6 text-text-secondary text-sm font-medium">
+                                        <td className="py-4 px-4 text-text-secondary text-sm font-medium">
                                             {item.participantName}
                                         </td>
-                                        <td className="py-4 px-6 text-text-secondary text-sm">
+                                        <td className="py-4 px-4 text-text-secondary text-sm">
                                             {new Date(item.doc.uploadedAt).toLocaleDateString()}
                                             <div className="text-xs text-text-light opacity-60 font-medium">
                                                 {new Date(item.doc.uploadedAt).toLocaleTimeString()}
                                             </div>
                                         </td>
-                                        <td className="py-4 px-6">
+                                        <td className="py-4 px-4">
                                             {item.doc.status === 'private' ? (
                                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-md border border-yellow-200/50">
                                                     ⏳ {t('archive.pending.needsVerification')}
@@ -163,7 +163,7 @@ export default function PendingReviewTab() {
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="py-4 px-6">
+                                        <td className="py-4 px-4">
                                             <div className="flex justify-end gap-2">
                                                 <button
                                                     onClick={() => setPreviewDoc(item.doc)}

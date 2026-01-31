@@ -28,11 +28,11 @@ export default function UserManagementTable() {
 
     const getRoleBadgeColor = (role: Role) => {
         switch (role) {
-            case 'admin': return 'bg-purple-100 text-purple-800';
-            case 'lawyer': return 'bg-blue-100 text-blue-800';
-            case 'staff': return 'bg-green-100 text-green-800';
-            case 'viewer': return 'bg-gray-100 text-gray-800';
-            default: return 'bg-gray-100 text-gray-800';
+            case 'admin': return 'bg-navy-primary text-white border-navy-primary';
+            case 'lawyer': return 'bg-gold/10 text-gold border-gold/20';
+            case 'staff': return 'bg-teal/10 text-teal border-teal/20';
+            case 'viewer': return 'bg-gray-100 text-gray-600 border-gray-200';
+            default: return 'bg-gray-100 text-gray-800 border-gray-200';
         }
     };
 
@@ -46,18 +46,18 @@ export default function UserManagementTable() {
     };
 
     return (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-3xl shadow-xl shadow-navy-primary/5 border border-white/20 overflow-hidden backdrop-blur-xl">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Users</h2>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <h2 className="text-lg font-bold text-navy-primary">Users</h2>
+                    <p className="text-sm text-text-light mt-1">
                         {organizationalUsers.length} organizational user{organizationalUsers.length !== 1 ? 's' : ''}
                     </p>
                 </div>
                 <button
                     onClick={() => setShowAddModal(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-4 py-2 bg-navy-primary text-white font-bold rounded-xl hover:bg-navy-secondary transition-all shadow-lg hover:shadow-navy-primary/20"
                 >
                     + Add User
                 </button>
@@ -88,55 +88,55 @@ export default function UserManagementTable() {
                             </th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white divide-y divide-gray-100">
                         {organizationalUsers.map((user) => (
-                            <tr key={user.id} className="hover:bg-gray-50">
+                            <tr key={user.id} className="hover:bg-teal/[0.02] transition-colors">
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center">
                                         <div className="h-10 w-10 flex-shrink-0">
-                                            <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+                                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-teal to-navy-primary flex items-center justify-center text-white font-bold shadow-md">
                                                 {user.name.charAt(0).toUpperCase()}
                                             </div>
                                         </div>
                                         <div className="ml-4">
-                                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                                            <div className="text-sm text-gray-500">{user.email}</div>
+                                            <div className="text-sm font-bold text-navy-primary">{user.name}</div>
+                                            <div className="text-sm text-text-light">{user.email}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(user.role)}`}>
+                                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-lg border ${getRoleBadgeColor(user.role)}`}>
                                         {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     {user.isActive ? (
-                                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-success/10 text-success border border-success/20">
                                             Active
                                         </span>
                                     ) : (
-                                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-red-50 text-red-600 border border-red-100">
                                             Inactive
                                         </span>
                                     )}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
                                     {formatDate(user.createdAt)}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
                                     {formatDate(user.lastLogin)}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <button
                                         onClick={() => setEditingUser(user)}
-                                        className="text-blue-600 hover:text-blue-900 mr-4"
+                                        className="text-teal hover:text-teal/80 font-bold mr-4 transition-colors"
                                     >
                                         Edit
                                     </button>
                                     {user.isActive && user.id !== currentUser?.id && (
                                         <button
                                             onClick={() => handleDeactivate(user.id)}
-                                            className="text-red-600 hover:text-red-900"
+                                            className="text-red-500 hover:text-red-700 font-bold transition-colors"
                                         >
                                             Deactivate
                                         </button>

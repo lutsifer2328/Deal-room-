@@ -65,7 +65,7 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
 
         // Simulate API call
         setTimeout(() => {
-            addTask(title, selectedParticipant.role, selectedStandardDocId, expirationDate || undefined);
+            addTask(title, selectedParticipant.id, selectedStandardDocId, expirationDate || undefined);
             setIsSubmitting(false);
             onClose();
         }, 500);

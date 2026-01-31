@@ -6,13 +6,16 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/authContext';
 import { useTranslation } from '@/lib/useTranslation';
 import { useState } from 'react';
-import { MOCK_USERS } from '@/lib/mockData';
+import { useData } from '@/lib/store';
+
+// ...
 
 export default function Sidebar() {
     const { user, loginAs } = useAuth();
     const pathname = usePathname();
     const { t, language, setLanguage } = useTranslation();
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const { users, deals } = useData();
 
     if (!user) return null;
 
@@ -24,11 +27,44 @@ export default function Sidebar() {
         { icon: Settings, label: t('nav.settings'), href: '/settings', roles: ['admin'] },
     ];
 
-
     const visibleItems = navItems.filter(item => item.roles.includes(user.role));
 
-    // Get all mock users for the switcher
-    const switchableUsers = Object.values(MOCK_USERS);
+    // Calculate Switchable Users based on context
+    const getSwitchableUsers = () => {
+        const allUsers = Object.values(users);
+
+        // If we are in a deal page, we MUST filter
+        if (pathname?.startsWith('/deal/')) {
+            const dealId = pathname.split('/')[2];
+            const currentDeal = deals.find(d => d.id === dealId);
+
+            if (currentDeal) {
+                const participantUserIds = currentDeal.participants
+                    .map(p => p.userId)
+                    .filter(Boolean) as string[];
+
+                const participantEmails = currentDeal.participants
+                    .map(p => p.email.toLowerCase());
+
+                return allUsers.filter(u =>
+                    // Always show core staff
+                    ['admin', 'lawyer', 'staff'].includes(u.role) ||
+                    // Show participants specific to this deal (match by ID or Email)
+                    participantUserIds.includes(u.id) ||
+                    participantEmails.includes(u.email.toLowerCase())
+                );
+            } else {
+                // Deal not found yet (loading or invalid) -> Safe fallback: Show ONLY Staff
+                return allUsers.filter(u => ['admin', 'lawyer', 'staff'].includes(u.role));
+            }
+        }
+
+        // Default (Dashboard, Archive, etc.): Show ONLY Staff (Admin/Lawyer/Staff)
+        // We do NOT show deal participants here.
+        return allUsers.filter(u => ['admin', 'lawyer', 'staff'].includes(u.role));
+    };
+
+    const switchableUsers = getSwitchableUsers();
 
     return (
         <aside className="w-[280px] bg-gradient-to-b from-navy-primary to-navy-secondary text-white min-h-screen py-8 fixed h-screen shadow-2xl z-50 flex flex-col overflow-y-auto">

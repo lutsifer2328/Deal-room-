@@ -17,8 +17,16 @@ export default function ClosedDealsTab() {
 
     if (!user) return null;
 
-    // Get all closed deals
-    const closedDeals = deals.filter(deal => deal.status === 'closed');
+    // Get closed deals relevant to the user
+    const closedDeals = deals.filter(deal => {
+        if (deal.status !== 'closed') return false;
+
+        // Admin/Lawyer/Staff can see all (based on permissions)
+        if (user.permissions.canViewAllDeals) return true;
+
+        // Participants only see deals they are part of
+        return deal.participants.some(p => p.role === user.role && p.isActive);
+    });
 
     // Sort by creation date (newest first)
     closedDeals.sort((a, b) =>
@@ -96,30 +104,32 @@ export default function ClosedDealsTab() {
                 </p>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-gradient-to-br from-gray-50 to-white border border-white/50 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="text-3xl font-bold text-navy-primary font-serif mb-1">
-                        {closedDeals.length}
+            {/* Stats - Only visible to internal team */}
+            {user.permissions.canViewAllDeals && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-gradient-to-br from-gray-50 to-white border border-white/50 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="text-3xl font-bold text-navy-primary font-serif mb-1">
+                            {closedDeals.length}
+                        </div>
+                        <div className="text-sm font-bold text-text-light uppercase tracking-wider">Closed Deals</div>
                     </div>
-                    <div className="text-sm font-bold text-text-light uppercase tracking-wider">Closed Deals</div>
-                </div>
-                <div className="bg-gradient-to-br from-blue-50/50 to-white border border-blue-50 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="text-3xl font-bold text-blue-600 font-serif mb-1">
-                        {closedDeals.reduce((sum, deal) => {
-                            const dealTasks = tasks.filter(t => t.dealId === deal.id);
-                            return sum + dealTasks.reduce((taskSum, task) => taskSum + task.documents.length, 0);
-                        }, 0)}
+                    <div className="bg-gradient-to-br from-blue-50/50 to-white border border-blue-50 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="text-3xl font-bold text-blue-600 font-serif mb-1">
+                            {closedDeals.reduce((sum, deal) => {
+                                const dealTasks = tasks.filter(t => t.dealId === deal.id);
+                                return sum + dealTasks.reduce((taskSum, task) => taskSum + task.documents.length, 0);
+                            }, 0)}
+                        </div>
+                        <div className="text-sm font-bold text-blue-800/60 uppercase tracking-wider">Total Documents</div>
                     </div>
-                    <div className="text-sm font-bold text-blue-800/60 uppercase tracking-wider">Total Documents</div>
-                </div>
-                <div className="bg-gradient-to-br from-green-50/50 to-white border border-green-50 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="text-3xl font-bold text-green-600 font-serif mb-1">
-                        {closedDeals.reduce((sum, deal) => sum + deal.participants.length, 0)}
+                    <div className="bg-gradient-to-br from-green-50/50 to-white border border-green-50 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="text-3xl font-bold text-green-600 font-serif mb-1">
+                            {closedDeals.reduce((sum, deal) => sum + deal.participants.length, 0)}
+                        </div>
+                        <div className="text-sm font-bold text-green-800/60 uppercase tracking-wider">Total Participants</div>
                     </div>
-                    <div className="text-sm font-bold text-green-800/60 uppercase tracking-wider">Total Participants</div>
                 </div>
-            </div>
+            )}
 
             {/* Closed Deals List */}
             {closedDeals.length === 0 ? (
@@ -138,14 +148,16 @@ export default function ClosedDealsTab() {
                             <div
                                 key={deal.id}
                                 className={`bg-white border transition-all duration-300 overflow-hidden ${isExpanded
-                                        ? 'rounded-3xl border-teal/20 shadow-lg shadow-teal/5 ring-1 ring-teal/10'
-                                        : 'rounded-2xl border-gray-100 shadow-sm hover:shadow-md hover:border-teal/30'
+                                    ? 'rounded-3xl border-teal/20 shadow-lg shadow-teal/5 ring-1 ring-teal/10'
+                                    : 'rounded-2xl border-gray-100 shadow-sm hover:shadow-md hover:border-teal/30'
                                     }`}
                             >
                                 {/* Deal Header */}
-                                <button
+                                <div
+                                    role="button"
+                                    tabIndex={0}
                                     onClick={() => setSelectedDealId(isExpanded ? null : deal.id)}
-                                    className="w-full flex items-center justify-between p-6 text-left group"
+                                    className="w-full flex items-center justify-between p-6 text-left group cursor-pointer"
                                 >
                                     <div className="flex items-center gap-5">
                                         <div className={`p-3 rounded-xl transition-colors ${isExpanded ? 'bg-teal text-white' : 'bg-gray-100 text-gray-500 group-hover:bg-teal/10 group-hover:text-teal'
@@ -183,7 +195,7 @@ export default function ClosedDealsTab() {
                                             </span>
                                         </div>
                                     </div>
-                                </button>
+                                </div>
 
                                 {/* Documents Table (Expanded) */}
                                 {isExpanded && dealDocuments.length > 0 && (

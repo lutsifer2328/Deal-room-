@@ -14,10 +14,12 @@ interface DataContextType {
     activeDeal: Deal;
     deals: Deal[];
     tasks: Task[];
+    isInitialized: boolean;
 
     // Actions
     createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], dealNumber?: string) => string;
     addTask: (title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => void;
+    deleteTask: (taskId: string, actorId: string) => void;
     setActiveDeal: (dealId: string) => void;
     updateDealStep: (dealId: string, step: DealStep, actorId: string) => void;
     updateCurrentStepId: (dealId: string, stepId: string, actorId: string) => void;
@@ -57,12 +59,15 @@ interface DataContextType {
     checkDuplicateEmail: (email: string) => GlobalParticipant | null;
     getParticipantDeals: (participantId: string) => Array<{ deal: Deal, dealParticipant: DealParticipant }>;
     getRecentParticipants: (days?: number) => GlobalParticipant[];
+    addParticipantContract: (participantId: string, title: string, uploadedBy: string) => void;
+    deleteParticipantContract: (participantId: string, contractId: string) => void;
 
     // Logs
     logs: AuditLogEntry[];
 
     // Notifications
     notifications: Notification[];
+    addNotification: (type: 'info' | 'success' | 'warning' | 'error', title: string, message: string, link?: string) => void;
     markAsRead: (id: string) => void;
     markAllAsRead: () => void;
 }
@@ -70,33 +75,19 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
+    // Shared loading state
+    const [isInitialized, setIsInitialized] = useState(false);
+
     const [users, setUsers] = useState<Record<string, User>>(InitialData.MOCK_USERS);
 
+    // Initialize with safe defaults for SSR
     const [deals, setDeals] = useState<Deal[]>([InitialData.MOCK_DEAL]);
-
     const [tasks, setTasks] = useState<Task[]>(InitialData.MOCK_TASKS);
-
     const [activeDealId, setActiveDealId] = useState<string>(InitialData.MOCK_DEAL.id);
-
     const [logs, setLogs] = useState<AuditLogEntry[]>([]);
-
     const [standardDocuments, setStandardDocuments] = useState<StandardDocument[]>(MOCK_STANDARD_DOCUMENTS);
-
-    const [globalParticipants, setGlobalParticipants] = useState<GlobalParticipant[]>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('agenzia_globalParticipants');
-            return saved ? JSON.parse(saved) : MOCK_GLOBAL_PARTICIPANTS;
-        }
-        return MOCK_GLOBAL_PARTICIPANTS;
-    });
-
-    const [dealParticipants, setDealParticipants] = useState<DealParticipant[]>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('agenzia_dealParticipants');
-            return saved ? JSON.parse(saved) : MOCK_DEAL_PARTICIPANTS;
-        }
-        return MOCK_DEAL_PARTICIPANTS;
-    });
+    const [globalParticipants, setGlobalParticipants] = useState<GlobalParticipant[]>(MOCK_GLOBAL_PARTICIPANTS);
+    const [dealParticipants, setDealParticipants] = useState<DealParticipant[]>(MOCK_DEAL_PARTICIPANTS);
 
     const [notifications, setNotifications] = useState<Notification[]>([
         {
@@ -127,6 +118,51 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     ]);
 
+    // Hydrate from LocalStorage on mount
+    React.useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const savedDeals = localStorage.getItem('agenzia_deals');
+            if (savedDeals) setDeals(JSON.parse(savedDeals));
+
+            const savedTasks = localStorage.getItem('agenzia_tasks');
+            if (savedTasks) setTasks(JSON.parse(savedTasks));
+
+            const savedActiveDealId = localStorage.getItem('agenzia_activeDealId');
+            if (savedActiveDealId) setActiveDealId(savedActiveDealId);
+
+            const savedStandardDocs = localStorage.getItem('agenzia_standardDocuments');
+            if (savedStandardDocs) setStandardDocuments(JSON.parse(savedStandardDocs));
+
+            const savedGlobalParticipants = localStorage.getItem('agenzia_globalParticipants');
+            if (savedGlobalParticipants) setGlobalParticipants(JSON.parse(savedGlobalParticipants));
+
+            const savedDealParticipants = localStorage.getItem('agenzia_dealParticipants');
+            if (savedDealParticipants) setDealParticipants(JSON.parse(savedDealParticipants));
+
+            const savedUsers = localStorage.getItem('agenzia_users');
+            if (savedUsers) {
+                // Merge saved users with initial mock users to ensure admin always exists
+                // but saved users take precedence
+                setUsers({ ...InitialData.MOCK_USERS, ...JSON.parse(savedUsers) });
+            }
+
+            setIsInitialized(true);
+        }
+    }, []);
+
+    const addNotification = (type: 'info' | 'success' | 'warning' | 'error', title: string, message: string, link?: string) => {
+        const newNotification: Notification = {
+            id: `n_${Date.now()}`,
+            type,
+            title,
+            message,
+            timestamp: new Date().toISOString(),
+            read: false,
+            link
+        };
+        setNotifications(prev => [newNotification, ...prev]);
+    };
+
     const markAsRead = (id: string) => {
         setNotifications(notifications.map(n =>
             n.id === id ? { ...n, read: true } : n
@@ -139,40 +175,46 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     // Persist to localStorage
     React.useEffect(() => {
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && isInitialized) {
             localStorage.setItem('agenzia_deals', JSON.stringify(deals));
         }
-    }, [deals]);
+    }, [deals, isInitialized]);
 
     React.useEffect(() => {
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && isInitialized) {
+            localStorage.setItem('agenzia_users', JSON.stringify(users));
+        }
+    }, [users, isInitialized]);
+
+    React.useEffect(() => {
+        if (typeof window !== 'undefined' && isInitialized) {
             localStorage.setItem('agenzia_tasks', JSON.stringify(tasks));
         }
-    }, [tasks]);
+    }, [tasks, isInitialized]);
 
     React.useEffect(() => {
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && isInitialized) {
             localStorage.setItem('agenzia_activeDealId', activeDealId);
         }
-    }, [activeDealId]);
+    }, [activeDealId, isInitialized]);
 
     React.useEffect(() => {
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && isInitialized) {
             localStorage.setItem('agenzia_standardDocuments', JSON.stringify(standardDocuments));
         }
-    }, [standardDocuments]);
+    }, [standardDocuments, isInitialized]);
 
     React.useEffect(() => {
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && isInitialized) {
             localStorage.setItem('agenzia_globalParticipants', JSON.stringify(globalParticipants));
         }
-    }, [globalParticipants]);
+    }, [globalParticipants, isInitialized]);
 
     React.useEffect(() => {
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && isInitialized) {
             localStorage.setItem('agenzia_dealParticipants', JSON.stringify(dealParticipants));
         }
-    }, [dealParticipants]);
+    }, [dealParticipants, isInitialized]);
 
     const activeDeal = deals.find(d => d.id === activeDealId) || deals[0];
 
@@ -200,26 +242,33 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         // Create corresponding User records for new participants
         const newUsers = { ...users };
+
+        // Update participants with their new User IDs
         participants.forEach(p => {
-            const userId = `u_${p.role}_${Date.now()}_${Math.random()}`;
-            newUsers[userId] = {
-                id: userId,
-                name: p.fullName,
-                email: p.email,
-                role: p.role,
-                avatarUrl: `/avatars/${p.role}.png`,
-                permissions: getPermissionsForRole(p.role),
-                isActive: true,
-                createdAt: new Date().toISOString(),
-                lastLogin: undefined
-            };
+            // Generate a User ID if one doesn't exist
+            const userId = p.userId || `u_${p.role}_${Date.now()}_${Math.random()}`;
+            p.userId = userId; // CRITICAL: Link participant to user
+
+            if (!newUsers[userId]) {
+                newUsers[userId] = {
+                    id: userId,
+                    name: p.fullName,
+                    email: p.email,
+                    role: p.role,
+                    avatarUrl: `/avatars/${p.role}.png`,
+                    permissions: getPermissionsForRole(p.role),
+                    isActive: true,
+                    createdAt: new Date().toISOString(),
+                    lastLogin: undefined
+                };
+            }
         });
 
         setUsers(newUsers);
 
         // Create Deal
-        const buyerIds = participants.filter(p => p.role === 'buyer').map((_, i) => `u_buyer_${Date.now()}_${i}`);
-        const sellerIds = participants.filter(p => p.role === 'seller').map((_, i) => `u_seller_${Date.now()}_${i}`);
+        const buyerIds = participants.filter(p => p.role === 'buyer').map(p => p.userId!);
+        const sellerIds = participants.filter(p => p.role === 'seller').map(p => p.userId!);
         const lawyerId = 'u_lawyer'; // Current user
 
         const defaultTimeline = createDefaultTimeline();
@@ -325,15 +374,73 @@ export function DataProvider({ children }: { children: ReactNode }) {
             ));
         }
 
-        logAction(activeDeal.id, 'u_lawyer', 'ADDED_TASK', `Added task "${title}" for ${assignedTo}`);
+        logAction(activeDeal.id, 'u_lawyer', 'ADDED_TASK', `Added task "${title}"`);
+    };
+
+    const deleteTask = (taskId: string, actorId: string) => {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        setTasks(tasks.filter(t => t.id !== taskId));
+        logAction(activeDeal.id, actorId, 'REMOVED_TASK', `Removed task "${task.title_en}"`);
     };
 
     const addParticipant = (dealId: string, participantInput: Omit<Participant, 'id' | 'addedAt'>) => {
+        // Create random ID for participant entry
+        const newId = `p_${Date.now()}_${Math.random()}`;
+
+        // Check if a user with this email already exists
+        const existingUser = Object.values(users).find(
+            u => u.email.toLowerCase().trim() === participantInput.email.toLowerCase().trim()
+        );
+
+        // Determine final User ID and Internal Status
+        let finalUserId: string;
+        let isInternalStaff = false;
+
+        if (existingUser) {
+            // Case 1: Active User found by email
+            finalUserId = existingUser.id;
+            if (['admin', 'lawyer', 'staff'].includes(existingUser.role)) {
+                isInternalStaff = true;
+            }
+        } else if (participantInput.userId) {
+            // Case 2: Explicit User ID provided (e.g. from dropdown)
+            finalUserId = participantInput.userId;
+            const u = users[finalUserId];
+            if (u && ['admin', 'lawyer', 'staff'].includes(u.role)) {
+                isInternalStaff = true;
+            }
+        } else {
+            // Case 3: New User needed
+            finalUserId = `u_${participantInput.role}_${Date.now()}_${Math.random()}`;
+        }
+
         const newParticipant: Participant = {
             ...participantInput,
-            id: `p_${Date.now()}_${Math.random()}`,
+            id: newId,
+            userId: finalUserId, // CRITICAL: Link participant to user
+            // If they are internal staff, set agency to Agenzia automatically if missing
+            agency: isInternalStaff ? (participantInput.agency || 'Agenzia') : participantInput.agency,
             addedAt: new Date().toISOString()
         };
+
+        // Create user record ONLY if it doesn't exist
+        if (!users[finalUserId]) {
+            setUsers({
+                ...users,
+                [finalUserId]: {
+                    id: finalUserId,
+                    name: participantInput.fullName,
+                    email: participantInput.email,
+                    role: participantInput.role,
+                    avatarUrl: `/avatars/${participantInput.role}.png`,
+                    permissions: getPermissionsForRole(participantInput.role),
+                    isActive: true,
+                    createdAt: new Date().toISOString()
+                }
+            });
+        }
 
         setDeals(deals.map(d =>
             d.id === dealId
@@ -351,9 +458,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (!globalParticipant) {
             globalParticipant = {
                 id: `gp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                userId: finalUserId, // Link to internal user
                 name: participantInput.fullName,
                 email: participantInput.email,
                 phone: participantInput.phone || undefined,
+                agency: participantInput.agency, // Store agency for external brokers
                 invitationStatus: participantInput.hasAcceptedInvite ? 'accepted' : 'pending',
                 invitationSentAt: participantInput.invitedAt || new Date().toISOString(),
                 invitationAcceptedAt: participantInput.hasAcceptedInvite ? new Date().toISOString() : undefined,
@@ -361,6 +470,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
+            // If they are an internal user, mark invitation as accepted
+            if (participantInput.userId) {
+                globalParticipant.invitationStatus = 'accepted';
+                globalParticipant.invitationAcceptedAt = new Date().toISOString();
+            }
             setGlobalParticipants([...globalParticipants, globalParticipant]);
         }
 
@@ -376,6 +490,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 dealId: dealId,
                 participantId: globalParticipant.id,
                 role: participantInput.role,
+                agency: participantInput.agency, // Specific agency for this deal
                 permissions: {
                     canViewDocuments: participantInput.canViewDocuments,
                     canDownloadDocuments: participantInput.canDownload,
@@ -598,6 +713,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ));
 
         logAction(activeDealId, uploadedBy, 'UPLOADED_DOC', `Uploaded document: ${fileName}`);
+
+        // Find Task Name for better notification
+        const taskName = tasks.find(t => t.id === taskId)?.title_en || 'Document Requirement';
+        const actor = users[uploadedBy];
+        const actorName = actor ? actor.name : 'Unknown User';
+
+        // Notify
+        addNotification(
+            'info',
+            'Document Uploaded',
+            `${actorName} uploaded "${fileName}" for ${taskName}.`,
+            `/deal/${activeDealId}`
+        );
     };
 
     const updateDocStatus = (taskId: string, docId: string, updates: Partial<any>) => {
@@ -619,7 +747,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     const releaseDocument = (actorId: string, taskId: string, docId: string) => {
+        // Update doc status
         updateDocStatus(taskId, docId, { status: 'released' });
+
+        // Also mark the task as COMPLETED since the document is released
+        setTasks(prev => prev.map(t =>
+            t.id === taskId ? { ...t, status: 'completed' } : t
+        ));
+
         logAction(activeDealId, actorId, 'RELEASED_DOC', `Released document ${docId} for download`);
     };
 
@@ -734,20 +869,75 @@ export function DataProvider({ children }: { children: ReactNode }) {
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     };
 
+    // Contracts
+    const addParticipantContract = (participantId: string, title: string, uploadedBy: string) => {
+        setGlobalParticipants(prev => prev.map(p => {
+            if (p.id !== participantId) return p;
+
+            const newContract: import('./types').AgencyContract = {
+                id: `cont_${Date.now()}_${Math.random()}`,
+                title,
+                uploadedBy,
+                url: '#', // Mock URL
+                uploadedAt: new Date().toISOString()
+            };
+
+            return {
+                ...p,
+                contracts: [...(p.contracts || []), newContract],
+                updatedAt: new Date().toISOString()
+            };
+        }));
+
+        logAction('system', uploadedBy, 'UPDATED_PARTICIPANT', `Uploaded contract "${title}" for participant`);
+    };
+
+    const deleteParticipantContract = (participantId: string, contractId: string) => {
+        setGlobalParticipants(prev => prev.map(p => {
+            if (p.id !== participantId) return p;
+
+            return {
+                ...p,
+                contracts: (p.contracts || []).filter(c => c.id !== contractId),
+                updatedAt: new Date().toISOString()
+            };
+        }));
+    };
+
     return (
         <DataContext.Provider value={{
-            users, activeDeal, deals, tasks, logs,
-            createDeal, addTask, setActiveDeal, updateDealStep, updateCurrentStepId, updateDealTimeline, updateDealStatus, addTaskComment, toggleCommentVisibility,
-            addUser, updateUser, deactivateUser,
+            users,
+            activeDeal,
+            deals,
+            tasks,
+            isInitialized,
+            createDeal,
+            addTask,
+            deleteTask,
+            setActiveDeal,
+            updateDealStep,
+            updateCurrentStepId,
+            updateDealTimeline,
+            updateDealStatus,
+            addUser,
+            updateUser,
+            deactivateUser,
             addParticipant,
             removeParticipant,
             updateParticipant,
             uploadDocument,
-            verifyDocument, releaseDocument, rejectDocument,
+            verifyDocument,
+            releaseDocument,
+            rejectDocument,
+            addTaskComment,
+            toggleCommentVisibility,
+            logs,
+            // Standard Documents
             standardDocuments,
             addStandardDocument,
             updateStandardDocument,
             deleteStandardDocument,
+            // Global Participants
             globalParticipants,
             dealParticipants,
             createGlobalParticipant,
@@ -755,10 +945,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
             deleteGlobalParticipant,
             checkDuplicateEmail,
             getParticipantDeals,
-
             getRecentParticipants,
-
+            addParticipantContract,
+            deleteParticipantContract,
+            // Notifications
             notifications,
+            addNotification,
             markAsRead,
             markAllAsRead
         }}>

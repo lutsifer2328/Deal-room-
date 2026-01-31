@@ -21,7 +21,9 @@ export default function DealHeader({ deal }: { deal: Deal }) {
     const [isExporting, setIsExporting] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    const isLawyer = currentUser?.role === 'lawyer' || currentUser?.role === 'admin';
+    const canEdit = currentUser?.permissions.canEditDeals;
+    const canClose = currentUser?.permissions.canCloseDeals;
+    const canExport = currentUser?.permissions.canExportData;
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -107,8 +109,8 @@ export default function DealHeader({ deal }: { deal: Deal }) {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* Status Dropdown (Lawyer Only) */}
-                    {isLawyer && (
+                    {/* Status Dropdown */}
+                    {canEdit && (
                         <div className="relative" ref={dropdownRef}>
                             <button
                                 onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
@@ -138,32 +140,34 @@ export default function DealHeader({ deal }: { deal: Deal }) {
                                             <span>{t('deal.header.putOnHold')}</span>
                                         </button>
                                     )}
-                                    {deal.status === 'closed' ? (
-                                        <button
-                                            onClick={handleReopenDeal}
-                                            className="w-full px-5 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-sm font-bold text-teal"
-                                        >
-                                            <ChevronDown className="w-4 h-4 rotate-180" />
-                                            <span>{t('deal.header.reopen')}</span>
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={() => {
-                                                setIsCloseDealModalOpen(true);
-                                                setIsStatusDropdownOpen(false);
-                                            }}
-                                            className="w-full px-5 py-3 text-left hover:bg-red-50 flex items-center gap-3 text-sm font-medium text-danger border-t border-gray-50 mt-1"
-                                        >
-                                            <Archive className="w-4 h-4" />
-                                            <span>{t('deal.header.close')}</span>
-                                        </button>
+                                    {canClose && (
+                                        deal.status === 'closed' ? (
+                                            <button
+                                                onClick={handleReopenDeal}
+                                                className="w-full px-5 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-sm font-bold text-teal"
+                                            >
+                                                <ChevronDown className="w-4 h-4 rotate-180" />
+                                                <span>{t('deal.header.reopen')}</span>
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => {
+                                                    setIsCloseDealModalOpen(true);
+                                                    setIsStatusDropdownOpen(false);
+                                                }}
+                                                className="w-full px-5 py-3 text-left hover:bg-red-50 flex items-center gap-3 text-sm font-medium text-danger border-t border-gray-50 mt-1"
+                                            >
+                                                <Archive className="w-4 h-4" />
+                                                <span>{t('deal.header.close')}</span>
+                                            </button>
+                                        )
                                     )}
                                 </div>
                             )}
                         </div>
                     )}
 
-                    {currentUser?.role === 'lawyer' && (
+                    {canExport && (
                         <button
                             onClick={handleExport}
                             disabled={isExporting}
@@ -185,20 +189,18 @@ export default function DealHeader({ deal }: { deal: Deal }) {
             </div>
 
             {/* Modals */}
-            {isParticipantsModalOpen && (
-                <ParticipantsModal
-                    deal={deal}
-                    onClose={() => setIsParticipantsModalOpen(false)}
-                />
-            )}
+            <ParticipantsModal
+                deal={deal}
+                onClose={() => setIsParticipantsModalOpen(false)}
+                isOpen={isParticipantsModalOpen}
+            />
 
-            {isCloseDealModalOpen && (
-                <CloseDealModal
-                    dealTitle={deal.title}
-                    onClose={() => setIsCloseDealModalOpen(false)}
-                    onConfirm={handleCloseDeal}
-                />
-            )}
+            <CloseDealModal
+                dealTitle={deal.title}
+                onClose={() => setIsCloseDealModalOpen(false)}
+                onConfirm={handleCloseDeal}
+                isOpen={isCloseDealModalOpen}
+            />
         </div>
     );
 }

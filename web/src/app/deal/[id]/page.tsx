@@ -20,31 +20,42 @@ export default function DealDetailPage() {
     const params = useParams();
     const dealId = params?.id as string;
     const { user } = useAuth();
-    const { deals, tasks } = useData();
+    const { isInitialized, deals, tasks, deleteTask } = useData();
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const { t } = useTranslation();
 
     const deal = deals.find(d => d.id === dealId);
 
-    if (!user) return <div className="p-10 text-center">{t('common.loading')}</div>;
+    if (!isInitialized || !user) return <div className="p-10 text-center">{t('common.loading')}</div>;
     if (!deal) return <div className="p-10 text-center">Deal not found</div>;
 
     const relevantTasks = tasks.filter(t => {
         if (t.dealId !== deal.id) return false;
-        if (user.role === 'lawyer' || user.role === 'admin') return true;
-        if (user.role === 'agent') return true;
+        if (user.permissions.canViewAllDeals) return true;
+
+        // View tasks assigned to their specific ID OR their role
+        if (t.assignedTo === user.id) return true;
         return t.assignedTo === user.role;
     });
 
     // Group tasks by participant/role
     const groupedTasks = relevantTasks.reduce((acc: Record<string, { participant?: Deal['participants'][0], role: string, tasks: Task[] }>, task: Task) => {
-        const participant = deal.participants.find(p => p.role === task.assignedTo && p.isActive);
+        // 1. Try to find by specific Participant ID (New Logic)
+        let participant = deal.participants.find(p => p.id === task.assignedTo);
+
+        // 2. If not found, try to fallback to Role (Legacy Logic)
+        if (!participant) {
+            participant = deal.participants.find(p => p.role === task.assignedTo && p.isActive);
+        }
+
         const key = participant ? participant.id : task.assignedTo;
+        // Use the tasks's assigned role if it's a role string, otherwise use participant's role
+        const role = participant ? participant.role : task.assignedTo;
 
         if (!acc[key]) {
             acc[key] = {
                 participant,
-                role: task.assignedTo,
+                role,
                 tasks: []
             };
         }
@@ -61,7 +72,7 @@ export default function DealDetailPage() {
                 <div className="col-span-2 space-y-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold text-midnight">{t('deal.requiredDocs')}</h2>
-                        {(user.role === 'lawyer' || user.role === 'admin') && (
+                        {user.permissions.canManageDocuments && (
                             <button
                                 onClick={() => setIsTaskModalOpen(true)}
                                 className="text-sm text-gold font-bold hover:underline"
@@ -78,6 +89,7 @@ export default function DealDetailPage() {
                             role={group.role}
                             tasks={group.tasks}
                             userRole={user.role}
+                            onDeleteTask={(taskId) => deleteTask(taskId, user.id)}
                         />
                     ))}
 
@@ -108,11 +120,12 @@ export default function DealDetailPage() {
     );
 }
 
-function ParticipantTaskGroup({ participant, role, tasks, userRole }: {
+function ParticipantTaskGroup({ participant, role, tasks, userRole, onDeleteTask }: {
     participant?: Deal['participants'][0],
     role: string,
     tasks: Task[],
-    userRole: string
+    userRole: string,
+    onDeleteTask: (id: string) => void
 }) {
     const { t } = useTranslation();
     const roleColors = {
@@ -155,19 +168,22 @@ function ParticipantTaskGroup({ participant, role, tasks, userRole }: {
             {/* Tasks List */}
             <div className="divide-y divide-gray-50">
                 {tasks.map(task => (
-                    <TaskItem key={task.id} task={task} userRole={userRole} />
+                    <TaskItem key={task.id} task={task} userRole={userRole} onDelete={() => onDeleteTask(task.id)} />
                 ))}
             </div>
         </div>
     );
 }
 
-function TaskItem({ task, userRole }: { task: Task, userRole: string }) {
+function TaskItem({ task, userRole, onDelete }: { task: Task, userRole: string, onDelete: () => void }) {
     const { t } = useTranslation();
     const isOwner = userRole === task.assignedTo;
     const isLawyer = userRole === 'lawyer';
     const isAdmin = userRole === 'admin';
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+
+    // Import Trash icon
+    const { Trash2 } = require('lucide-react');
 
     const getStatusLabel = (status: string) => {
         const key = `status.${status}` as TranslationKey;
@@ -175,23 +191,38 @@ function TaskItem({ task, userRole }: { task: Task, userRole: string }) {
     };
 
     return (
-        <div className="p-6 hover:bg-teal/[0.02] transition-all duration-300 group">
-            <div className="flex justify-between items-start mb-5">
-                <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-bold text-navy-primary text-lg">{task.title_en}</h4>
-                        {task.required && <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 shadow-sm">* {t('deal.required')}</span>}
+        <div className="p-6 hover:bg-teal/[0.02] transition-all duration-300 group relative">
+            {(isLawyer || isAdmin) && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(t('common.confirmDelete') || 'Are you sure you want to delete this requirement?')) {
+                            onDelete();
+                        }
+                    }}
+                    className="absolute top-4 right-4 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Delete Requirement"
+                >
+                    <Trash2 className="w-4 h-4" />
+                </button>
+            )}
+
+            <div className="flex justify-between items-start mb-5 gap-4">
+                <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h4 className="font-bold text-navy-primary text-lg break-words">{task.title_en}</h4>
+                        {task.required && <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 shadow-sm whitespace-nowrap flex-shrink-0">* {t('deal.required')}</span>}
                     </div>
-                    {task.title_bg && <p className="text-sm text-text-light">{task.title_bg}</p>}
+                    {task.title_bg && <p className="text-sm text-text-light break-words">{task.title_bg}</p>}
                 </div>
 
-                <div>
+                <div className="mr-8 flex-shrink-0">
                     {task.status === 'completed' ? (
-                        <span className="flex items-center gap-1.5 text-success font-bold text-xs bg-success/10 px-3 py-1 rounded-full border border-success/20 shadow-sm">
+                        <span className="flex items-center gap-1.5 text-success font-bold text-xs bg-success/10 px-3 py-1 rounded-full border border-success/20 shadow-sm whitespace-nowrap">
                             <ShieldCheck className="w-3.5 h-3.5" /> {t('status.verified')}
                         </span>
                     ) : (
-                        <span className="text-xs font-bold text-text-secondary bg-gray-100/80 px-3 py-1 rounded-full border border-gray-200">
+                        <span className="text-xs font-bold text-text-secondary bg-gray-100/80 px-3 py-1 rounded-full border border-gray-200 whitespace-nowrap">
                             {getStatusLabel(task.status)}
                         </span>
                     )}
@@ -233,13 +264,12 @@ function TaskItem({ task, userRole }: { task: Task, userRole: string }) {
                 </div>
             </div>
 
-            {isUploadModalOpen && (
-                <UploadModal
-                    taskId={task.id}
-                    taskTitle={task.title_en}
-                    onClose={() => setIsUploadModalOpen(false)}
-                />
-            )}
+            <UploadModal
+                taskId={task.id}
+                taskTitle={task.title_en}
+                onClose={() => setIsUploadModalOpen(false)}
+                isOpen={isUploadModalOpen}
+            />
         </div>
     );
 }
@@ -252,9 +282,10 @@ function DocumentRow({ doc, userRole, taskId }: { doc: DealDocument, userRole: s
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
     const isLawyer = userRole === 'lawyer';
+    const isAdmin = userRole === 'admin';
     const isOwner = userRole === doc.uploadedBy;
-    const canDownload = isLawyer || isOwner || doc.status === 'released';
-    const canSeeMetadata = isLawyer || isOwner || doc.status !== 'private';
+    const canDownload = isLawyer || isAdmin || isOwner || doc.status === 'released';
+    const canSeeMetadata = isLawyer || isAdmin || isOwner || doc.status !== 'private';
 
     if (!canSeeMetadata) return null;
 
@@ -281,8 +312,8 @@ function DocumentRow({ doc, userRole, taskId }: { doc: DealDocument, userRole: s
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {/* View Button - Available to Lawyer */}
-                    {isLawyer && (
+                    {/* View Button - Available to Lawyer & Admin, OR if can download (Released/Owner) */}
+                    {(canDownload) && (
                         <button
                             onClick={() => setIsPreviewOpen(true)}
                             className="p-2 text-teal bg-teal/5 hover:bg-teal/10 rounded-lg transition-colors border border-teal/10"
@@ -292,9 +323,9 @@ function DocumentRow({ doc, userRole, taskId }: { doc: DealDocument, userRole: s
                         </button>
                     )}
 
-                    {isLawyer && user && (
+                    {(isLawyer || isAdmin) && user && (
                         <>
-                            {doc.status !== 'rejected' && (
+                            {doc.status !== 'rejected' && doc.status !== 'released' && (
                                 <button
                                     onClick={() => setIsRejectionModalOpen(true)}
                                     className="px-3 py-1.5 text-danger bg-red-50 hover:bg-red-100 rounded-lg text-xs font-bold transition-colors"

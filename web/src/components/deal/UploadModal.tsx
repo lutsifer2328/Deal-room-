@@ -1,19 +1,27 @@
-'use client';
-
-import { X, Upload as UploadIcon, FileText } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Upload as UploadIcon, FileText } from 'lucide-react';
 import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
+import { Modal, ModalHeader, ModalContent, ModalFooter } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
 
-export default function UploadModal({ taskId, taskTitle, onClose }: {
+export default function UploadModal({ taskId, taskTitle, onClose, isOpen = true }: {
     taskId: string,
     taskTitle: string,
-    onClose: () => void
+    onClose: () => void,
+    isOpen?: boolean
 }) {
     const { uploadDocument } = useData();
     const { user } = useAuth();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setSelectedFile(null);
+            setIsUploading(false);
+        }
+    }, [isOpen]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -38,27 +46,21 @@ export default function UploadModal({ taskId, taskTitle, onClose }: {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+        <Modal isOpen={isOpen} onClose={onClose} size="md">
+            <ModalHeader onClose={onClose} className="bg-midnight text-white">
+                Upload Document
+            </ModalHeader>
 
-                {/* Header */}
-                <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-midnight text-white">
-                    <h2 className="text-lg font-bold">Upload Document</h2>
-                    <button onClick={onClose} className="text-white/80 hover:text-white">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
-                {/* Content */}
-                <div className="p-6 space-y-4">
+            <ModalContent>
+                <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1">Requirement</label>
-                        <p className="text-gray-600">{taskTitle}</p>
+                        <p className="text-gray-600 font-medium bg-gray-50 p-2 rounded border border-gray-100">{taskTitle}</p>
                     </div>
 
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Select File</label>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-teal transition-colors">
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-teal transition-colors group cursor-pointer bg-gray-50/50 hover:bg-teal/5">
                             <input
                                 type="file"
                                 onChange={handleFileSelect}
@@ -66,16 +68,17 @@ export default function UploadModal({ taskId, taskTitle, onClose }: {
                                 id="file-upload"
                                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                             />
-                            <label htmlFor="file-upload" className="cursor-pointer">
+                            <label htmlFor="file-upload" className="cursor-pointer block w-full h-full">
                                 {selectedFile ? (
-                                    <div className="flex items-center justify-center gap-2 text-teal">
-                                        <FileText className="w-6 h-6" />
-                                        <span className="font-medium">{selectedFile.name}</span>
+                                    <div className="flex flex-col items-center justify-center gap-2 text-teal animate-in fade-in">
+                                        <FileText className="w-8 h-8" />
+                                        <span className="font-bold">{selectedFile.name}</span>
+                                        <span className="text-xs text-gray-500 font-medium">Click to change file</span>
                                     </div>
                                 ) : (
-                                    <div>
-                                        <UploadIcon className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-                                        <p className="text-gray-600 font-medium">Click to select file</p>
+                                    <div className="group-hover:translate-y-[-2px] transition-transform duration-200">
+                                        <UploadIcon className="w-10 h-10 mx-auto text-gray-400 mb-3 group-hover:text-teal transition-colors" />
+                                        <p className="text-gray-600 font-bold group-hover:text-teal transition-colors">Click to select file</p>
                                         <p className="text-xs text-gray-400 mt-1">PDF, DOC, JPG, PNG (max 10MB)</p>
                                     </div>
                                 )}
@@ -83,30 +86,30 @@ export default function UploadModal({ taskId, taskTitle, onClose }: {
                         </div>
                     </div>
 
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <p className="text-xs text-blue-800">
-                            <strong>📋 Note:</strong> After upload, the lawyer will review your document before it's visible to other parties.
+                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex gap-2 items-start">
+                        <div className="text-blue-500 mt-0.5">ℹ️</div>
+                        <p className="text-xs text-blue-800 leading-relaxed">
+                            <strong>Note:</strong> After upload, the lawyer will review your document before it becomes visible to other parties.
                         </p>
                     </div>
                 </div>
+            </ModalContent>
 
-                {/* Footer */}
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-200 rounded-lg"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleUpload}
-                        disabled={!selectedFile || isUploading}
-                        className="px-6 py-2 bg-teal text-white font-bold rounded-lg hover:bg-teal/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                    >
-                        {isUploading ? 'Uploading...' : 'Upload Document'}
-                    </button>
-                </div>
-            </div>
-        </div>
+            <ModalFooter>
+                <Button variant="ghost" onClick={onClose} disabled={isUploading}>
+                    Cancel
+                </Button>
+                <Button
+                    variant="primary"
+                    onClick={handleUpload}
+                    disabled={!selectedFile || isUploading}
+                    isLoading={isUploading}
+                    className="flex items-center gap-2"
+                >
+                    {!isUploading && <UploadIcon className="w-4 h-4" />}
+                    Upload Document
+                </Button>
+            </ModalFooter>
+        </Modal>
     );
 }

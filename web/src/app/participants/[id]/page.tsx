@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/authContext';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, User, Mail, Phone, Send, Edit2, Check, Clock, XCircle, ExternalLink, Trash2 } from 'lucide-react';
 import { useTranslation } from '@/lib/useTranslation';
+import AgencyContractsSection from '@/components/participants/AgencyContractsSection';
 
 export default function ParticipantDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
@@ -277,6 +278,9 @@ export default function ParticipantDetailPage({ params }: { params: Promise<{ id
                         </div>
                     )}
                 </div>
+
+                {/* Agency Contracts Section */}
+                <AgencyContractsSection participant={participant} />
 
                 {/* Internal Notes Section */}
                 <div className="bg-white rounded-3xl shadow-lg shadow-navy-primary/5 border border-white/20 p-8">
