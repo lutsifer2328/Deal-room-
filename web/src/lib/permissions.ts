@@ -82,6 +82,28 @@ export const ROLE_PERMISSIONS: Record<Role, Permission> = {
         canManageDocuments: false,
         canExportData: false,
     },
+    notary: {
+        canCreateDeals: false,
+        canEditDeals: false,
+        canDeleteDeals: false,
+        canManageUsers: false,
+        canViewAllDeals: false, // Only their deals
+        canEditTimeline: false,
+        canCloseDeals: false,
+        canManageDocuments: false,
+        canExportData: false,
+    },
+    bank_representative: {
+        canCreateDeals: false,
+        canEditDeals: false,
+        canDeleteDeals: false,
+        canManageUsers: false,
+        canViewAllDeals: false, // Only their deals
+        canEditTimeline: false,
+        canCloseDeals: false,
+        canManageDocuments: false,
+        canExportData: false,
+    },
 };
 
 /**

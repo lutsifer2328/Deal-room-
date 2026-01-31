@@ -125,7 +125,8 @@ export const MOCK_TASKS: Task[] = [
                 uploadedAt: '2025-05-12T14:30:00Z',
                 verifiedAt: '2025-05-12T16:00:00Z',
             }
-        ]
+        ],
+        comments: []
     },
     {
         id: 't_2',
@@ -182,6 +183,7 @@ export const MOCK_TASKS: Task[] = [
         assignedTo: 'buyer',
         status: 'pending',
         required: true,
-        documents: []
+        documents: [],
+        comments: []
     }
 ];

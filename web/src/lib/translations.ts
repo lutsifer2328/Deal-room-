@@ -65,6 +65,9 @@ export const translations = {
 
 
         // Roles
+        "role.admin": "Admin",
+        "role.staff": "Staff",
+        "role.viewer": "Viewer",
         "role.buyer": "Buyer",
         "role.seller": "Seller",
         "role.agent": "Broker",
@@ -322,6 +325,9 @@ export const translations = {
 
 
         // Roles
+        "role.admin": "Администратор",
+        "role.staff": "Служител",
+        "role.viewer": "Наблюдател",
         "role.buyer": "Купувач",
         "role.seller": "Продавач",
         "role.agent": "Брокер",
