@@ -51,6 +51,10 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('DEBUG: handleSubmit called');
+        console.log('DEBUG: selectedParticipantId:', selectedParticipantId);
+        console.log('DEBUG: selectedStandardDocId:', selectedStandardDocId);
+        console.log('DEBUG: activeParticipants:', activeParticipants.length);
 
         if (!selectedParticipantId) {
             alert(t('modal.createTask.alertParticipant'));
@@ -58,14 +62,16 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
         }
 
         const selectedParticipant = activeParticipants.find(p => p.id === selectedParticipantId);
-        if (!selectedParticipant) return;
-
+        if (!selectedParticipant) {
+            console.error('DEBUG: Selected participant not found in active list');
+            return;
+        }
 
         setIsSubmitting(true);
 
         // Simulate API call
         setTimeout(() => {
-            addTask(title, selectedParticipant.id, selectedStandardDocId, expirationDate || undefined);
+            addTask(deal.id, title, selectedParticipant.id, selectedStandardDocId, expirationDate || undefined);
             setIsSubmitting(false);
             onClose();
         }, 500);

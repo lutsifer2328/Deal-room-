@@ -15,6 +15,7 @@ import UploadModal from '@/components/deal/UploadModal';
 import DocumentPreviewModal from '@/components/deal/DocumentPreviewModal';
 import TaskComments from '@/components/deal/TaskComments';
 import { useTranslation, TranslationKey } from '@/lib/useTranslation';
+import { supabase } from '@/lib/supabase';
 
 export default function DealDetailPage() {
     const params = useParams();
@@ -116,6 +117,11 @@ export default function DealDetailPage() {
 
             {isTaskModalOpen && <CreateTaskModal deal={deal} onClose={() => setIsTaskModalOpen(false)} />}
             <AuditLogPanel />
+
+            {/* VISUAL VERIFICATION BADGE */}
+            <div className="fixed bottom-4 right-4 bg-red-600 text-white border-4 border-yellow-400 p-4 rounded-xl z-[99999] shadow-2xl animate-pulse font-bold text-lg">
+                🚀 CODE UPDATED: TRY VIEWING NOW
+            </div>
         </div>
     );
 }
@@ -289,6 +295,33 @@ function DocumentRow({ doc, userRole, taskId }: { doc: DealDocument, userRole: s
 
     if (!canSeeMetadata) return null;
 
+    const handleDownload = async () => {
+        try {
+            if (doc.url.startsWith('http') || doc.url.startsWith('blob')) {
+                window.open(doc.url, '_blank');
+                return;
+            }
+
+            const { data, error } = await supabase.storage
+                .from('documents')
+                .download(doc.url);
+
+            if (error) throw error;
+
+            const url = window.URL.createObjectURL(data);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = doc.title_en; // or use original filename
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error: any) {
+            console.error('Download failed:', error);
+            alert(`Download failed: ${error.message || 'Unknown error'}`);
+        }
+    };
+
     return (
         <>
             <div className={`flex items-center justify-between transition-all rounded-xl ${doc.status === 'rejected' ? 'bg-red-50/50 p-2 -m-2' : ''}`}>
@@ -306,7 +339,7 @@ function DocumentRow({ doc, userRole, taskId }: { doc: DealDocument, userRole: s
                                 {t('deal.rejected')}: {doc.rejectionReason_en}
                             </div>
                         ) : (
-                            <div className="text-xs text-text-light font-medium">{doc.uploadedAt}</div>
+                            <div className="text-xs text-text-light font-medium">{new Date(doc.uploadedAt).toLocaleDateString()}</div>
                         )}
                     </div>
                 </div>
@@ -315,7 +348,10 @@ function DocumentRow({ doc, userRole, taskId }: { doc: DealDocument, userRole: s
                     {/* View Button - Available to Lawyer & Admin, OR if can download (Released/Owner) */}
                     {(canDownload) && (
                         <button
-                            onClick={() => setIsPreviewOpen(true)}
+                            onClick={() => {
+                                alert('View Clicked! Opening modal...');
+                                setIsPreviewOpen(true);
+                            }}
                             className="p-2 text-teal bg-teal/5 hover:bg-teal/10 rounded-lg transition-colors border border-teal/10"
                             title={t('deal.view')}
                         >
@@ -355,7 +391,11 @@ function DocumentRow({ doc, userRole, taskId }: { doc: DealDocument, userRole: s
                     )}
 
                     {canDownload ? (
-                        <button className="p-2 text-text-light hover:text-teal hover:bg-teal/5 rounded-lg transition-all" title={t('deal.download')}>
+                        <button
+                            onClick={handleDownload}
+                            className="p-2 text-text-light hover:text-teal hover:bg-teal/5 rounded-lg transition-all"
+                            title={t('deal.download')}
+                        >
                             <Download className="w-4 h-4" />
                         </button>
                     ) : (

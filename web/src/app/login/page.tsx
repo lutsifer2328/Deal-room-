@@ -2,13 +2,11 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/authContext';
-import { useData } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 import { Lock, Mail, ArrowRight, Building } from 'lucide-react';
 
 export default function LoginPage() {
-    const { loginAs } = useAuth();
-    const { users } = useData();
+    const { login } = useAuth();
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -20,28 +18,15 @@ export default function LoginPage() {
         setError('');
         setLoading(true);
 
-        // Find user by email
-        setTimeout(() => {
-            const user = Object.values(users).find(u => u.email === email);
+        const { error: loginError } = await login(email, password);
 
-            if (user && user.isActive) {
-                // In production, verify password here
-                // For now, accept any password for active users
-                loginAs(user.id);
-                router.push('/dashboard');
-            } else if (user && !user.isActive) {
-                setError('Your account has been deactivated. Please contact your administrator.');
-            } else {
-                setError('Invalid email or password');
-            }
+        if (loginError) {
+            setError(loginError.message || 'Invalid email or password');
             setLoading(false);
-        }, 500);
-    };
-
-    // Quick login for development
-    const quickLogin = (userId: string) => {
-        loginAs(userId);
-        router.push('/dashboard');
+        } else {
+            // Successful login will trigger auth state change and redirect
+            router.push('/dashboard');
+        }
     };
 
     return (
@@ -121,39 +106,6 @@ export default function LoginPage() {
                         <span className="text-gray-700">Contact your administrator for access.</span>
                     </p>
                 </div>
-
-                {/* Dev Quick Login */}
-                {process.env.NODE_ENV === 'development' && (
-                    <div className="mt-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 text-white">
-                        <p className="text-xs font-bold text-teal mb-2 uppercase tracking-wider">DEV MODE - Quick Login:</p>
-                        <div className="grid grid-cols-2 gap-2">
-                            <button
-                                onClick={() => quickLogin('u_admin')}
-                                className="px-3 py-2 bg-navy-secondary text-white text-xs font-bold rounded hover:bg-navy-primary border border-white/10 transition-colors"
-                            >
-                                Admin
-                            </button>
-                            <button
-                                onClick={() => quickLogin('u_lawyer')}
-                                className="px-3 py-2 bg-navy-secondary text-white text-xs font-bold rounded hover:bg-navy-primary border border-white/10 transition-colors"
-                            >
-                                Lawyer
-                            </button>
-                            <button
-                                onClick={() => quickLogin('u_staff')}
-                                className="px-3 py-2 bg-navy-secondary text-white text-xs font-bold rounded hover:bg-navy-primary border border-white/10 transition-colors"
-                            >
-                                Staff
-                            </button>
-                            <button
-                                onClick={() => quickLogin('u_viewer')}
-                                className="px-3 py-2 bg-navy-secondary text-white text-xs font-bold rounded hover:bg-navy-primary border border-white/10 transition-colors"
-                            >
-                                Viewer
-                            </button>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

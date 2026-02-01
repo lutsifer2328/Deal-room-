@@ -6,16 +6,15 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/authContext';
 import { useTranslation } from '@/lib/useTranslation';
 import { useState } from 'react';
-import { useData } from '@/lib/store';
+
 
 // ...
 
 export default function Sidebar() {
-    const { user, loginAs } = useAuth();
+    const { user, logout } = useAuth();
     const pathname = usePathname();
     const { t, language, setLanguage } = useTranslation();
     const [showUserMenu, setShowUserMenu] = useState(false);
-    const { users, deals } = useData();
 
     if (!user) return null;
 
@@ -28,43 +27,6 @@ export default function Sidebar() {
     ];
 
     const visibleItems = navItems.filter(item => item.roles.includes(user.role));
-
-    // Calculate Switchable Users based on context
-    const getSwitchableUsers = () => {
-        const allUsers = Object.values(users);
-
-        // If we are in a deal page, we MUST filter
-        if (pathname?.startsWith('/deal/')) {
-            const dealId = pathname.split('/')[2];
-            const currentDeal = deals.find(d => d.id === dealId);
-
-            if (currentDeal) {
-                const participantUserIds = currentDeal.participants
-                    .map(p => p.userId)
-                    .filter(Boolean) as string[];
-
-                const participantEmails = currentDeal.participants
-                    .map(p => p.email.toLowerCase());
-
-                return allUsers.filter(u =>
-                    // Always show core staff
-                    ['admin', 'lawyer', 'staff'].includes(u.role) ||
-                    // Show participants specific to this deal (match by ID or Email)
-                    participantUserIds.includes(u.id) ||
-                    participantEmails.includes(u.email.toLowerCase())
-                );
-            } else {
-                // Deal not found yet (loading or invalid) -> Safe fallback: Show ONLY Staff
-                return allUsers.filter(u => ['admin', 'lawyer', 'staff'].includes(u.role));
-            }
-        }
-
-        // Default (Dashboard, Archive, etc.): Show ONLY Staff (Admin/Lawyer/Staff)
-        // We do NOT show deal participants here.
-        return allUsers.filter(u => ['admin', 'lawyer', 'staff'].includes(u.role));
-    };
-
-    const switchableUsers = getSwitchableUsers();
 
     return (
         <aside className="w-[280px] bg-gradient-to-b from-navy-primary to-navy-secondary text-white min-h-screen py-8 fixed h-screen shadow-2xl z-50 flex flex-col overflow-y-auto">
@@ -123,27 +85,16 @@ export default function Sidebar() {
                     </button>
                 </div>
 
-                {/* User Profile / Role Switcher Trigger */}
+                {/* User Profile / Menu */}
                 <div className="relative">
                     {showUserMenu && (
-                        <div className="absolute bottom-full left-0 w-full mb-2 bg-white rounded-xl shadow-2xl p-2 z-50 animate-in slide-in-from-bottom-2 fade-in duration-200 border border-gray-100 max-h-64 overflow-y-auto">
-                            <div className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Switch Role</div>
-                            {switchableUsers.map((u) => (
-                                <button
-                                    key={u.id}
-                                    onClick={() => {
-                                        loginAs(u.id);
-                                        setShowUserMenu(false);
-                                    }}
-                                    className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between mb-1 ${user.id === u.id
-                                        ? 'bg-teal/10 text-teal font-bold'
-                                        : 'text-gray-600 hover:bg-gray-50'
-                                        }`}
-                                >
-                                    <span>{u.name}</span>
-                                    <span className="text-[10px] uppercase bg-gray-100 px-1 rounded text-gray-500">{u.role}</span>
-                                </button>
-                            ))}
+                        <div className="absolute bottom-full left-0 w-full mb-2 bg-white rounded-xl shadow-2xl p-2 z-50 animate-in slide-in-from-bottom-2 fade-in duration-200 border border-gray-100">
+                            <button
+                                onClick={() => logout()}
+                                className="w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 text-red-600 hover:bg-red-50 font-bold transition-colors"
+                            >
+                                <span>Sign Out</span>
+                            </button>
                         </div>
                     )}
 
@@ -156,7 +107,7 @@ export default function Sidebar() {
                     >
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg transition-colors ${showUserMenu ? 'bg-teal text-white' : 'bg-gradient-to-br from-teal to-gold text-navy-primary'
                             }`}>
-                            {user.name.charAt(0)}
+                            {user.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className="text-sm font-bold truncate">{user.name}</div>

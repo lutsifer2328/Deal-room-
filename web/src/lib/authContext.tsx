@@ -1,49 +1,126 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/lib/supabase';
+import { getPermissionsForRole } from './permissions';
 import { User } from './types';
-import { MOCK_USERS } from './mockData';
+// ... (imports remain the same, just adding this one)
+
+// ... inside fetchUserProfile ...
+
+import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
     user: User | null;
-    loginAs: (userId: string) => void;
-    logout: () => void;
+    login: (email: string, password: string) => Promise<{ error: any }>;
+    logout: () => Promise<void>;
     isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    // Default to Admin for testing - change to null for production login screen
-    const [user, setUser] = useState<User | null>(MOCK_USERS['u_admin']);
-    const [isLoading, setIsLoading] = useState(false);
+    const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const router = useRouter();
 
-    const loginAs = (userId: string) => {
-        setIsLoading(true);
-        // Simulate network delay
-        setTimeout(() => {
-            // Check if it's a participant ID
-            if (userId.startsWith('participant_')) {
-                // Extract participant info and create a temporary user
-                const participantId = userId.replace('participant_', '');
-                // We need to get this from the data context - for now, just use mock
-                setUser(MOCK_USERS[userId] || MOCK_USERS['u_buyer']);
-            } else {
-                const newUser = MOCK_USERS[userId];
-                if (newUser) {
-                    setUser(newUser);
+    useEffect(() => {
+        // 1. Check active session
+        const checkSession = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user) {
+                    await fetchUserProfile(session.user.id, session.user.email!);
+                } else {
+                    setUser(null);
                 }
+            } catch (error) {
+                console.error('Session check failed:', error);
+            } finally {
+                setIsLoading(false);
             }
+        };
+
+        checkSession();
+
+        // 2. Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            if (session?.user) {
+                await fetchUserProfile(session.user.id, session.user.email!);
+            } else {
+                setUser(null);
+                setIsLoading(false);
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    const fetchUserProfile = async (userId: string, email: string) => {
+        try {
+            // Fetch role/name from public.users table
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (data) {
+                setUser({
+                    id: data.id,
+                    email: data.email,
+                    name: data.name,
+                    role: data.role,
+                    permissions: getPermissionsForRole(data.role),
+                    avatarUrl: data.avatar_url,
+                    isActive: data.is_active,
+                    createdAt: data.created_at,
+                    lastLogin: data.last_login
+                });
+            } else {
+                // Fallback if public user record missing (should not happen if triggers match)
+                setUser({
+                    id: userId,
+                    email: email,
+                    name: 'Unknown User',
+                    role: 'viewer',
+                    permissions: getPermissionsForRole('viewer'),
+                    isActive: true,
+                    createdAt: new Date().toISOString()
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching user profile:', error);
+        } finally {
             setIsLoading(false);
-        }, 500);
+        }
     };
 
-    const logout = () => {
+    const login = async (email: string, password: string) => {
+        setIsLoading(true);
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+
+        if (error) {
+            setIsLoading(false);
+            return { error };
+        }
+
+        return { error: null };
+    };
+
+    const logout = async () => {
+        setIsLoading(true);
+        await supabase.auth.signOut();
+        router.push('/login');
         setUser(null);
+        setIsLoading(false);
     };
 
     return (
-        <AuthContext.Provider value={{ user, loginAs, logout, isLoading }}>
+        <AuthContext.Provider value={{ user, login, logout, isLoading }}>
             {children}
         </AuthContext.Provider>
     );

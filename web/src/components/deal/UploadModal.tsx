@@ -37,12 +37,17 @@ export default function UploadModal({ taskId, taskTitle, onClose, isOpen = true 
 
         setIsUploading(true);
 
-        // Simulate upload delay
-        setTimeout(() => {
-            uploadDocument(taskId, selectedFile.name, user.id);
-            setIsUploading(false);
-            onClose();
-        }, 800);
+        setIsUploading(true);
+
+        // Pass the actual File object to the store function
+        uploadDocument(taskId, selectedFile, user.id);
+
+        // We can close immediately or wait, but since upload is async in background (optimistic in store),
+        // we can close the modal now or let the store handle loading state if we returned a promise.
+        // For now, let's just close it after a brief interaction delay or await if we updated store to return promise.
+        // Store implementation is void (fire and forget with notifications), so we close:
+        setIsUploading(false);
+        onClose();
     };
 
     return (

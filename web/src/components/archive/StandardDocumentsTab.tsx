@@ -8,7 +8,7 @@ import { Pencil, Trash2, Plus } from 'lucide-react';
 import StandardDocumentModal from './StandardDocumentModal';
 
 export default function StandardDocumentsTab() {
-    const { standardDocuments, deleteStandardDocument } = useData();
+    const { standardDocuments, deleteStandardDocument, restoreStandardDocuments } = useData();
     const { user } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingDocument, setEditingDocument] = useState<StandardDocument | null>(null);
@@ -83,12 +83,21 @@ export default function StandardDocumentsTab() {
             {sortedDocuments.length === 0 ? (
                 <div className="text-center py-16 bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-200">
                     <p className="text-text-light font-medium mb-4">No standard documents yet</p>
-                    <button
-                        onClick={handleAddNew}
-                        className="text-teal font-bold hover:underline hover:text-teal/80 transition-colors"
-                    >
-                        Add your first standard document
-                    </button>
+                    <div className="flex flex-col gap-3 items-center">
+                        <button
+                            onClick={handleAddNew}
+                            className="text-teal font-bold hover:underline hover:text-teal/80 transition-colors"
+                        >
+                            Add your first standard document
+                        </button>
+                        <span className="text-gray-300 text-xs">or</span>
+                        <button
+                            onClick={restoreStandardDocuments}
+                            className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                        >
+                            Restore Default Documents
+                        </button>
+                    </div>
                 </div>
             ) : (
                 <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">

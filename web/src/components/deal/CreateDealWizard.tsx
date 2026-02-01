@@ -120,7 +120,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
         setParticipants(participants.filter((_, i) => i !== index));
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!title) {
             alert(t('wizard.error.title'));
             return;
@@ -140,7 +140,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
             return;
         }
 
-        const dealId = createDeal(title, propertyAddress, finalParticipants, dealNumber || undefined);
+        const dealId = await createDeal(title, propertyAddress, finalParticipants, dealNumber || undefined);
         if (onSuccess) {
             onSuccess(dealId);
         } else {

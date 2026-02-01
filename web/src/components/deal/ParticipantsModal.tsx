@@ -69,8 +69,10 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
     const [showDuplicateModal, setShowDuplicateModal] = useState(false);
     const [pendingParticipantData, setPendingParticipantData] = useState<any>(null);
 
+    const [confirmedDuplicateEmail, setConfirmedDuplicateEmail] = useState<string | null>(null);
+
     const handleEmailBlur = () => {
-        if (newParticipant.email.trim()) {
+        if (newParticipant.email.trim() && newParticipant.email !== confirmedDuplicateEmail) {
             const duplicate = checkDuplicateEmail(newParticipant.email);
             if (duplicate) {
                 // Show modal immediately when duplicate is detected
@@ -94,18 +96,21 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
             return;
         }
 
-        // Check for duplicate email
-        const duplicate = checkDuplicateEmail(newParticipant.email);
-        if (duplicate) {
-            // Store pending data and show duplicate modal
-            setPendingParticipantData(newParticipant);
-            setDuplicateParticipant(duplicate);
-            setShowDuplicateModal(true);
-            return;
+        // Check for duplicate email (skip if already confirmed)
+        if (newParticipant.email !== confirmedDuplicateEmail) {
+            const duplicate = checkDuplicateEmail(newParticipant.email);
+            if (duplicate) {
+                // Store pending data and show duplicate modal
+                setPendingParticipantData(newParticipant);
+                setDuplicateParticipant(duplicate);
+                setShowDuplicateModal(true);
+                return;
+            }
         }
 
-        // No duplicate, proceed with adding
+        // No duplicate or confirmed, proceed with adding
         await proceedWithAddingParticipant(newParticipant);
+        setConfirmedDuplicateEmail(null); // Reset after add
     };
 
     const proceedWithAddingParticipant = async (participantData: any) => {
@@ -114,41 +119,16 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
         // Generate participant ID
         const participantId = `p_${Date.now()}_${Math.random()}`;
 
-        // Generate invitation token
-        const token = generateInviteToken(
-            participantData.email,
-            deal.id,
-            participantId,
-            participantData.fullName,
-            participantData.role
-        );
-
-        // Add participant to deal
+        // Add participant to deal WITHOUT sending invite
         addParticipant(deal.id, {
             ...participantData,
             isActive: true,
             hasAcceptedInvite: false,
-            invitationToken: token,
-            invitedAt: new Date().toISOString()
+            invitationToken: undefined, // Will be generated when inviting
+            invitedAt: undefined,
+            // Ensure permissions are correctly mapped
+            documentPermissions: participantData.documentPermissions || { canViewRoles: [] }
         });
-
-        // Send invitation email
-        setSendingInvite(true);
-        const emailSent = await sendInvitationEmail(
-            participantData.email,
-            participantData.fullName,
-            deal.title || 'Deal',
-            deal.propertyAddress || '',
-            participantData.role,
-            'Elena Petrova', // TODO: Get from current user
-            token
-        );
-
-        if (emailSent) {
-            setInviteSuccess(`✅ Invitation sent to ${participantData.email}`);
-            setTimeout(() => setInviteSuccess(''), 5000);
-        }
-        setSendingInvite(false);
 
         setIsAddingNew(false);
         setNewParticipant({
@@ -162,21 +142,23 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
             canDownload: true,
             documentPermissions: { canViewRoles: [] }
         });
+        setConfirmedDuplicateEmail(null);
     };
 
     const handleUseExisting = async () => {
         if (!duplicateParticipant || !pendingParticipantData) return;
 
-        // Use the existing participant but with the new role from the form
-        const participantData = {
+        // JUST UPDATE FORM, DO NOT ADD YET
+        setNewParticipant({
             ...pendingParticipantData,
             fullName: duplicateParticipant.name,
             email: duplicateParticipant.email,
-            phone: duplicateParticipant.phone || pendingParticipantData.phone
-        };
+            phone: duplicateParticipant.phone || pendingParticipantData.phone,
+            // Keep the role currently selected (likely from pendingData)
+        });
 
+        setConfirmedDuplicateEmail(duplicateParticipant.email);
         setShowDuplicateModal(false);
-        await proceedWithAddingParticipant(participantData);
         setDuplicateParticipant(null);
         setPendingParticipantData(null);
     };
@@ -197,8 +179,13 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
     };
 
     const handleRemoveParticipant = (participantId: string) => {
-        if (!deal?.id) return;
+        console.log('DEBUG: handleRemoveParticipant clicked', participantId);
+        if (!deal?.id) {
+            console.error('DEBUG: No deal ID found');
+            return;
+        }
         if (confirm('Are you sure you want to remove this participant?')) {
+            console.log('DEBUG: Confirmed. Calling removeParticipant...', deal.id, participantId);
             removeParticipant(deal.id, participantId);
         }
     };
@@ -249,6 +236,43 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
             ...newParticipant,
             documentPermissions: { canViewRoles: newRoles }
         });
+    };
+
+    const handleSendInvite = async (participant: Participant) => {
+        if (!deal?.id) return;
+
+        setSendingInvite(true);
+
+        // Generate invitation token since we didn't do it earlier
+        const token = generateInviteToken(
+            participant.email,
+            deal.id,
+            participant.id,
+            participant.fullName,
+            participant.role
+        );
+
+        // Update participant state to show they are invited
+        updateParticipant(deal.id, participant.id, {
+            invitationToken: token,
+            invitedAt: new Date().toISOString()
+        });
+
+        const emailSent = await sendInvitationEmail(
+            participant.email,
+            participant.fullName,
+            deal.title || 'Deal',
+            deal.propertyAddress || '',
+            participant.role,
+            'Elena Petrova', // TODO: Get from current user
+            token
+        );
+
+        if (emailSent) {
+            setInviteSuccess(`✅ Invitation sent to ${participant.email}`);
+            setTimeout(() => setInviteSuccess(''), 5000);
+        }
+        setSendingInvite(false);
     };
 
     const getRoleColor = (role: Role | string) => {
@@ -704,6 +728,21 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
+                                        {!participant.invitedAt ? (
+                                            <Button
+                                                onClick={() => handleSendInvite(participant)}
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-teal border-teal/20 hover:bg-teal/5 h-8 px-2 text-xs flex items-center gap-1"
+                                                title="Send Invitation Email"
+                                            >
+                                                <Send className="w-3 h-3" /> Invite
+                                            </Button>
+                                        ) : (
+                                            <div className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded border border-green-200 flex items-center h-8">
+                                                Invited
+                                            </div>
+                                        )}
                                         <Button
                                             onClick={() => startEdit(participant)}
                                             variant="ghost"

@@ -109,8 +109,9 @@ export const ROLE_PERMISSIONS: Record<Role, Permission> = {
 /**
  * Get permissions for a specific role
  */
-export function getPermissionsForRole(role: Role): Permission {
-    return ROLE_PERMISSIONS[role];
+export function getPermissionsForRole(role: Role | string): Permission {
+    const normalizeRole = (role || 'viewer').toLowerCase() as Role;
+    return ROLE_PERMISSIONS[normalizeRole] || ROLE_PERMISSIONS['viewer'];
 }
 
 /**
