@@ -13,5 +13,8 @@ export const supabase = createClient(url, key)
 
 if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('⚠️ Missing Supabase environment variables. Some features may not work.')
+} else {
+    // Debugging: Log the FIRST 20 chars of the URL to confirm it's correct (safe to expose URL origin)
+    console.log('✅ Supabase Initialized with URL:', url.substring(0, 25) + '...');
 }
 
