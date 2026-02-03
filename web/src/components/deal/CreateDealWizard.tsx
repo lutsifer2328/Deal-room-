@@ -37,6 +37,9 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
     const [showDuplicateModal, setShowDuplicateModal] = useState(false);
     const [pendingParticipantData, setPendingParticipantData] = useState<any>(null);
 
+    // Submission guard
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const handleEmailBlur = () => {
         if (currentParticipant.email.trim()) {
             const duplicate = checkDuplicateEmail(currentParticipant.email);
@@ -72,6 +75,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
     };
 
     const proceedWithAddingParticipant = (participantData: any) => {
+        console.log('➕ Adding participant with role:', participantData.role, participantData);
         setParticipants([...participants, { ...participantData }]);
         setCurrentParticipant({
             fullName: '',
@@ -91,23 +95,25 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
 
         // Use the existing participant but with the new role from the form
         const participantData = {
-            ...pendingParticipantData,
+            ...pendingParticipantData,  // This includes the ROLE the user selected!
             fullName: duplicateParticipant.name,
             email: duplicateParticipant.email,
-            phone: duplicateParticipant.phone || pendingParticipantData.phone
+            phone: duplicateParticipant.phone || pendingParticipantData.phone,
+            userId: duplicateParticipant.userId
         };
 
+        console.log('🔄 Using existing participant with role:', participantData.role);
         setShowDuplicateModal(false);
         proceedWithAddingParticipant(participantData);
-        setPendingParticipantData(null);
     };
 
     const handleCreateNew = () => {
         if (!pendingParticipantData) return;
 
-        setShowDuplicateModal(false);
+        // Use all the data from the form including the selected role
+        console.log('✨ Creating new participant with role:', pendingParticipantData.role);
         proceedWithAddingParticipant(pendingParticipantData);
-        setPendingParticipantData(null);
+        setShowDuplicateModal(false);
     };
 
     const handleCancelDuplicate = () => {
@@ -120,9 +126,12 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
         setParticipants(participants.filter((_, i) => i !== index));
     };
 
-    const handleSubmit = async () => {
-        if (!title) {
-            alert(t('wizard.error.title'));
+    const handleCreateDeal = async () => {
+        // Prevent duplicate submissions
+        if (isSubmitting) return;
+
+        if (!title || !propertyAddress) {
+            alert('Please fill in deal title and property address');
             return;
         }
 
@@ -140,11 +149,20 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
             return;
         }
 
-        const dealId = await createDeal(title, propertyAddress, finalParticipants, dealNumber || undefined);
-        if (onSuccess) {
-            onSuccess(dealId);
-        } else {
-            onClose();
+        setIsSubmitting(true);
+        try {
+            console.log('🔨 Creating deal with participants:', finalParticipants.map(p => ({ email: p.email, role: p.role })));
+            const dealId = await createDeal(title, propertyAddress, finalParticipants, dealNumber || undefined);
+            if (onSuccess) {
+                onSuccess(dealId);
+            } else {
+                onClose();
+            }
+        } catch (error) {
+            console.error('Create deal error:', error);
+            alert('Failed to create deal. Please try again.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -345,11 +363,11 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                                 {t('wizard.btn.back')}
                             </button>
                             <button
-                                onClick={handleSubmit}
-                                disabled={participants.length === 0}
+                                onClick={handleCreateDeal}
+                                disabled={isSubmitting}
                                 className="px-6 py-2 bg-teal text-white font-bold rounded-lg hover:bg-teal/90 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {t('wizard.btn.create')}
+                                {isSubmitting ? 'Creating...' : t('wizard.btn.create')}
                             </button>
                         </>
                     )}

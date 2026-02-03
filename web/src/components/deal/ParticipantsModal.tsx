@@ -13,7 +13,7 @@ import { sendInvitationEmail } from '@/lib/emailService';
 import DuplicateDetectionModal from '@/components/participants/DuplicateDetectionModal';
 
 export default function ParticipantsModal({ deal, onClose, isOpen = true }: { deal: Deal, onClose: () => void, isOpen?: boolean }) {
-    const { addParticipant, removeParticipant, updateParticipant, deals, checkDuplicateEmail, getParticipantDeals, users } = useData();
+    const { addParticipant, removeParticipant, updateParticipant, deals, checkDuplicateEmail, getParticipantDeals, users, inviteParticipant } = useData();
 
     // Get fresh deal data from store to see newly added participants
     const freshDeal = (deal && deals) ? (deals.find(d => d && d.id === deal.id) || deal) : deal;
@@ -243,32 +243,15 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
 
         setSendingInvite(true);
 
-        // Generate invitation token since we didn't do it earlier
-        const token = generateInviteToken(
-            participant.email,
-            deal.id,
-            participant.id,
-            participant.fullName,
-            participant.role
-        );
+        const success = await inviteParticipant(participant.email, participant.fullName, participant.role);
 
-        // Update participant state to show they are invited
-        updateParticipant(deal.id, participant.id, {
-            invitationToken: token,
-            invitedAt: new Date().toISOString()
-        });
+        if (success) {
+            // Update participant state to show they are invited
+            updateParticipant(deal.id, participant.id, {
+                invitationToken: 'sent_via_supa', // Placeholder to indicate invited
+                invitedAt: new Date().toISOString()
+            });
 
-        const emailSent = await sendInvitationEmail(
-            participant.email,
-            participant.fullName,
-            deal.title || 'Deal',
-            deal.propertyAddress || '',
-            participant.role,
-            'Elena Petrova', // TODO: Get from current user
-            token
-        );
-
-        if (emailSent) {
             setInviteSuccess(`✅ Invitation sent to ${participant.email}`);
             setTimeout(() => setInviteSuccess(''), 5000);
         }

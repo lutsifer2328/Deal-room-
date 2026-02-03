@@ -11,12 +11,19 @@ import { useState } from 'react';
 import RejectionModal from '@/components/deal/RejectionModal';
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { activeDeal } = useData();
   const router = useRouter();
 
   useEffect(() => {
-    if (!user) return;
+    // Wait for auth to finish loading
+    if (isLoading) return;
+
+    // No user? Redirect to login
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
     // Redirect lawyers/admins to dashboard
     if (user.role === 'lawyer' || user.role === 'admin') {
@@ -25,7 +32,7 @@ export default function Home() {
       // Redirect other users to their active deal
       router.push(`/deal/${activeDeal.id}`);
     }
-  }, [user, activeDeal, router]);
+  }, [user, isLoading, activeDeal, router]);
 
   return (
     <div className="flex items-center justify-center h-screen">

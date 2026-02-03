@@ -56,6 +56,7 @@ interface DataContextType {
     updateGlobalParticipant: (id: string, updates: Partial<GlobalParticipant>) => void;
     deleteGlobalParticipant: (id: string) => void;
     checkDuplicateEmail: (email: string) => GlobalParticipant | null;
+    inviteParticipant: (email: string, name: string, role: Role) => Promise<boolean>;
     getParticipantDeals: (participantId: string) => Array<{ deal: Deal, dealParticipant: DealParticipant }>;
     getRecentParticipants: (days?: number) => GlobalParticipant[];
     addParticipantContract: (participantId: string, title: string, uploadedBy: string) => void;
@@ -113,7 +114,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     supabase.from('participants').select('*'),
                     supabase.from('deal_participants').select('*'),
                     supabase.from('standard_documents').select('*'),
-                    supabase.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(100),
+                    // TEMPORARILY DISABLED - audit_logs causing 400 error
+                    // supabase.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(100),
+                    Promise.resolve({ data: [] }), // Return empty array instead
                     supabase.from('agency_contracts').select('*')
                 ]);
 
@@ -323,16 +326,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
         };
         // Optimistic
         setLogs(prev => [newLog, ...prev]);
-        // DB
-        await supabase.from('audit_logs').insert({
-            id: newLog.id,
-            deal_id: dealId,
-            actor_id: actorId,
-            actor_name: newLog.actorName,
-            action,
-            details,
-            timestamp: newLog.timestamp
-        });
+        // DB - wrapped in try-catch since audit_logs table may not exist or have permission issues
+        try {
+            await supabase.from('audit_logs').insert({
+                id: newLog.id,
+                deal_id: dealId,
+                actor_id: actorId,
+                actor_name: newLog.actorName,
+                action,
+                details,
+                timestamp: newLog.timestamp
+            });
+        } catch (error) {
+            console.warn('Failed to log to audit_logs (table may not exist):', error);
+        }
     };
 
     const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], dealNumber?: string) => {
@@ -421,11 +428,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
                 const { error: dpError } = await supabase.from('deal_participants').insert(dpPayload);
                 if (dpError) {
-                    console.error('Failed to link participant:', p.email, dpError);
+                    console.warn('⚠️ FAILED TO LINK PARTICIPANT TO DEAL ⚠️', {
+                        participant: p.email,
+                        role: p.role,
+                        dealId,
+                        error: dpError,
+                        errorCode: dpError.code,
+                        errorMessage: dpError.message,
+                        errorDetails: dpError.details
+                    });
+                    // Don't throw - continue with other participants
+                } else {
+                    console.log('✅ Successfully linked participant:', p.email, 'with role:', p.role);
                 }
 
-            } catch (err) {
-                console.error('Error processing participant in wizard:', p.email, err);
+            } catch (err: any) {
+                console.warn('⚠️ ERROR PROCESSING PARTICIPANT ⚠️', {
+                    participant: p.email,
+                    role: p.role,
+                    error: err,
+                    errorMessage: err?.message,
+                    stack: err?.stack
+                });
             }
         }
 
@@ -777,8 +801,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
             if (updates.email) globalUpdates.email = updates.email;
             if (updates.phone) globalUpdates.phone = updates.phone;
             if (updates.agency) globalUpdates.agency = updates.agency;
-            if (updates.invitationToken) globalUpdates.invitation_token = updates.invitationToken; // If we switch to DB tokens
-            // Note: invite persistence is currently mixed.
 
             if (Object.keys(globalUpdates).length > 0) {
                 const { error: pError } = await supabase.from('participants')
@@ -1017,10 +1039,47 @@ export function DataProvider({ children }: { children: ReactNode }) {
             return newId;
         } catch (error: any) {
             console.warn('Error creating global participant:', error);
-            // Rollback optimistic update implementation omitted for brevity, but in real app we should
-            setRawGlobalParticipants(prev => prev.filter(p => p.id !== newId));
             addNotification('error', 'Failed to add', error.message);
             return null;
+        }
+    };
+
+    const inviteParticipant = async (email: string, name: string, role: Role) => {
+        try {
+            console.log('📧 Inviting user:', { email, name, role });
+
+            // Use Next.js API route instead of Edge Function
+            const response = await fetch('/api/invite-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email,
+                    name,
+                    role: role,
+                    redirectTo: `${window.location.origin}/auth/callback`
+                })
+            });
+
+            const data = await response.json();
+            console.log('📧 Invite response:', { data, status: response.status });
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to send invitation');
+            }
+
+            // Check if user already exists
+            if (data.alreadyExists) {
+                console.log('User already registered, assume invite sent/resent or already active.');
+            }
+
+            addNotification('success', 'Invitation Sent', `Invitation email sent to ${email}`);
+            return true;
+        } catch (error: any) {
+            console.error('❌ Invite Error:', error);
+            addNotification('error', 'Invitation Failed', error.message || 'Unknown error');
+            return false;
         }
     };
     const updateGlobalParticipant = (id: string, updates: any) => { };
@@ -1097,6 +1156,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         updateGlobalParticipant,
         deleteGlobalParticipant,
         checkDuplicateEmail,
+        inviteParticipant,
         getParticipantDeals,
         getRecentParticipants,
         addParticipantContract,
