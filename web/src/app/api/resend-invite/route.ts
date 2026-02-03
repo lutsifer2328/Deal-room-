@@ -14,9 +14,12 @@ export async function POST(request: Request) {
 
         console.log('🔄 Resending invitation to:', email);
 
+        // FALLBACK: Hardcoded URL (Vercel env var fix)
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qolozennlzllvrqmibls.supabase.co';
+
         // Create admin client
         const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            supabaseUrl,
             process.env.SERVICE_ROLE_KEY!,
             {
                 auth: {

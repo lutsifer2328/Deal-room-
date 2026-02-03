@@ -15,13 +15,17 @@ export async function POST(request: Request) {
             );
         }
 
-        console.log('🔧 Creating admin client...');
-        console.log('🔧 SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'MISSING');
-        console.log('🔧 SERVICE_ROLE_KEY:', process.env.SERVICE_ROLE_KEY ? 'SET' : 'MISSING');
+        // FALLBACK: Hardcoded URL (Vercel env var fix)
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qolozennlzllvrqmibls.supabase.co';
+
+        // Debug Service Role Key presence (security: do not log the key itself)
+        if (!process.env.SERVICE_ROLE_KEY) {
+            console.error('❌ CRITICAL: SERVICE_ROLE_KEY is MISSING in API Route!');
+        }
 
         // Create admin client with service role key
         const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            supabaseUrl,
             process.env.SERVICE_ROLE_KEY!,
             {
                 auth: {
@@ -38,7 +42,7 @@ export async function POST(request: Request) {
             email,
             {
                 data: { name, role },
-                redirectTo: redirectTo || `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`
+                redirectTo: redirectTo || `${process.env.NEXT_PUBLIC_SITE_URL || 'https://deal-room-two.vercel.app'}/auth/callback`
             }
         );
 
