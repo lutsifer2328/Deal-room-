@@ -15,6 +15,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Debugging
-console.log('✅ Supabase Client Initialized with:', supabaseUrl.substring(0, 20) + '...');
+// Debugging - Removed for prod build
+// console.log('✅ Supabase Client Initialized with configured keys');
 
