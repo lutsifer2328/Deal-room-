@@ -876,6 +876,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
             const newContract: import('./types').AgencyContract = {
                 id: `cont_${Date.now()}_${Math.random()}`,
+                participantId,
                 title,
                 uploadedBy,
                 url: '#', // Mock URL
