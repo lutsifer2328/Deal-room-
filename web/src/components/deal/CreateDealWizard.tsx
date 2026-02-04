@@ -292,7 +292,6 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                                             type="email"
                                             value={currentParticipant.email}
                                             onChange={(e) => setCurrentParticipant({ ...currentParticipant, email: e.target.value })}
-                                            onBlur={handleEmailBlur}
                                             className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-teal outline-none"
                                         />
                                     </div>

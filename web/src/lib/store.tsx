@@ -147,18 +147,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     createdAt: gp.created_at,
                     updatedAt: gp.updated_at
                 })));
-                if (fetchedDPs) setRawDealParticipants(fetchedDPs.map(dp => ({
-                    id: dp.id,
-                    dealId: dp.deal_id,
-                    participantId: dp.participant_id,
-                    role: dp.role,
-                    agency: dp.agency,
-                    permissions: dp.permissions,
-                    joinedAt: dp.joined_at,
-                    isActive: dp.is_active !== false, // Default to true if null/undefined
-                    createdAt: dp.created_at,
-                    updatedAt: dp.updated_at
-                })));
+                if (fetchedDPs) {
+                    setRawDealParticipants(fetchedDPs.map(dp => ({
+                        id: dp.id,
+                        dealId: dp.deal_id,
+                        participantId: dp.participant_id,
+                        role: dp.role,
+                        agency: dp.agency,
+                        permissions: dp.permissions,
+                        joinedAt: dp.joined_at,
+                        isActive: dp.is_active !== false, // Default to true if null/undefined
+                        createdAt: dp.created_at,
+                        updatedAt: dp.updated_at
+                    })));
+                }
                 // Only overwrite if DB has valid data (active docs)
                 const validFetchedDocs = fetchedStdDocs ? fetchedStdDocs.filter(d => d.is_active !== false) : [];
 
@@ -223,11 +225,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // Map Deals (Join Users & Participants)
         const computedDeals: Deal[] = rawDeals.map(d => {
             const myDPs = rawDealParticipants.filter(dp => dp.dealId === d.id);
-            // DEBUG: Check why participants might be leaking
-            if (myDPs.length > 5) {
-                console.log(`[Store] Deal ${d.title} (${d.id}) has ${myDPs.length} participants.`);
-                // console.log('Sample DP dealId:', myDPs[0]?.dealId);
-            }
+
 
             const participants: Participant[] = myDPs.map(dp => {
                 const gp = enrichedGlobalParticipants.find(p => p.id === dp.participantId);
@@ -355,7 +353,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
             status: 'active',
             current_step_id: defaultTimeline[0].id,
             timeline_json: defaultTimeline,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            created_by: actorId // Add creator tracking
         };
 
         // Optimistic Update
