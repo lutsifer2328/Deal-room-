@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'lawyer' | 'staff' | 'viewer' | 'buyer' | 'seller' | 'agent' | 'notary' | 'bank_representative';
+export type Role = 'admin' | 'lawyer' | 'staff' | 'viewer' | 'buyer' | 'seller' | 'agent' | 'notary' | 'bank_representative' | 'broker' | 'attorney';
 
 export interface Permission {
   canCreateDeals: boolean;
@@ -22,6 +22,7 @@ export interface User {
   isActive: boolean;
   createdAt: string;
   lastLogin?: string;
+  requiresPasswordChange?: boolean; // New flag for forced password change
 }
 
 export interface AgencyContract {

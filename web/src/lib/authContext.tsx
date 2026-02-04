@@ -68,6 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const fetchUserProfile = async (userId: string, email: string) => {
         try {
+            console.log('🔍 Fetching user profile for:', { userId, email });
+
             // Fetch role/name from public.users table
             const { data, error } = await supabase
                 .from('users')
@@ -75,7 +77,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 .eq('id', userId)
                 .single();
 
+            console.log('📊 Database returned:', { data, error });
+
+            if (error) {
+                console.error('❌ Supabase Error Details:', JSON.stringify(error, null, 2));
+            }
+
             if (data) {
+                console.log('✅ Found user data, role:', data.role);
                 setUser({
                     id: data.id,
                     email: data.email,
@@ -88,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     lastLogin: data.last_login
                 });
             } else {
+                console.warn('⚠️ No user data found in public.users, defaulting to viewer');
                 // Fallback if public user record missing (should not happen if triggers match)
                 setUser({
                     id: userId,
@@ -100,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 });
             }
         } catch (error) {
-            console.error('Error fetching user profile:', error);
+            console.error('❌ Error fetching user profile:', error);
         } finally {
             setIsLoading(false);
         }

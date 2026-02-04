@@ -104,6 +104,28 @@ export const ROLE_PERMISSIONS: Record<Role, Permission> = {
         canManageDocuments: false,
         canExportData: false,
     },
+    broker: {
+        canCreateDeals: false,
+        canEditDeals: false,
+        canDeleteDeals: false,
+        canManageUsers: false,
+        canViewAllDeals: false,
+        canEditTimeline: false,
+        canCloseDeals: false,
+        canManageDocuments: false,
+        canExportData: false,
+    },
+    attorney: {
+        canCreateDeals: false,
+        canEditDeals: false,
+        canDeleteDeals: false,
+        canManageUsers: false,
+        canViewAllDeals: false,
+        canEditTimeline: false,
+        canCloseDeals: false,
+        canManageDocuments: true, // Attorneys likely review docs
+        canExportData: false,
+    },
 };
 
 /**

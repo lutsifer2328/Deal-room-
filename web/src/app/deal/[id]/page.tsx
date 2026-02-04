@@ -1,11 +1,11 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
 import DealHeader from '@/components/deal/DealHeader';
 import SingleProgressBar from '@/components/deal/SingleProgressBar';
-import { FileText, Lock, ShieldCheck, Download, Upload, AlertTriangle, Eye, Mail } from 'lucide-react';
+import { FileText, Lock, ShieldCheck, Download, Upload, AlertTriangle, Eye, Mail, ArrowLeft } from 'lucide-react';
 import { Task, DealDocument, Deal } from '@/lib/types';
 import { useState } from 'react';
 import CreateTaskModal from '@/components/deal/CreateTaskModal';
@@ -19,6 +19,7 @@ import { supabase } from '@/lib/supabase';
 
 export default function DealDetailPage() {
     const params = useParams();
+    const router = useRouter();
     const dealId = params?.id as string;
     const { user } = useAuth();
     const { isInitialized, deals, tasks, deleteTask } = useData();
@@ -66,6 +67,15 @@ export default function DealDetailPage() {
 
     return (
         <div className="max-w-5xl mx-auto pb-20">
+            {/* Back Button */}
+            <button
+                onClick={() => router.push('/dashboard')}
+                className="flex items-center gap-2 text-navy-primary hover:text-teal transition-colors mb-4 font-medium group"
+            >
+                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                <span>Back to Dashboard</span>
+            </button>
+
             <DealHeader deal={deal} />
             <SingleProgressBar deal={deal} />
 

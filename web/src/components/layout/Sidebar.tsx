@@ -20,7 +20,7 @@ export default function Sidebar() {
 
     const navItems = [
         { icon: LayoutDashboard, label: t('nav.dealRoom'), href: '/dashboard', roles: ['lawyer', 'admin', 'staff', 'viewer'] },
-        { icon: Archive, label: t('nav.archive'), href: '/archive', roles: ['lawyer', 'admin', 'buyer', 'seller', 'agent', 'staff'] },
+        { icon: Archive, label: t('nav.archive'), href: '/archive', roles: ['lawyer', 'admin', 'staff'] },
         { icon: Users, label: t('nav.participants'), href: '/participants', roles: ['lawyer', 'admin', 'staff'] },
         { icon: CreditCard, label: t('nav.finances'), href: '/finances', roles: ['lawyer', 'admin'] },
         { icon: Settings, label: t('nav.settings'), href: '/settings', roles: ['admin'] },

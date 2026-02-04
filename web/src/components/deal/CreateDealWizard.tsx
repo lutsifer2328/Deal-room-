@@ -152,7 +152,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
         setIsSubmitting(true);
         try {
             console.log('🔨 Creating deal with participants:', finalParticipants.map(p => ({ email: p.email, role: p.role })));
-            const dealId = await createDeal(title, propertyAddress, finalParticipants, dealNumber || undefined);
+            const dealId = await createDeal(title, propertyAddress, finalParticipants, user?.id || 'unknown', dealNumber || undefined);
             if (onSuccess) {
                 onSuccess(dealId);
             } else {

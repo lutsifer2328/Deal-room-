@@ -15,7 +15,7 @@ interface DataContextType {
     isInitialized: boolean;
 
     // Actions
-    createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], dealNumber?: string) => Promise<string>;
+    createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string) => Promise<string>;
     addTask: (dealId: string, title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => void;
     deleteTask: (taskId: string, actorId: string) => void;
     setActiveDeal: (dealId: string) => void;
@@ -30,6 +30,7 @@ interface DataContextType {
     addUser: (fullName: string, email: string, role: Role) => Promise<string | null>;
     updateUser: (userId: string, updates: Partial<User>) => void;
     deactivateUser: (userId: string, actorId: string) => void;
+    deleteUser: (userId: string) => Promise<boolean>;
 
     // Participant Actions
     addParticipant: (dealId: string, participant: Omit<Participant, 'id' | 'addedAt'>) => void;
@@ -342,7 +343,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], dealNumber?: string) => {
+    const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string) => {
         const dealId = crypto.randomUUID();
         const defaultTimeline = createDefaultTimeline();
 
@@ -453,7 +454,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             }
         }
 
-        logAction(dealId, 'u_lawyer', 'CREATED_DEAL', `Created deal "${title}"`);
+        logAction(dealId, actorId || 'system', 'CREATED_DEAL', `Created deal "${title}"`);
         return dealId;
     };
 
@@ -619,7 +620,39 @@ export function DataProvider({ children }: { children: ReactNode }) {
             addNotification('error', 'Update Failed', error.message);
         }
     };
-    const deactivateUser = (userId: string, actorId: string) => { };
+    const deactivateUser = async (userId: string, actorId: string) => {
+        try {
+            // Optimistic
+            setRawUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: false } : u));
+
+            const { error } = await supabase.from('users').update({ is_active: false }).eq('id', userId);
+            if (error) throw error;
+
+            addNotification('success', 'User Deactivated', 'Access revoked.');
+            logAction(activeDealId, actorId, 'UPDATED_PARTICIPANT', 'Deactivated user');
+        } catch (error: any) {
+            console.error('Deactivate error:', error);
+            setRawUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: true } : u)); // Revert
+            addNotification('error', 'Failed', error.message);
+        }
+    };
+
+    const deleteUser = async (userId: string) => {
+        try {
+            const response = await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            setRawUsers(prev => prev.filter(u => u.id !== userId));
+            addNotification('success', 'User Deleted', 'Permanently removed.');
+            return true;
+        } catch (error: any) {
+            console.error('Delete error:', error);
+            addNotification('error', 'Failed to delete', error.message);
+            return false;
+        }
+    };
 
     const addParticipant = async (dealId: string, participantData: Omit<Participant, 'id' | 'addedAt'>) => {
         try {
@@ -719,8 +752,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
             // the useEffect dependency on [rawGlobalParticipants, rawDealParticipants] 
             // will automatically re-compute 'computedDeals' with the correct joined data!
 
+
             addNotification('success', 'Participant Added', `${participantData.fullName} added to deal.`);
-            logAction(dealId, 'current_user', 'ADDED_PARTICIPANT', `Added ${participantData.fullName}`);
+
+            // Try to log action, but don't fail if audit log fails
+            try {
+                logAction(dealId, 'current_user', 'ADDED_PARTICIPANT', `Added ${participantData.fullName}`);
+            } catch (logError) {
+                console.warn('Failed to log action (non-critical):', logError);
+            }
+
 
         } catch (error: any) {
             console.warn('Error adding participant:', JSON.stringify(error, null, 2));
@@ -1138,6 +1179,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addUser,
         updateUser,
         deactivateUser,
+        deleteUser,
         addParticipant,
         removeParticipant,
         updateParticipant,

@@ -1,5 +1,4 @@
-
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
 // FALLBACK: Hardcoded values because Vercel Env Vars are failing to load
 // These are public values (Anon Key is safe to expose in client bundle)
@@ -13,8 +12,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Supabase Env Vars Missing! (Even hardcoded fallback failed?)')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Create a client with cookie support for SSR/Middleware compatibility
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
-// Debugging - Removed for prod build
-// console.log('✅ Supabase Client Initialized with configured keys');
+// Debugging
+// console.log('✅ Supabase Browser Client Initialized');
 

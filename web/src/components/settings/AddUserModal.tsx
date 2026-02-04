@@ -9,7 +9,7 @@ interface AddUserModalProps {
 }
 
 export default function AddUserModal({ onClose }: AddUserModalProps) {
-    const { addUser } = useData();
+    const { inviteParticipant } = useData();
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [role, setRole] = useState<Role>('staff');
@@ -20,7 +20,7 @@ export default function AddUserModal({ onClose }: AddUserModalProps) {
         e.preventDefault();
         if (!fullName.trim() || !email.trim()) return;
 
-        addUser(fullName, email, role);
+        inviteParticipant(email, fullName, role);
         onClose();
     };
 

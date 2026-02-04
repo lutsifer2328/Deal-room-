@@ -9,7 +9,7 @@ import AddUserModal from './AddUserModal';
 import EditUserModal from './EditUserModal';
 
 export default function UserManagementTable() {
-    const { users, deactivateUser } = useData();
+    const { users, deactivateUser, deleteUser, updateUser } = useData();
     const { user: currentUser } = useAuth();
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -130,17 +130,45 @@ export default function UserManagementTable() {
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button
                                             onClick={() => setEditingUser(user)}
-                                            className="text-teal hover:text-teal/80 font-bold mr-4 transition-colors"
+                                            className="text-teal hover:text-teal/80 font-bold mr-3 transition-colors text-sm"
                                         >
                                             Edit
                                         </button>
-                                        {user.isActive && user.id !== currentUser?.id && (
-                                            <button
-                                                onClick={() => handleDeactivate(user.id)}
-                                                className="text-red-500 hover:text-red-700 font-bold transition-colors"
-                                            >
-                                                Deactivate
-                                            </button>
+
+                                        {/* Toggle Active Status */}
+                                        {user.id !== currentUser?.id && (
+                                            <>
+                                                {user.isActive ? (
+                                                    <button
+                                                        onClick={() => handleDeactivate(user.id)}
+                                                        className="text-amber-500 hover:text-amber-700 font-bold mr-3 transition-colors text-sm"
+                                                    >
+                                                        Deactivate
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => {
+                                                            if (currentUser && confirm('Reactivate this user?')) {
+                                                                updateUser(user.id, { isActive: true });
+                                                            }
+                                                        }}
+                                                        className="text-teal hover:text-teal/80 font-bold mr-3 transition-colors text-sm"
+                                                    >
+                                                        Activate
+                                                    </button>
+                                                )}
+
+                                                <button
+                                                    onClick={async () => {
+                                                        if (confirm('PERMANENTLY DELETE this user? This cannot be undone.')) {
+                                                            await deleteUser(user.id);
+                                                        }
+                                                    }}
+                                                    className="text-red-500 hover:text-red-700 font-bold transition-colors text-sm"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </>
                                         )}
                                     </td>
                                 </tr>
