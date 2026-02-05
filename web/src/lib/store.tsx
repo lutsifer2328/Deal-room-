@@ -342,119 +342,143 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string) => {
-        const dealId = crypto.randomUUID();
-        const defaultTimeline = createDefaultTimeline();
+        try {
+            const dealId = crypto.randomUUID();
+            const defaultTimeline = createDefaultTimeline();
 
-        // 1. Create Deal
-        const dealPayload = {
-            id: dealId,
-            title,
-            property_address: propertyAddress,
-            status: 'active',
-            current_step_id: defaultTimeline[0].id,
-            timeline_json: defaultTimeline,
-            created_at: new Date().toISOString(),
-            created_by: actorId // Add creator tracking
-        };
+            // Validate actorId (ensure it is UUID, otherwise use null if DB allows, or fail gracefully)
+            // If actorId is 'unknown', we should probably set it to null or a valid system UUID if we have one.
+            // For now, let's treat 'unknown' as null.
+            const validCreatorId = actorId && actorId !== 'unknown' && actorId.length > 20 ? actorId : null;
+            // Note: DB created_by might be NOT NULL. If so, this insert will fail if validCreatorId is null.
+            // But better to fail with a clear db error than 'invalid syntax'.
 
-        // Optimistic Update
-        setRawDeals(prev => [...prev, dealPayload]);
-        setActiveDealId(dealId);
+            // 1. Create Deal
+            const dealPayload: any = { // Typings might be strict, use any for dynamic payload or Partial<Deal>
+                id: dealId,
+                title,
+                property_address: propertyAddress,
+                status: 'active',
+                current_step_id: defaultTimeline[0].id,
+                timeline_json: defaultTimeline,
+                created_at: new Date().toISOString(),
+                created_by: validCreatorId
+            };
 
-        // AWAIT deal creation to ensure FK exists
-        const { error: dealError } = await supabase.from('deals').insert(dealPayload);
+            // Optional deal number (crm integration)
+            if (dealNumber) {
+                // If using a JSONB column or specific column
+                // dealPayload.crm_id = dealNumber; 
+            }
 
-        if (dealError) {
-            console.error('Create Deal Error', dealError);
-            addNotification('error', 'Failed to create deal', dealError.message);
-            return dealId; // Return anyway, local state might be optimistic
-        }
+            // Optimistic Update
+            setRawDeals(prev => [...prev, dealPayload as Deal]);
+            setActiveDealId(dealId);
 
-        // 2. Process Participants sequentially to avoid race conditions
-        for (const p of participantsInput) {
-            try {
-                // Ensure Global Participant Exists
-                let gpId = crypto.randomUUID();
-                let gpUserId = p.userId;
+            // AWAIT deal creation
+            const { error: dealError } = await supabase.from('deals').insert(dealPayload);
 
-                // Check existing by email in current state (or fetch fresh if critical)
-                // For better reliability, we should probably upsert or check DB, but using local state for now
-                const existingGP = rawGlobalParticipants.find(gp => gp.email.toLowerCase() === p.email.toLowerCase());
+            if (dealError) {
+                console.error('Create Deal Error', dealError);
+                // Rollback optimistic?
+                setRawDeals(prev => prev.filter(d => d.id !== dealId));
+                addNotification('error', 'Failed to create deal', dealError.message);
+                throw new Error(dealError.message); // Throw to caller so Wizard knows
+            }
 
-                if (existingGP) {
-                    gpId = existingGP.id;
-                    if (existingGP.userId) gpUserId = existingGP.userId;
-                } else {
-                    // Create new Global Participant
-                    // Check DB one last time to be safe? (Optional, but good for robustness)
+            // 2. Process Participants sequentially...
+            // (Function continues below)
 
-                    const newGP = {
-                        id: gpId,
-                        user_id: gpUserId,
-                        name: p.fullName,
-                        email: p.email,
-                        phone: p.phone,
-                        agency: p.agency,
-                        internal_notes: '',
-                        invitation_status: p.hasAcceptedInvite ? 'accepted' : 'pending',
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
+            // 2. Process Participants sequentially to avoid race conditions
+            for (const p of participantsInput) {
+                try {
+                    // Ensure Global Participant Exists
+                    let gpId = crypto.randomUUID();
+                    let gpUserId = p.userId;
+
+                    // Check existing by email in current state (or fetch fresh if critical)
+                    // For better reliability, we should probably upsert or check DB, but using local state for now
+                    const existingGP = rawGlobalParticipants.find(gp => gp.email.toLowerCase() === p.email.toLowerCase());
+
+                    if (existingGP) {
+                        gpId = existingGP.id;
+                        if (existingGP.userId) gpUserId = existingGP.userId;
+                    } else {
+                        // Create new Global Participant
+                        // Check DB one last time to be safe? (Optional, but good for robustness)
+
+                        const newGP = {
+                            id: gpId,
+                            user_id: gpUserId,
+                            name: p.fullName,
+                            email: p.email,
+                            phone: p.phone,
+                            agency: p.agency,
+                            internal_notes: '',
+                            invitation_status: p.hasAcceptedInvite ? 'accepted' : 'pending',
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        };
+
+                        // Optimistic
+                        setRawGlobalParticipants(prev => [...prev, newGP as any]);
+
+                        const { error: gpError } = await supabase.from('participants').insert(newGP);
+                        if (gpError) throw gpError;
+                    }
+
+                    // Create Deal Participant Link
+                    const dpPayload = {
+                        id: crypto.randomUUID(),
+                        deal_id: dealId,
+                        participant_id: gpId,
+                        role: p.role,
+                        permissions: {
+                            canViewDocuments: p.canViewDocuments !== false, // Default true
+                            canDownloadDocuments: p.canDownload !== false,
+                            canUploadDocuments: true,
+                            canViewTimeline: true
+                        },
+                        joined_at: new Date().toISOString()
                     };
 
                     // Optimistic
-                    setRawGlobalParticipants(prev => [...prev, newGP as any]);
+                    setRawDealParticipants(prev => [...prev, dpPayload as any]);
 
-                    const { error: gpError } = await supabase.from('participants').insert(newGP);
-                    if (gpError) throw gpError;
-                }
+                    const { error: dpError } = await supabase.from('deal_participants').insert(dpPayload);
+                    if (dpError) {
+                        console.warn('⚠️ FAILED TO LINK PARTICIPANT TO DEAL ⚠️', {
+                            participant: p.email,
+                            role: p.role,
+                            dealId,
+                            error: dpError,
+                            errorCode: dpError.code,
+                            errorMessage: dpError.message,
+                            errorDetails: dpError.details
+                        });
+                        // Don't throw - continue with other participants
+                    } else {
+                        console.log('✅ Successfully linked participant:', p.email, 'with role:', p.role);
+                    }
 
-                // Create Deal Participant Link
-                const dpPayload = {
-                    id: crypto.randomUUID(),
-                    deal_id: dealId,
-                    participant_id: gpId,
-                    role: p.role,
-                    permissions: {
-                        canViewDocuments: p.canViewDocuments !== false, // Default true
-                        canDownloadDocuments: p.canDownload !== false,
-                        canUploadDocuments: true,
-                        canViewTimeline: true
-                    },
-                    joined_at: new Date().toISOString()
-                };
-
-                // Optimistic
-                setRawDealParticipants(prev => [...prev, dpPayload as any]);
-
-                const { error: dpError } = await supabase.from('deal_participants').insert(dpPayload);
-                if (dpError) {
-                    console.warn('⚠️ FAILED TO LINK PARTICIPANT TO DEAL ⚠️', {
+                } catch (err: any) {
+                    console.warn('⚠️ ERROR PROCESSING PARTICIPANT ⚠️', {
                         participant: p.email,
                         role: p.role,
-                        dealId,
-                        error: dpError,
-                        errorCode: dpError.code,
-                        errorMessage: dpError.message,
-                        errorDetails: dpError.details
+                        error: err,
+                        errorMessage: err?.message,
+                        stack: err?.stack
                     });
-                    // Don't throw - continue with other participants
-                } else {
-                    console.log('✅ Successfully linked participant:', p.email, 'with role:', p.role);
                 }
-
-            } catch (err: any) {
-                console.warn('⚠️ ERROR PROCESSING PARTICIPANT ⚠️', {
-                    participant: p.email,
-                    role: p.role,
-                    error: err,
-                    errorMessage: err?.message,
-                    stack: err?.stack
-                });
             }
-        }
 
-        logAction(dealId, actorId || 'system', 'CREATED_DEAL', `Created deal "${title}"`);
-        return dealId;
+            logAction(dealId, actorId || 'system', 'CREATED_DEAL', `Created deal "${title}"`);
+            return dealId;
+        } catch (error: any) {
+            console.error('🔥 CRITICAL ERROR IN CREATE_DEAL 🔥', error);
+            addNotification('error', 'System Error', error.message || 'Unknown error occurred');
+            throw error;
+        }
     };
 
     const addTask = (dealId: string, title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => {
