@@ -93,13 +93,41 @@ export async function POST(request: Request) {
             console.log('--> ACTION LINK Generated & Sent:', actionLink);
         }
 
-        // Update public users table
+        // Update public users table (Protect Internal Roles)
         if (userData) {
+            // Check existing role to prevent downgrading Admin/Staff
+            const { data: existingUser } = await supabaseAdmin
+                .from('users')
+                .select('role')
+                .eq('id', userData.id)
+                .single();
+
+            const existingRole = existingUser?.role;
+            const existingIsInternal = existingRole && internalRoles.includes(existingRole); // admin, lawyer, staff
+
+            // rule: If user is ALREADY internal, NEVER overwrite their role with an external one.
+            // rule: If logic is "External", we default the system role to 'viewer' or keep it as is, 
+            //       but for now we will just use the passed role UNLESS it conflicts with an internal one.
+
+            let roleToSet = role;
+            if (existingIsInternal) {
+                console.log(`🛡️ Preserving Internal Role '${existingRole}' for user ${email}. Ignoring incoming role '${role}'.`);
+                roleToSet = existingRole;
+            } else if (!isInternal) {
+                // For external users (participants), the directive implies they are just 'viewers' system-wise.
+                // The specific role (Buyer/Seller) lives in deal_participants.
+                // However, to be safe with current permissions logic, we might keep passing the specific role 
+                // UNLESS it causes issues. The user said "They have their viewer access".
+                // Let's enforce 'viewer' for external invites to keep public.users clean?
+                // NO: permissions.ts has specific entries for 'buyer', etc. Let's keep it 'buyer' for now 
+                // BUT ensure we don't overwrite internal.
+            }
+
             await supabaseAdmin.from('users').upsert({
                 id: userData.id,
                 email: email,
                 name: name,
-                role: role,
+                role: roleToSet, // Protected Role
                 is_active: true,
                 requires_password_change: isInternal // Sync this flag to public table too
             });
