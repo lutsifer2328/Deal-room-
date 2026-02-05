@@ -83,7 +83,7 @@ export default function DealDetailPage() {
                 <div className="col-span-2 space-y-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold text-midnight">{t('deal.requiredDocs')}</h2>
-                        {user.permissions.canManageDocuments && (
+                        {user?.permissions?.canManageDocuments && (
                             <button
                                 onClick={() => setIsTaskModalOpen(true)}
                                 className="text-sm text-gold font-bold hover:underline"

@@ -65,6 +65,7 @@ export default function DashboardPage() {
     };
 
     const handleJoinDeal = async (dealId: string) => {
+        if (!user) return;
         if (!confirm('Are you sure you want to join this deal?')) return;
         setJoiningDealId(dealId);
         try {
@@ -108,6 +109,7 @@ export default function DashboardPage() {
     // This supports "Self-Assignment".
 
     const myDeals = deals.filter(deal => {
+        if (!user) return false;
         // Strict participation check
         return deal.participants?.some(p =>
             (p.userId === user.id) ||
@@ -148,7 +150,7 @@ export default function DashboardPage() {
         // We need the API to check or WE check against `deals` (Context) if loaded.
         // Check `deals` context for this ID.
         const localDeal = deals.find(d => d.id === deal.id);
-        if (localDeal) {
+        if (localDeal && user) {
             return localDeal.participants?.some(p =>
                 (p.userId === user.id) ||
                 (p.email?.toLowerCase().trim() === user.email.toLowerCase().trim())
