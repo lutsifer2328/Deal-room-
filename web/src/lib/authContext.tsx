@@ -97,6 +97,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     lastLogin: data.last_login
                 });
             } else {
+                // Check if error was an AbortError - if so, DO NOT fallback to viewer immediately.
+                // This prevents race conditions where a cancelled request downgrades the user.
+                if (error && (error.name === 'AbortError' || error.message?.includes('AbortError'))) {
+                    console.warn('⚠️ Profile fetch aborted. Retaining current state/loading. Do not fallback to viewer.');
+                    return;
+                }
+
                 console.warn('⚠️ No user data found in public.users, defaulting to viewer');
                 // Fallback if public user record missing (should not happen if triggers match)
                 setUser({
