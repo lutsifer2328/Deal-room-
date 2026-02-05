@@ -424,7 +424,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         setRawGlobalParticipants(prev => [...prev, newGP as any]);
 
                         const { error: gpError } = await supabase.from('participants').insert(newGP);
-                        if (gpError) throw gpError;
+                        if (gpError) {
+                            // If user exists (409 Conflict), try to fetch the existing one and link
+                            if (gpError.code === '23505' || gpError.code === '409') { // Unique Violation
+                                console.log('Participant exists (409), fetching ID...');
+                                const { data: existingUser } = await supabase
+                                    .from('participants')
+                                    .select('id')
+                                    .eq('email', p.email)
+                                    .single();
+
+                                if (existingUser) {
+                                    gpId = existingUser.id;
+                                    console.log('Resolved existing participant ID:', gpId);
+                                } else {
+                                    // Should not happen if 409
+                                    throw gpError;
+                                }
+                            } else {
+                                throw gpError;
+                            }
+                        }
                     }
 
                     // Create Deal Participant Link
