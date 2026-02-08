@@ -1,0 +1,1 @@
+https://qolozennlzllvrqmibls.supabase.co/auth/v1/verify?token=29cd093840735e31b8433b2fc319df37185945d5aa992f74ea695ea3&type=recovery&redirect_to=http://192.168.10.65:3000

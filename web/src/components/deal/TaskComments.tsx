@@ -4,13 +4,16 @@ import { Task } from '@/lib/types';
 import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
 import { MessageSquare, Send, Eye, EyeOff } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function TaskComments({ task }: { task: Task }) {
     const { addTaskComment, toggleCommentVisibility } = useData();
     const { user } = useAuth();
     const [newComment, setNewComment] = useState('');
     const [isExpanded, setIsExpanded] = useState(false);
+    const [draftStatus, setDraftStatus] = useState<string>(''); // 'Saved' or ''
+
+    const DRAFT_KEY = `deal_room_draft_comment_${task.id}`;
 
     const isLawyer = user?.role === 'lawyer' || user?.role === 'admin';
     const allComments = task.comments || [];
@@ -20,10 +23,35 @@ export default function TaskComments({ task }: { task: Task }) {
         ? allComments  // Lawyers see all
         : allComments.filter(c => c.isVisibleToAll);  // Others only see visible ones
 
+    // Load draft on mount
+    useEffect(() => {
+        const saved = localStorage.getItem(DRAFT_KEY);
+        if (saved) {
+            setNewComment(saved);
+        }
+    }, [DRAFT_KEY]);
+
+    // Save draft on change (debounced slightly by nature of React updates, but explicit debounce is better)
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            if (newComment) {
+                localStorage.setItem(DRAFT_KEY, newComment);
+                setDraftStatus('Draft saved');
+            } else {
+                localStorage.removeItem(DRAFT_KEY);
+                setDraftStatus('');
+            }
+        }, 500);
+
+        return () => clearTimeout(handler);
+    }, [newComment, DRAFT_KEY]);
+
     const handleAddComment = () => {
         if (newComment.trim() && user) {
             addTaskComment(task.id, user.id, user.name, newComment.trim());
             setNewComment('');
+            localStorage.removeItem(DRAFT_KEY);
+            setDraftStatus('');
         }
     };
 
@@ -121,6 +149,11 @@ export default function TaskComments({ task }: { task: Task }) {
                                     >
                                         <Send className="w-4 h-4" />
                                     </button>
+                                )}
+                                {draftStatus && (
+                                    <span className="absolute right-12 bottom-3 text-[10px] text-gray-400 italic">
+                                        {draftStatus}
+                                    </span>
                                 )}
                             </div>
                         </div>

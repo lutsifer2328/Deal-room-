@@ -1,150 +1,257 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { generateSecurePassword } from '@/lib/generatePassword';
-import { sendStaffInviteEmail, sendExternalInviteEmail } from '@/lib/emailService';
+import { sendInviteEmail } from '@/lib/emailService';
 
 export async function POST(request: Request) {
     try {
-        const { email, name, role, redirectTo } = await request.json();
-        console.log('✅ API Route: Invite user started');
-        console.log('📧 Request data:', { email, name, role });
+        const {
+            dealId,
+            email,
+            fullName,
+            role,
+            agency,
+            isInternal,
+            canViewDocuments,
+            canDownload,
+            documentPermissions
+        } = await request.json();
 
-        if (!email) {
-            return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+        const cleanEmail = email?.trim();
+        const cleanName = fullName?.trim();
+
+        if (!cleanEmail) {
+            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        // 1. Determine User Type
-        const internalRoles = ['admin', 'lawyer', 'staff'];
-        const isInternal = internalRoles.includes(role);
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY!;
 
-        // Validation: Staff/Admin/Lawyer MUST be handled as internal
-        // External roles: buyer, seller, agent, notary, bank_representative
-        console.log(`👤 User Type: ${isInternal ? 'INTERNAL' : 'EXTERNAL'} (Role: ${role})`);
-
-        // Setup Supabase Admin
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qolozennlzllvrqmibls.supabase.co';
-        if (!process.env.SERVICE_ROLE_KEY) {
-            return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-        }
         const supabaseAdmin = createClient(
             supabaseUrl,
-            process.env.SERVICE_ROLE_KEY!,
-            { auth: { autoRefreshToken: false, persistSession: false } }
+            serviceRoleKey,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            }
         );
 
-        let emailResult;
-        let userData;
+        // 1. Check if user exists in public.users
+        const { data: existingUser } = await supabaseAdmin
+            .from('users')
+            .select('id, is_active, name')
+            .eq('email', email)
+            .single();
 
-        if (isInternal) {
-            // === INTERNAL FLOW (Credential-Based) ===
-            const tempPassword = generateSecurePassword();
-            console.log('🔐 Generated temporary password for Internal User');
+        let userId = existingUser?.id;
 
-            const { data: createdUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-                email: email,
-                password: tempPassword,
-                email_confirm: true,
-                user_metadata: { name, role, requires_password_change: true } // FORCE PASSWORD CHANGE
-            });
+        // 2. LOGIC BRANCH: New vs Existing
+        if (existingUser) {
+            // --- EXISTING USER ---
 
-            if (createError) throw createError;
-            userData = createdUser.user;
-
-            // Send Internal Welcome Email
-            console.log('📧 Sending Internal Welcome Email...');
-            emailResult = await sendStaffInviteEmail(email, name, email, tempPassword, role);
-
-        } else {
-            // === EXTERNAL FLOW (Token-Based) ===
-            console.log('🔗 Generating Access Link for External User');
-
-            // 1. Create User (if not exists) without password, unconfirmed
-            // Use generating link of type 'invite' usually requires user to exist? 
-            // Actually 'inviteUserByEmail' sends the email. We want 'generateLink' to get the URL and send custom email.
-            // So first, create the user.
-            const { data: createdUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-                email: email,
-                email_confirm: true, // We will trust the link delivery as confirmation
-                user_metadata: { name, role, requires_password_change: false }
-            });
-
-            // If user exists, that's fine, we'll just generate a link
-            if (createError && !(createError as any).code?.includes('unique') && !createError.message?.includes('exists')) {
-                throw createError;
+            // A. Reactivate if soft-deleted
+            if (!existingUser.is_active) {
+                await supabaseAdmin
+                    .from('users')
+                    .update({ is_active: true })
+                    .eq('id', userId);
             }
 
-            // 2. Generate Invite Link
+            // B. Send Notification for New Deal Access
+            if (dealId) {
+                // Fetch deal title for email
+                const { data: deal } = await supabaseAdmin.from('deals').select('title').eq('id', dealId).single();
+                const dealTitle = deal?.title || 'New Deal';
+
+                // Generate a magic link for easy access
+                const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+                    type: 'magiclink',
+                    email: email,
+                    options: {
+                        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/deal/${dealId}`
+                    }
+                });
+
+                const actionLink = linkData?.properties?.action_link;
+
+                if (actionLink) {
+                    await sendInviteEmail(
+                        email,
+                        existingUser.name || fullName || 'User',
+                        actionLink,
+                        role,
+                        dealTitle,
+                        true // isExistingUser = true
+                    );
+                }
+            }
+        } else {
+            // --- NEW USER ---
+
+            // A. Create in Auth (without auto-invite)
+            const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+                email,
+                user_metadata: {
+                    name: fullName,
+                    role: isInternal ? 'staff' : 'user',
+                    functional_role: role // 'broker', 'buyer', etc.
+                },
+                email_confirm: true // We will verify them via the magic link
+            });
+
+            if (authError) throw authError;
+            userId = authData.user.id;
+
+            // B. Create in Public Users (Sync)
+            const { error: publicError } = await supabaseAdmin
+                .from('users')
+                .insert({
+                    id: userId,
+                    email,
+                    name: fullName,
+                    role: isInternal ? (role === 'admin' ? 'admin' : 'staff') : 'user',
+                    is_active: true,
+                    requires_password_change: true, // Force them to set password on first login
+                    created_at: new Date().toISOString()
+                });
+
+            if (publicError) {
+                console.error('Failed to create public user record:', publicError);
+                // Continue though, as critical auth record exists
+            }
+
+            // C. Generate Magic Link (Recovery Type -> Update Password Page)
             const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-                type: 'invite',
+                type: 'recovery',
                 email: email,
                 options: {
-                    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/setup-password` // Redirect to password set page
+                    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/update-password`
                 }
             });
 
-            if (linkError) throw linkError;
+            if (linkError) {
+                console.error('Failed to generate invite link:', linkError);
+                // Notification will fail, but user exists
+            } else {
+                // D. Send Email via Resend
+                const actionLink = linkData.properties?.action_link;
 
-            const actionLink = linkData.properties.action_link;
-            userData = linkData.user;
+                // Fetch deal title if we have access to it
+                let dealTitle = 'Agenzia Deal Room';
+                if (dealId) {
+                    const { data: deal } = await supabaseAdmin.from('deals').select('title').eq('id', dealId).single();
+                    if (deal) dealTitle = deal.title;
+                }
 
-            // 3. Send External Invite Email
-            console.log('📧 Sending External Invite Email with Link...');
-            emailResult = await sendExternalInviteEmail(email, actionLink, role);
-            console.log('--> ACTION LINK Generated & Sent:', actionLink);
+                if (actionLink) {
+                    await sendInviteEmail(
+                        email,
+                        fullName,
+                        actionLink,
+                        role,
+                        dealTitle,
+                        false // isExistingUser = false
+                    );
+                }
+            }
         }
 
-        // Update public users table (Protect Internal Roles)
-        if (userData) {
-            // Check existing role to prevent downgrading Admin/Staff
-            const { data: existingUser } = await supabaseAdmin
-                .from('users')
-                .select('role')
-                .eq('id', userData.id)
-                .single();
+        // 3. Add to Deal Participants (ONLY IF dealId IS PROVIDED)
+        if (dealId) {
+            // A. Ensure Global Participant Exists
+            // We search by email first because unique constraint is usually on email
+            let participantId: string;
 
-            const existingRole = existingUser?.role;
-            const existingIsInternal = existingRole && internalRoles.includes(existingRole); // admin, lawyer, staff
+            const { data: globalParticipants } = await supabaseAdmin
+                .from('participants')
+                .select('id, user_id')
+                .eq('email', email);
 
-            // rule: If user is ALREADY internal, NEVER overwrite their role with an external one.
-            // rule: If logic is "External", we default the system role to 'viewer' or keep it as is, 
-            //       but for now we will just use the passed role UNLESS it conflicts with an internal one.
+            const globalParticipant = globalParticipants && globalParticipants.length > 0 ? globalParticipants[0] : null;
 
-            let roleToSet = role;
-            if (existingIsInternal) {
-                console.log(`🛡️ Preserving Internal Role '${existingRole}' for user ${email}. Ignoring incoming role '${role}'.`);
-                roleToSet = existingRole;
-            } else if (!isInternal) {
-                // For external users (participants), the directive implies they are just 'viewers' system-wise.
-                // The specific role (Buyer/Seller) lives in deal_participants.
-                // However, to be safe with current permissions logic, we might keep passing the specific role 
-                // UNLESS it causes issues. The user said "They have their viewer access".
-                // Let's enforce 'viewer' for external invites to keep public.users clean?
-                // NO: permissions.ts has specific entries for 'buyer', etc. Let's keep it 'buyer' for now 
-                // BUT ensure we don't overwrite internal.
+            if (globalParticipant) {
+                participantId = globalParticipant.id;
+                // Optional: Update name if provided?
+            } else {
+                // Create new Global Participant
+                participantId = crypto.randomUUID();
+                const { error: createError } = await supabaseAdmin
+                    .from('participants')
+                    .insert({
+                        id: participantId,
+                        email: email,
+                        name: fullName,
+                        user_id: userId, // Link to auth user if they exist
+                        agency: agency || '',
+                        created_at: new Date().toISOString()
+                    });
+
+                if (createError) {
+                    // Handle race condition if created between select and insert
+                    if (createError.code === '23505') {
+                        const { data: retryGP } = await supabaseAdmin.from('participants').select('id').eq('email', email).single();
+                        if (retryGP) participantId = retryGP.id;
+                        else throw createError;
+                    } else {
+                        throw createError;
+                    }
+                }
             }
 
-            await supabaseAdmin.from('users').upsert({
-                id: userData.id,
-                email: email,
-                name: name,
-                role: roleToSet, // Protected Role
-                is_active: true,
-                requires_password_change: isInternal // Sync this flag to public table too
-            });
+            // B. Update Global Participant with User ID if it was missing (Link logic)
+            if (userId && !globalParticipant?.user_id) {
+                await supabaseAdmin.from('participants').update({ user_id: userId }).eq('id', participantId);
+            }
 
-            // Link participant
-            await supabaseAdmin.from('participants').update({ user_id: userData.id }).eq('email', email);
-        }
+            // C. Check if already linked to deal (in deal_participants)
+            const { data: existingLink } = await supabaseAdmin
+                .from('deal_participants')
+                .select('id')
+                .eq('deal_id', dealId)
+                .eq('participant_id', participantId)
+                .single();
+
+            if (existingLink) {
+                return NextResponse.json({ success: true, message: 'User already in deal' });
+            }
+
+            // D. Create Link
+            const { error: linkError } = await supabaseAdmin
+                .from('deal_participants')
+                .insert({
+                    id: crypto.randomUUID(),
+                    deal_id: dealId,
+                    participant_id: participantId,
+                    role: role,
+                    permissions: {
+                        canViewDocuments: canViewDocuments ?? false,
+                        canDownloadDocuments: canDownload ?? false,
+                        ...documentPermissions
+                    },
+                    is_active: true,
+                    joined_at: new Date().toISOString()
+                });
+
+            if (linkError) {
+                console.error('Failed to link participant:', linkError);
+                throw linkError;
+            }
+        } // End if (dealId)
+
+
 
         return NextResponse.json({
             success: true,
-            user: userData,
-            emailSent: emailResult.success,
-            isInternal
+            userId,
+            isNewUser: !existingUser
         });
 
     } catch (error: any) {
-        console.error('❌ Invite error:', error);
-        return NextResponse.json({ error: error.message || 'Failed to invite' }, { status: 500 });
+        console.error('Invite user error:', error);
+        return NextResponse.json(
+            { error: error.message || 'Failed to invite user' },
+            { status: 500 }
+        );
     }
 }

@@ -13,7 +13,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Create a client with cookie support for SSR/Middleware compatibility
-export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
+// Create a client with cookie support for SSR/Middleware compatibility
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+        flowType: 'pkce',
+        detectSessionInUrl: true,
+        persistSession: true,
+        autoRefreshToken: true,
+    }
+})
 
 // Debugging
 // console.log('✅ Supabase Browser Client Initialized');

@@ -74,6 +74,8 @@ export const translations = {
         "role.lawyer": "Attorney",
         "role.notary": "Notary",
         "role.bank_representative": "Bank Representative",
+        "role.N/A": "N/A",
+        "role.attorney": "Attorney", // Alias for lawyer if data varies
 
         // Deal Room
         "deal.requiredDocs": "Required Documents",
@@ -334,6 +336,8 @@ export const translations = {
         "role.lawyer": "Адвокат",
         "role.notary": "Нотариус",
         "role.bank_representative": "Банков Представител",
+        "role.N/A": "N/A",
+        "role.attorney": "Адвокат", // Alias for lawyer
 
         // Deal Room
         "deal.requiredDocs": "Необходими документи",

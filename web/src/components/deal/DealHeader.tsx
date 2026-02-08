@@ -70,7 +70,7 @@ export default function DealHeader({ deal }: { deal: Deal }) {
         <div className="bg-white rounded-3xl p-8 shadow-xl shadow-navy-primary/5 border border-white/20 mb-8 backdrop-blur-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-teal/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
-            <div className="flex justify-between items-start relative z-10">
+            <div className="flex flex-col md:flex-row justify-between items-start relative z-10 gap-6">
                 <div className="flex-1">
                     <div className="flex items-center gap-4 mb-3">
                         <div className="flex items-center gap-2 text-teal font-bold text-xs uppercase tracking-[2px] bg-teal/5 px-3 py-1 rounded-lg">
@@ -108,13 +108,13 @@ export default function DealHeader({ deal }: { deal: Deal }) {
                     )}
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
                     {/* Status Dropdown */}
                     {canEdit && (
                         <div className="relative" ref={dropdownRef}>
                             <button
                                 onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-                                className="flex items-center gap-2 px-5 py-2.5 text-navy-primary font-bold border-2 border-border-light rounded-xl hover:bg-gray-50 hover:border-teal/30 transition-all bg-white"
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-navy-primary font-bold border-2 border-border-light rounded-xl hover:bg-gray-50 hover:border-teal/30 transition-all bg-white"
                             >
                                 {t('deal.header.status')}
                                 <ChevronDown className="w-4 h-4" />
@@ -171,7 +171,7 @@ export default function DealHeader({ deal }: { deal: Deal }) {
                         <button
                             onClick={handleExport}
                             disabled={isExporting}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-navy-primary text-white font-bold rounded-xl hover:bg-navy-secondary shadow-lg disabled:opacity-70 disabled:cursor-wait transition-all"
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-navy-primary text-white font-bold rounded-xl hover:bg-navy-secondary shadow-lg disabled:opacity-70 disabled:cursor-wait transition-all"
                         >
                             {isExporting ? <Archive className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
                             {isExporting ? t('deal.header.bundling') : t('deal.header.export')}
@@ -180,7 +180,7 @@ export default function DealHeader({ deal }: { deal: Deal }) {
 
                     <button
                         onClick={() => setIsParticipantsModalOpen(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 text-navy-primary font-bold bg-white border border-border-light rounded-xl hover:bg-gray-50 hover:border-teal/30 shadow-sm transition-all"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-navy-primary font-bold bg-white border border-border-light rounded-xl hover:bg-gray-50 hover:border-teal/30 shadow-sm transition-all"
                     >
                         <Users className="w-4 h-4" />
                         {t('deal.header.manageParticipants')}

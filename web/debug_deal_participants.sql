@@ -1,18 +1,29 @@
--- Deep dive into Deal Participants
--- 1. Check if ANY deal participants exist
-SELECT count(*) as total_deal_participants FROM deal_participants;
-
--- 2. Check the most recent ones (verify if the ones you just created are there)
+-- Debug: Check Participants for latest deals
 SELECT 
-    dp.joined_at, 
-    dp.role, 
-    d.title as deal_title, 
-    p.email as participant_email
-FROM deal_participants dp
-JOIN deals d ON dp.deal_id = d.id
-JOIN participants p ON dp.participant_id = p.id
-ORDER BY dp.joined_at DESC 
-LIMIT 10;
+    d.title, 
+    d.id as deal_id, 
+    COUNT(dp.id) as participant_count 
+FROM 
+    deals d
+LEFT JOIN 
+    deal_participants dp ON d.id = dp.deal_id
+GROUP BY 
+    d.id, d.title
+ORDER BY 
+    d.created_at DESC
+LIMIT 5;
 
--- 3. Check for Orphaned Deal Participants (where link exists but permission/query might fail)
-SELECT * FROM deal_participants WHERE deal_id IS NULL OR participant_id IS NULL;
+-- Check specific deal participants detail
+SELECT 
+    dp.deal_id,
+    dp.role,
+    p.email,
+    p.name,
+    dp.params as permissions
+FROM 
+    deal_participants dp
+JOIN 
+    participants p ON dp.participant_id = p.id
+ORDER BY 
+    dp.joined_at DESC
+LIMIT 10;

@@ -79,8 +79,8 @@ export default function DealDetailPage() {
             <DealHeader deal={deal} />
             <SingleProgressBar deal={deal} />
 
-            <div className="grid grid-cols-3 gap-8">
-                <div className="col-span-2 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="md:col-span-2 space-y-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold text-midnight">{t('deal.requiredDocs')}</h2>
                         {user?.permissions?.canManageDocuments && (
@@ -111,7 +111,7 @@ export default function DealDetailPage() {
                     )}
                 </div>
 
-                <div className="col-span-1">
+                <div className="col-span-1 space-y-6">
                     <div className="bg-midnight/5 rounded-xl p-6 border border-midnight/10 sticky top-24">
                         <h3 className="font-bold text-midnight mb-2">{t('deal.infoTitle')}</h3>
                         <p className="text-sm text-gray-600 mb-4">
@@ -174,9 +174,16 @@ function ParticipantTaskGroup({ participant, role, tasks, userRole, onDeleteTask
                     </span>
                 )}
                 {participant && (
-                    <div className="flex items-center gap-2 text-xs text-text-light font-medium ml-auto bg-white px-3 py-1.5 rounded-full border border-gray-100 shadow-sm">
-                        <Mail className="w-3 h-3 text-teal" />
-                        {participant.email}
+                    <div className="flex items-center gap-2">
+                        {participant.isUserActive === false && (
+                            <span className="text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded shadow-sm">
+                                FORMER STAFF
+                            </span>
+                        )}
+                        <div className="flex items-center gap-2 text-xs text-text-light font-medium bg-white px-3 py-1.5 rounded-full border border-gray-100 shadow-sm">
+                            <Mail className="w-3 h-3 text-teal" />
+                            {participant.email}
+                        </div>
                     </div>
                 )}
             </div>
@@ -383,7 +390,7 @@ function DocumentRow({ doc, userRole, taskId }: { doc: DealDocument, userRole: s
                             {(doc.status === 'private' || doc.status === 'rejected') && (
                                 <button
                                     onClick={() => verifyDocument(user.id, taskId, doc.id)}
-                                    className="px-4 py-1.5 bg-success text-white text-xs font-bold rounded-lg hover:shadow-lg hover:bg-success/90 shadow-success/20 transition-all flex items-center gap-1"
+                                    className="px-4 py-1.5 bg-green-500 text-white text-xs font-bold rounded-lg hover:shadow-lg hover:bg-green-600 shadow-green-200 transition-all flex items-center gap-1"
                                 >
                                     <ShieldCheck className="w-3 h-3" /> {t('deal.verify')}
                                 </button>

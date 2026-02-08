@@ -56,7 +56,7 @@ export default function SingleProgressBar({ deal }: { deal: Deal }) {
                     )}
                 </div>
 
-                <div className="relative">
+                <div className="relative overflow-x-auto pb-4 px-2 no-scrollbar">
                     {/* Progress Line */}
                     <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full">
                         <div

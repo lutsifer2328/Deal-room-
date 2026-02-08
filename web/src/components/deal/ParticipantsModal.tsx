@@ -9,11 +9,10 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useData } from '@/lib/store';
 import { generateInviteToken } from '@/lib/invitations';
-import { sendInvitationEmail } from '@/lib/emailService';
 import DuplicateDetectionModal from '@/components/participants/DuplicateDetectionModal';
 
 export default function ParticipantsModal({ deal, onClose, isOpen = true }: { deal: Deal, onClose: () => void, isOpen?: boolean }) {
-    const { addParticipant, removeParticipant, updateParticipant, deals, checkDuplicateEmail, getParticipantDeals, users, inviteParticipant } = useData();
+    const { addParticipant, removeParticipant, updateParticipant, deals, checkDuplicateEmail, getParticipantDeals, users, inviteParticipant, refreshData } = useData();
 
     // Get fresh deal data from store to see newly added participants
     const freshDeal = (deal && deals) ? (deals.find(d => d && d.id === deal.id) || deal) : deal;
@@ -36,6 +35,12 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
     const [newParticipant, setNewParticipant] = useState(defaultParticipantState);
 
     useEffect(() => {
+        if (isOpen) {
+            // DEBUG: User reported empty list - forcing refresh
+            console.log('🔄 ParticipantsModal Opened - Refreshing Data...');
+            refreshData();
+        }
+
         if (!isOpen) {
             setIsAddingNew(false);
             setEditingId(null);
@@ -71,17 +76,42 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
 
     const [confirmedDuplicateEmail, setConfirmedDuplicateEmail] = useState<string | null>(null);
 
-    const handleEmailBlur = () => {
-        if (newParticipant.email.trim() && newParticipant.email !== confirmedDuplicateEmail) {
-            const duplicate = checkDuplicateEmail(newParticipant.email);
-            if (duplicate) {
-                // Show modal immediately when duplicate is detected
-                setPendingParticipantData(newParticipant);
-                setDuplicateParticipant(duplicate);
-                setShowDuplicateModal(true);
+    const [smartUser, setSmartUser] = useState<any>(null);
+    const [isCheckingUser, setIsCheckingUser] = useState(false);
+
+    const handleEmailBlur = async () => {
+        if (!newParticipant.email.trim()) return;
+
+        // Don't check if we just checked this email
+        if (smartUser && smartUser.email === newParticipant.email) return;
+
+        setIsCheckingUser(true);
+        try {
+            const response = await fetch('/api/check-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: newParticipant.email })
+            });
+            const data = await response.json();
+
+            if (data.exists && data.user) {
+                setSmartUser(data.user);
+                // Auto-fill available data
+                setNewParticipant(prev => ({
+                    ...prev,
+                    userId: data.user.id,
+                    fullName: data.user.name || prev.fullName,
+                    phone: data.user.phone || prev.phone,
+                    // If they are staff/admin, hint at it but don't force role unless internal
+                    role: (data.user.role === 'admin' || data.user.role === 'staff') && !isInternalUser ? 'agent' : prev.role
+                }));
             } else {
-                setDuplicateParticipant(null);
+                setSmartUser(null);
             }
+        } catch (error) {
+            console.error('Error checking user:', error);
+        } finally {
+            setIsCheckingUser(false);
         }
     };
 
@@ -96,53 +126,73 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
             return;
         }
 
-        // Check for duplicate email (skip if already confirmed)
-        if (newParticipant.email !== confirmedDuplicateEmail) {
-            const duplicate = checkDuplicateEmail(newParticipant.email);
-            if (duplicate) {
-                // Store pending data and show duplicate modal
-                setPendingParticipantData(newParticipant);
-                setDuplicateParticipant(duplicate);
-                setShowDuplicateModal(true);
-                return;
-            }
+        // Logic split: EXISTING USER vs NEW USER
+        if (smartUser) {
+            // LINK EXISTING USER
+            // The backend will handle "Re-Activation" if they are soft-deleted
+            // We just need to add them to the deal participants table
+            // Update: We'll use the NEW unified invite endpoint which checks existence too
+            await proceedWithAddingParticipant(newParticipant, true); // true = existing
+        } else {
+            // INVITE NEW USER
+            await proceedWithAddingParticipant(newParticipant, false);
         }
-
-        // No duplicate or confirmed, proceed with adding
-        await proceedWithAddingParticipant(newParticipant);
-        setConfirmedDuplicateEmail(null); // Reset after add
     };
 
-    const proceedWithAddingParticipant = async (participantData: any) => {
+    const proceedWithAddingParticipant = async (participantData: any, isExisting: boolean) => {
         if (!deal?.id) return;
 
-        // Generate participant ID
-        const participantId = `p_${Date.now()}_${Math.random()}`;
+        setSendingInvite(true);
+        try {
+            // Call the UNIFIED invite/link endpoint
+            const response = await fetch('/api/invite-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    dealId: deal.id,
+                    email: participantData.email,
+                    fullName: participantData.fullName,
+                    role: participantData.role,
+                    agency: participantData.agency,
+                    isInternal: isInternalUser,
+                    // Permissions
+                    canViewDocuments: participantData.canViewDocuments,
+                    canDownload: participantData.canDownload,
+                    documentPermissions: participantData.documentPermissions
+                })
+            });
 
-        // Add participant to deal WITHOUT sending invite
-        addParticipant(deal.id, {
-            ...participantData,
-            isActive: true,
-            hasAcceptedInvite: false,
-            invitationToken: undefined, // Will be generated when inviting
-            invitedAt: undefined,
-            // Ensure permissions are correctly mapped
-            documentPermissions: participantData.documentPermissions || { canViewRoles: [] }
-        });
+            const result = await response.json();
 
-        setIsAddingNew(false);
-        setNewParticipant({
-            fullName: '',
-            email: '',
-            phone: '',
-            agency: '',
-            role: 'buyer',
-            userId: undefined,
-            canViewDocuments: true,
-            canDownload: true,
-            documentPermissions: { canViewRoles: [] }
-        });
-        setConfirmedDuplicateEmail(null);
+            if (!response.ok) throw new Error(result.error || 'Failed to add participant');
+
+            setInviteSuccess(isExisting ? `✅ Linked ${participantData.fullName} to deal` : `✅ Invite sent to ${participantData.email}`);
+            setTimeout(() => setInviteSuccess(''), 5000);
+
+            // Close and Reset
+            setIsAddingNew(false);
+            setSmartUser(null);
+            setNewParticipant({
+                fullName: '',
+                email: '',
+                phone: '',
+                agency: '',
+                role: 'buyer',
+                userId: undefined,
+                canViewDocuments: true,
+                canDownload: true,
+                documentPermissions: { canViewRoles: [] }
+            });
+
+            // Trigger a refresh of deal data if possible (handled by store subscription usually)
+            await refreshData();
+
+        } catch (error: any) {
+            console.error('Add participant error:', error);
+            alert(error.message);
+        } finally {
+            setSendingInvite(false);
+        }
     };
 
     const handleUseExisting = async () => {
@@ -157,6 +207,9 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
             // Keep the role currently selected (likely from pendingData)
         });
 
+        // Mark as smart user so handleAddParticipant knows it's existing
+        setSmartUser(duplicateParticipant);
+
         setConfirmedDuplicateEmail(duplicateParticipant.email);
         setShowDuplicateModal(false);
         setDuplicateParticipant(null);
@@ -167,7 +220,8 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
         if (!pendingParticipantData) return;
 
         setShowDuplicateModal(false);
-        await proceedWithAddingParticipant(pendingParticipantData);
+        // Force create new (isExisting = false)
+        await proceedWithAddingParticipant(pendingParticipantData, false);
         setDuplicateParticipant(null);
         setPendingParticipantData(null);
     };
@@ -243,7 +297,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
 
         setSendingInvite(true);
 
-        const success = await inviteParticipant(participant.email, participant.fullName, participant.role);
+        const success = await inviteParticipant(deal.id, participant.email, participant.fullName, participant.role, isInternalUser);
 
         if (success) {
             // Update participant state to show they are invited

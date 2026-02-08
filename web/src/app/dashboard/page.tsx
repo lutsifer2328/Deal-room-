@@ -9,18 +9,19 @@ import CreateDealWizard from '@/components/deal/CreateDealWizard';
 import DealStatusBadge from '@/components/deal/DealStatusBadge';
 import { DealStatus } from '@/lib/types';
 import { useTranslation } from '@/lib/useTranslation';
+import { supabase } from '@/lib/supabase';
 
 type StatusFilter = 'active' | 'on_hold' | 'closed';
 type ViewMode = 'my-deals' | 'global-index';
 
 export default function DashboardPage() {
     const { deals } = useData();
-    const { user } = useAuth();
+    const { user, isLoading } = useAuth();
     const router = useRouter();
     const { t } = useTranslation();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-    // View Mode State
+    // State
     const [viewMode, setViewMode] = useState<ViewMode>('my-deals');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
 
@@ -32,135 +33,121 @@ export default function DashboardPage() {
     const [loadingGlobal, setLoadingGlobal] = useState(false);
     const [joiningDealId, setJoiningDealId] = useState<string | null>(null);
 
-    // Check if user is authenticated
-    // Check if user is authenticated
-    const isInternal = user ? ['admin', 'lawyer', 'staff'].includes(user.role) : false;
+    const isInternal = ['admin', 'staff', 'lawyer'].includes(user?.role || '');
+
+    // Derived
+    const tabs = [
+        { id: 'active' as const, label: t('dashboard.tab.active'), count: deals.filter(d => d.status === 'active').length },
+        { id: 'on_hold' as const, label: t('dashboard.tab.onHold'), count: deals.filter(d => d.status === 'on_hold').length },
+        { id: 'closed' as const, label: t('dashboard.tab.closed'), count: deals.filter(d => d.status === 'closed').length },
+    ];
+
+    const filteredMyDeals = deals.filter(d => d.status === statusFilter);
 
     // Fetch Global Deals
     useEffect(() => {
         if (viewMode === 'global-index' && isInternal) {
             fetchGlobalDeals();
         }
-    }, [viewMode, currentPage, searchQuery]);
+    }, [viewMode, isInternal, currentPage, searchQuery]);
 
     const fetchGlobalDeals = async () => {
         setLoadingGlobal(true);
         try {
-            const params = new URLSearchParams({
+            const query = new URLSearchParams({
                 page: currentPage.toString(),
                 limit: '10',
                 q: searchQuery
             });
-            const res = await fetch(`/api/deals/search?${params}`);
-            const data = await res.json();
-            if (data.data) {
-                setGlobalDeals(data.data);
-                setTotalGlobal(data.meta.total);
+
+            const res = await fetch(`/api/deals/search?${query.toString()}`);
+            if (res.ok) {
+                const data = await res.json();
+                setGlobalDeals(data.deals);
+                setTotalGlobal(data.total);
             }
         } catch (error) {
-            console.error('Failed to fetch global deals', error);
+            console.error('Failed to fetch global deals:', error);
         } finally {
             setLoadingGlobal(false);
         }
     };
 
     const handleJoinDeal = async (dealId: string) => {
-        if (!user) return;
-        if (!confirm('Are you sure you want to join this deal?')) return;
+        if (!confirm('Are you sure you want to join this deal? You will be added as a participant.')) return;
+
         setJoiningDealId(dealId);
         try {
             const res = await fetch('/api/deals/join', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    dealId,
-                    userId: user.id,
-                    userEmail: user.email,
-                    userRole: user.role
-                })
+                body: JSON.stringify({ dealId })
             });
 
-            if (res.ok) {
-                alert('Successfully joined deal!');
-                fetchGlobalDeals(); // Refresh to update "Join" button state (ideally backed by check)
-                // Also trigger app-wide data refresh if possible
-                window.location.reload(); // Simplest way to refresh "My Deals" context
-            } else {
-                const err = await res.json();
-                alert(err.message || 'Failed to join');
-            }
+            if (!res.ok) throw new Error('Failed to join');
+
+            alert('Successfully joined the deal!');
+            fetchGlobalDeals(); // Refresh list
+
+            // Switch to My Deals
+            // window.location.reload(); // Simple reload to refresh context
         } catch (error) {
-            console.error(error);
-            alert('Error joining deal');
+            console.error('Join failed:', error);
+            alert('Failed to join deal. Please try again.');
         } finally {
             setJoiningDealId(null);
         }
     };
 
-    // Filter "My Deals" based on participation
-    // Admin/Lawyer see all in "My Deals" too? No, usually "My Deals" implies participation or assignment.
-    // BUT the old logic said Admin/Lawyer see ALL. 
-    // New Spec: "Global Index" is the place for ALL. "My Deals" should be Participation.
-    // However, to avoid breaking Admin workflow, let's keep the old logic for 'my-deals' VIEW 
-    // OR align it strictly: 'my-deals' = participated. 'global-index' = all.
-    // For now, I will use the Strict bifurcation.
-    // Internal Staff/Admin/Lawyer -> 'my-deals' shows ONLY participated deals.
-    // 'global-index' shows EVERYTHING.
-    // This supports "Self-Assignment".
-
-    const myDeals = deals.filter(deal => {
-        if (!user) return false;
-        // Strict participation check
-        return deal.participants?.some(p =>
-            (p.userId === user.id) ||
-            (p.email?.toLowerCase().trim() === user.email.toLowerCase().trim())
-        );
-    });
-
-    const filteredMyDeals = myDeals.filter(deal => deal.status === statusFilter);
-
-    const statusCounts = {
-        active: myDeals.filter(d => d.status === 'active').length,
-        on_hold: myDeals.filter(d => d.status === 'on_hold').length,
-        closed: myDeals.filter(d => d.status === 'closed').length
+    const isParticipantInGlobal = (deal: any) => {
+        // Optimistic check against local deals if possible, or assume if in My Deals it overlaps.
+        // For now, simpler: check if deal.id is in known deals
+        return deals.some(d => d.id === deal.id);
     };
 
     const getStepLabel = (step: string) => {
-        const labels: Record<string, string> = {
-            'onboarding': t('dashboard.phase.onboarding'),
-            'documents': t('dashboard.phase.documents'),
-            'preliminary_contract': t('dashboard.phase.preliminary_contract'),
-            'final_review': t('dashboard.phase.final_review'),
-            'closing': t('dashboard.phase.closing')
-        };
-        return labels[step] || step;
+        return step?.replace(/_/g, ' ').toUpperCase() || 'UNKNOWN';
     };
 
-    const tabs: { id: StatusFilter; label: string; count: number }[] = [
-        { id: 'active', label: t('dashboard.tab.active'), count: statusCounts.active },
-        { id: 'on_hold', label: t('dashboard.tab.onHold'), count: statusCounts.on_hold },
-        { id: 'closed', label: t('dashboard.tab.closed'), count: statusCounts.closed }
-    ];
-
-    // Helper: Am I in this global deal?
-    const isParticipantInGlobal = (deal: any) => {
-        // We lack full participant list in global search usually (for performance), 
-        // but if the API returns them or we check locally...
-        // The Search API returns `*` from deals. It DOES NOT join participants by default unless requested.
-        // We need the API to check or WE check against `deals` (Context) if loaded.
-        // Check `deals` context for this ID.
-        const localDeal = deals.find(d => d.id === deal.id);
-        if (localDeal && user) {
-            return localDeal.participants?.some(p =>
-                (p.userId === user.id) ||
-                (p.email?.toLowerCase().trim() === user.email.toLowerCase().trim())
-            );
-        }
-        return false; // Assume not if not in local My Deals context
-    };
+    if (isLoading) {
+        return <div className="p-20 text-center text-gray-500">Loading...</div>;
+    }
 
     if (!user) {
-        return <div className="p-10 text-center">{t('dashboard.accessDenied')}</div>;
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[50vh] p-10 text-center gap-4">
+                <div className="text-red-500 font-bold text-xl">Authentication Status: Unknown</div>
+                <p className="text-gray-600 max-w-md">
+                    We detected a session issue. The server authorized you, but the client could not verify your profile.
+                </p>
+
+                <div className="bg-gray-100 p-4 rounded text-left text-xs font-mono text-gray-600 max-w-md w-full">
+                    <p><strong>Debug Info:</strong></p>
+                    <p>User Object: {user ? 'Existent' : 'NULL'}</p>
+                    <p>Loading: {isLoading ? 'True' : 'False'}</p>
+                    <p>Role: N/A</p>
+                    <p>Timestamp: {new Date().toISOString()}</p>
+                </div>
+
+                <div className="flex gap-4 mt-2">
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-6 py-2 bg-gray-200 text-gray-700 font-bold rounded hover:bg-gray-300 transition-colors"
+                    >
+                        Retry Connection
+                    </button>
+                    <button
+                        onClick={async () => {
+                            await supabase.auth.signOut();
+                            window.location.href = '/login';
+                        }}
+                        className="px-6 py-2 bg-navy-primary text-white font-bold rounded hover:bg-navy-secondary transition-colors"
+                    >
+                        Reset & Log In
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -171,31 +158,31 @@ export default function DashboardPage() {
                     <p className="text-text-secondary text-lg">{t('dashboard.subtitle')}</p>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
                     {isInternal && (
-                        <div className="bg-gray-100 p-1 rounded-xl flex">
+                        <div className="bg-gray-100 p-1 rounded-xl flex w-full sm:w-auto">
                             <button
                                 onClick={() => setViewMode('my-deals')}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'my-deals'
+                                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'my-deals'
                                     ? 'bg-white text-navy-primary shadow-sm'
                                     : 'text-gray-500 hover:text-navy-primary'
                                     }`}
                             >
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-center gap-2">
                                     <UserCheck className="w-4 h-4" />
-                                    My Deals
+                                    <span>My Deals</span>
                                 </div>
                             </button>
                             <button
                                 onClick={() => setViewMode('global-index')}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'global-index'
+                                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'global-index'
                                     ? 'bg-white text-navy-primary shadow-sm'
                                     : 'text-gray-500 hover:text-navy-primary'
                                     }`}
                             >
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-center gap-2">
                                     <Globe className="w-4 h-4" />
-                                    Global Index
+                                    <span>Global Index</span>
                                 </div>
                             </button>
                         </div>
@@ -204,7 +191,7 @@ export default function DashboardPage() {
                     {user.permissions.canCreateDeals && (
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
-                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-teal to-teal/90 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:translate-y-[-2px] transition-all duration-300"
+                            className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-teal to-teal/90 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:translate-y-[-2px] transition-all duration-300 w-full sm:w-auto"
                         >
                             <Plus className="w-5 h-5" />
                             {t('dashboard.newDeal')}
@@ -217,8 +204,8 @@ export default function DashboardPage() {
             {viewMode === 'my-deals' && (
                 <>
                     {/* Status Tabs */}
-                    <div className="mb-8">
-                        <div className="flex gap-4 p-1 bg-white/50 backdrop-blur-sm rounded-2xl inline-flex border border-white/20">
+                    <div className="mb-8 overflow-x-auto pb-2 no-scrollbar">
+                        <div className="flex gap-4 p-1 bg-white/50 backdrop-blur-sm rounded-2xl inline-flex border border-white/20 min-w-max">
                             {tabs.map(tab => (
                                 <button
                                     key={tab.id}
@@ -240,9 +227,68 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    {/* Deals Table */}
+                    {/* Deals List */}
                     <div className="bg-white rounded-3xl shadow-xl shadow-navy-primary/5 border border-white/20 overflow-hidden backdrop-blur-xl">
-                        <table className="w-full">
+
+                        {/* Mobile Card View */}
+                        <div className="md:hidden divide-y divide-gray-50">
+                            {filteredMyDeals.length === 0 ? (
+                                <div className="p-8 text-center">
+                                    <div className="flex flex-col items-center justify-center text-text-light">
+                                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                            <Calendar className="w-8 h-8 opacity-20" />
+                                        </div>
+                                        <p className="text-lg font-medium text-text-secondary">
+                                            {statusFilter === 'active' && t('dashboard.empty.active')}
+                                            {statusFilter === 'on_hold' && t('dashboard.empty.onHold')}
+                                            {statusFilter === 'closed' && t('dashboard.empty.closed')}
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                filteredMyDeals.map((deal) => (
+                                    <div
+                                        key={deal.id}
+                                        onClick={() => router.push(`/deal/${deal.id}`)}
+                                        className="p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                                    >
+                                        <div className="flex justify-between items-start mb-2 gap-3">
+                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                <div className="w-10 h-10 rounded-xl bg-teal/10 flex items-center justify-center text-teal flex-shrink-0">
+                                                    <Building className="w-5 h-5" />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <h3 className="font-serif font-bold text-navy-primary truncate">{deal.title}</h3>
+                                                    {deal.dealNumber && <div className="text-xs text-text-light font-bold font-mono">#{deal.dealNumber}</div>}
+                                                </div>
+                                            </div>
+                                            <div className="transform scale-90 flex-shrink-0">
+                                                <DealStatusBadge status={deal.status} />
+                                            </div>
+                                        </div>
+
+                                        <div className="pl-[52px] space-y-2">
+                                            <div className="text-sm text-text-secondary font-medium truncate">
+                                                {deal.propertyAddress || 'No address'}
+                                            </div>
+
+                                            <div className="flex items-center justify-between text-xs text-text-light pt-2">
+                                                <span className="bg-gray-100 px-2 py-1 rounded font-bold uppercase tracking-wide">
+                                                    {getStepLabel(deal.currentStep || 'onboarding')}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar className="w-3 h-3" />
+                                                    {new Date(deal.createdAt).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Desktop Table View */}
+                        <table className="w-full hidden md:table">
                             <thead>
                                 <tr className="border-b border-gray-100 bg-gray-50/50">
                                     <th className="px-8 py-6 text-left text-xs font-bold text-text-light uppercase tracking-widest font-sans">{t('dashboard.table.property')}</th>
@@ -328,7 +374,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Global List */}
-                    <div className="bg-white rounded-3xl shadow-xl shadow-navy-primary/5 border border-white/20 overflow-hidden backdrop-blur-xl">
+                    <div className="bg-white rounded-3xl shadow-xl shadow-navy-primary/5 border border-white/20 overflow-hidden backdrop-blur-xl overflow-x-auto">
                         {loadingGlobal ? (
                             <div className="p-10 text-center text-gray-500">Loading Global Index...</div>
                         ) : (

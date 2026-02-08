@@ -57,7 +57,7 @@ interface DataContextType {
     updateGlobalParticipant: (id: string, updates: Partial<GlobalParticipant>) => void;
     deleteGlobalParticipant: (id: string) => void;
     checkDuplicateEmail: (email: string) => GlobalParticipant | null;
-    inviteParticipant: (email: string, name: string, role: Role) => Promise<boolean>;
+    inviteParticipant: (dealId: string, email: string, name: string, role: Role, isInternal?: boolean) => Promise<boolean>;
     getParticipantDeals: (participantId: string) => Array<{ deal: Deal, dealParticipant: DealParticipant }>;
     getRecentParticipants: (days?: number) => GlobalParticipant[];
     addParticipantContract: (participantId: string, title: string, uploadedBy: string) => void;
@@ -71,6 +71,7 @@ interface DataContextType {
     addNotification: (type: 'info' | 'success' | 'warning' | 'error', title: string, message: string, link?: string) => void;
     markAsRead: (id: string) => void;
     markAllAsRead: () => void;
+    refreshData: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -96,111 +97,110 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
 
     // Fetch Data
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [
-                    { data: fetchedUsers },
-                    { data: fetchedDeals },
-                    { data: fetchedTasks },
-                    { data: fetchedGPs },
-                    { data: fetchedDPs },
-                    { data: fetchedStdDocs },
-                    { data: fetchedLogs },
-                    { data: fetchedContracts }
-                ] = await Promise.all([
-                    supabase.from('users').select('*'),
-                    supabase.from('deals').select('*'),
-                    supabase.from('tasks').select('*, documents(*)'),
-                    supabase.from('participants').select('*'),
-                    supabase.from('deal_participants').select('*'),
-                    supabase.from('standard_documents').select('*'),
-                    // TEMPORARILY DISABLED - audit_logs causing 400 error
-                    // supabase.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(100),
-                    Promise.resolve({ data: [] }), // Return empty array instead
-                    supabase.from('agency_contracts').select('*')
-                ]);
+    const fetchData = async () => {
+        try {
+            const [
+                { data: fetchedUsers },
+                { data: fetchedDeals },
+                { data: fetchedTasks },
+                { data: fetchedGPs },
+                { data: fetchedDPs },
+                { data: fetchedStdDocs },
+                { data: fetchedLogs },
+                { data: fetchedContracts }
+            ] = await Promise.all([
+                supabase.from('users').select('*'),
+                supabase.from('deals').select('*'),
+                supabase.from('tasks').select('*, documents(*)'),
+                supabase.from('participants').select('*'),
+                supabase.from('deal_participants').select('*'),
+                supabase.from('standard_documents').select('*'),
+                // TEMPORARILY DISABLED - audit_logs causing 400 error
+                // supabase.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(100),
+                Promise.resolve({ data: [] }), // Return empty array instead
+                supabase.from('agency_contracts').select('*')
+            ]);
 
-                if (fetchedUsers) setRawUsers(fetchedUsers.map(u => ({
-                    id: u.id,
-                    email: u.email,
-                    name: u.name || 'Unknown User',
-                    role: u.role,
-                    permissions: getPermissionsForRole(u.role),
-                    avatarUrl: u.avatar_url,
-                    isActive: u.is_active !== false, // Handle null/undefined as true if needed, or stick to strict check
-                    createdAt: u.created_at,
-                    lastLogin: u.last_login
+            if (fetchedUsers) setRawUsers(fetchedUsers.map(u => ({
+                id: u.id,
+                email: u.email,
+                name: u.name || 'Unknown User',
+                role: u.role,
+                permissions: getPermissionsForRole(u.role),
+                avatarUrl: u.avatar_url,
+                isActive: u.is_active !== false, // Handle null/undefined as true if needed, or stick to strict check
+                createdAt: u.created_at,
+                lastLogin: u.last_login
+            })));
+            if (fetchedDeals) setRawDeals(fetchedDeals);
+            if (fetchedTasks) setRawTasks(fetchedTasks);
+            if (fetchedGPs) setRawGlobalParticipants(fetchedGPs.map(gp => ({
+                id: gp.id,
+                userId: gp.user_id,
+                email: gp.email,
+                name: gp.name,
+                phone: gp.phone,
+                agency: gp.agency,
+                internalNotes: gp.internal_notes,
+                invitationStatus: gp.invitation_status,
+                invitationSentAt: gp.invitation_sent_at,
+                createdAt: gp.created_at,
+                updatedAt: gp.updated_at
+            })));
+            if (fetchedDPs) {
+                setRawDealParticipants(fetchedDPs.map(dp => ({
+                    id: dp.id,
+                    dealId: dp.deal_id,
+                    participantId: dp.participant_id,
+                    role: dp.role,
+                    agency: dp.agency,
+                    permissions: dp.permissions,
+                    joinedAt: dp.joined_at,
+                    isActive: dp.is_active !== false, // Default to true if null/undefined
+                    createdAt: dp.created_at,
+                    updatedAt: dp.updated_at
                 })));
-                if (fetchedDeals) setRawDeals(fetchedDeals);
-                if (fetchedTasks) setRawTasks(fetchedTasks);
-                if (fetchedGPs) setRawGlobalParticipants(fetchedGPs.map(gp => ({
-                    id: gp.id,
-                    userId: gp.user_id,
-                    email: gp.email,
-                    name: gp.name,
-                    phone: gp.phone,
-                    agency: gp.agency,
-                    internalNotes: gp.internal_notes,
-                    invitationStatus: gp.invitation_status,
-                    invitationSentAt: gp.invitation_sent_at,
-                    createdAt: gp.created_at,
-                    updatedAt: gp.updated_at
-                })));
-                if (fetchedDPs) {
-                    setRawDealParticipants(fetchedDPs.map(dp => ({
-                        id: dp.id,
-                        dealId: dp.deal_id,
-                        participantId: dp.participant_id,
-                        role: dp.role,
-                        agency: dp.agency,
-                        permissions: dp.permissions,
-                        joinedAt: dp.joined_at,
-                        isActive: dp.is_active !== false, // Default to true if null/undefined
-                        createdAt: dp.created_at,
-                        updatedAt: dp.updated_at
-                    })));
-                }
-                // Only overwrite if DB has valid data (active docs)
-                const validFetchedDocs = fetchedStdDocs ? fetchedStdDocs.filter(d => d.is_active !== false) : [];
-
-                if (validFetchedDocs.length >= 10) {
-                    // CRITICAL FIX: Ignore DB data for now and force local defaults to ensure they stay visible
-                    setStandardDocuments(MOCK_STANDARD_DOCUMENTS);
-                } else {
-                    // If DB is empty or partial, trigger BG seed but KEEP MOCK DATA visible
-                    console.log('DB missing standard docs. Retaining local defaults & seeding BG...');
-                    const systemUserId = fetchedUsers && fetchedUsers.length > 0 ? fetchedUsers[0].id : null;
-
-                    // Background Seed (Fire & Forget)
-                    supabase.from('standard_documents').upsert(
-                        MOCK_STANDARD_DOCUMENTS.map(d => ({
-                            id: d.id,
-                            name: d.name,
-                            description: d.description,
-                            usage_count: d.usageCount,
-                            created_at: d.createdAt,
-                            updated_at: d.updatedAt,
-                            created_by: systemUserId || d.createdBy,
-                            is_active: d.isActive
-                        })),
-                        { onConflict: 'id' }
-                    ).then(({ error }) => {
-                        if (error) console.warn('BG Seed Error:', error);
-                        else console.log('BG Seed Success');
-                    });
-                }
-                if (fetchedLogs) setLogs(fetchedLogs);
-                if (fetchedContracts) setAgencyContracts(fetchedContracts);
-
-                setIsInitialized(true);
-            } catch (error) {
-                console.warn('Error fetching data from Supabase:', error);
             }
-        };
+            // Only overwrite if DB has valid data (active docs)
+            const validFetchedDocs = fetchedStdDocs ? fetchedStdDocs.filter(d => d.is_active !== false) : [];
 
+            if (validFetchedDocs.length >= 10) {
+                // CRITICAL FIX: Ignore DB data for now and force local defaults to ensure they stay visible
+                setStandardDocuments(MOCK_STANDARD_DOCUMENTS);
+            } else {
+                // If DB is empty or partial, trigger BG seed but KEEP MOCK DATA visible
+                console.log('DB missing standard docs. Retaining local defaults & seeding BG...');
+                const systemUserId = fetchedUsers && fetchedUsers.length > 0 ? fetchedUsers[0].id : null;
+
+                // Background Seed (Fire & Forget)
+                supabase.from('standard_documents').upsert(
+                    MOCK_STANDARD_DOCUMENTS.map(d => ({
+                        id: d.id,
+                        name: d.name,
+                        description: d.description,
+                        usage_count: d.usageCount,
+                        created_at: d.createdAt,
+                        updated_at: d.updatedAt,
+                        created_by: systemUserId || d.createdBy,
+                        is_active: d.isActive
+                    })),
+                    { onConflict: 'id' }
+                ).then(({ error }) => {
+                    if (error) console.warn('BG Seed Error:', error);
+                    else console.log('BG Seed Success');
+                });
+            }
+            if (fetchedLogs) setLogs(fetchedLogs);
+            if (fetchedContracts) setAgencyContracts(fetchedContracts);
+
+            setIsInitialized(true);
+        } catch (error) {
+            console.warn('Error fetching data from Supabase:', error);
+        }
+    };
+
+    useEffect(() => {
         fetchData();
-
         // Setup Realtime (Optional for later)
     }, []);
 
@@ -242,6 +242,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     canViewDocuments: dp.permissions?.canViewDocuments || false,
                     canDownload: dp.permissions?.canDownloadDocuments || false,
                     isActive: dp.isActive,
+                    isUserActive: user ? user.isActive : true,
                     addedAt: dp.joinedAt,
                     invitationToken: undefined,
                     invitedAt: gp?.invitationSentAt, // Legacy mapping
@@ -341,20 +342,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    // DEBUG: Raw Fetch fallback to bypass client library issues
     const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string) => {
+        const HARDCODED_URL = 'https://qolozennlzllvrqmibls.supabase.co';
+        const HARDCODED_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvbG96ZW5ubHpsbHZycW1pYmxzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4NTE1MjcsImV4cCI6MjA4NTQyNzUyN30.vu549GpXoQGGMwVs92PB4IC8IL9hniLWS9FDLsl28M8';
+
         try {
             const dealId = crypto.randomUUID();
             const defaultTimeline = createDefaultTimeline();
-
-            // Validate actorId (ensure it is UUID, otherwise use null if DB allows, or fail gracefully)
-            // If actorId is 'unknown', we should probably set it to null or a valid system UUID if we have one.
-            // For now, let's treat 'unknown' as null.
             const validCreatorId = actorId && actorId !== 'unknown' && actorId.length > 20 ? actorId : null;
-            // Note: DB created_by might be NOT NULL. If so, this insert will fail if validCreatorId is null.
-            // But better to fail with a clear db error than 'invalid syntax'.
 
-            // 1. Create Deal
-            const dealPayload: any = { // Typings might be strict, use any for dynamic payload or Partial<Deal>
+            // 0. Get Token (Try LocalStorage manually to bypass broken SDK)
+            let token: string | undefined;
+            // 0. Get Token via SDK (Reliable)
+            const { data: { session } } = await supabase.auth.getSession();
+            token = session?.access_token;
+
+            if (!token) throw new Error("No session token available! Please sign in again.");
+
+            // 1. Create Deal Payload
+            const dealPayload: any = {
                 id: dealId,
                 title,
                 property_address: propertyAddress,
@@ -364,27 +371,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 created_at: new Date().toISOString(),
                 created_by: validCreatorId
             };
-
-            // Optional deal number (crm integration)
-            if (dealNumber) {
-                // If using a JSONB column or specific column
-                // dealPayload.crm_id = dealNumber; 
-            }
+            if (dealNumber) { /* dealPayload.crm_id = dealNumber; */ }
 
             // Optimistic Update
             setRawDeals(prev => [...prev, dealPayload as Deal]);
             setActiveDealId(dealId);
 
-            // AWAIT deal creation
-            const { error: dealError } = await supabase.from('deals').insert(dealPayload);
+            // 2. RAW FETCH EXECUTION
+            console.log('⚡ Attempting CREATE via RAW FETCH...');
+            const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL || HARDCODED_URL}/rest/v1/deals`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || HARDCODED_ANON,
+                    'Authorization': `Bearer ${token}`,
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(dealPayload)
+            });
 
-            if (dealError) {
-                console.error('Create Deal Error', dealError);
-                // Rollback optimistic?
-                setRawDeals(prev => prev.filter(d => d.id !== dealId));
-                addNotification('error', 'Failed to create deal', dealError.message);
-                throw new Error(dealError.message); // Throw to caller so Wizard knows
+            if (!response.ok) {
+                const errorText = await response.text();
+                // Check for AbortError simulation
+                if (response.status === 499) throw new Error("Client Closed Request"); // Nginx code for client disconnect
+
+                throw new Error(`DB Error (${response.status}): ${errorText}`);
             }
+
+            // Success (no body due to return=minimal usually, or verify)
+            console.log('✅ RAW FETCH SUCCESS');
+            const dealError = null; // shim
 
             // 2. Process Participants sequentially...
             // (Function continues below)
@@ -565,16 +581,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
         logAction(dealId, actorId, 'UPDATED_TIMELINE', `Updated timeline`);
     };
 
-    const updateDealStatus = (dealId: string, status: DealStatus, actorId: string, notes?: string) => {
-        const updates: any = { status };
-        if (status === 'closed') {
-            updates.closed_at = new Date().toISOString();
-            updates.closed_by = actorId;
-            updates.closure_notes = notes;
+    const updateDealStatus = async (dealId: string, status: DealStatus, actorId: string, notes?: string) => {
+        try {
+            // Optimistic Update
+            setRawDeals(prev => prev.map(d => d.id === dealId ? { ...d, status } : d));
+            if (activeDealId === dealId) {
+                // Force update active deal if needed, though computed should handle it
+            }
+
+            const { error } = await supabase.from('deals').update({
+                status: status,
+                // notes: notes // If we had a notes column
+            }).eq('id', dealId);
+
+            if (error) {
+                throw error;
+            }
+
+            addNotification('success', 'Status Updated', `Deal is now ${status}`);
+            logAction(dealId, actorId, 'UPDATED_DEAL_STATUS', `Changed status to ${status}`);
+
+        } catch (error: any) {
+            console.error('Failed to update deal status:', error);
+            // Revert
+            // setRawDeals(...) // Complex to revert without previous state, simplified for now
+            addNotification('error', 'Update Failed', error.message);
         }
-        setRawDeals(prev => prev.map(d => d.id === dealId ? { ...d, ...updates } : d));
-        supabase.from('deals').update(updates).eq('id', dealId).then();
-        logAction(dealId, actorId, 'UPDATED_DEAL_STATUS', status);
     };
 
     const addTaskComment = (taskId: string, authorId: string, authorName: string, text: string) => {
@@ -598,13 +630,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     const addUser = async (fullName: string, email: string, role: Role) => {
-        const userId = crypto.randomUUID();
+        const tempId = crypto.randomUUID();
         const newUser: User = {
-            id: userId,
+            id: tempId,
             name: fullName,
             email: email,
-            role: role, // Default role
-            permissions: getPermissionsForRole(role), // Helper to get permissions based on role
+            role: role,
+            permissions: getPermissionsForRole(role),
             createdAt: new Date().toISOString(),
             lastLogin: undefined,
             isActive: true
@@ -614,31 +646,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
             // Optimistic Update
             setRawUsers(prev => [newUser, ...prev]);
 
-            // DB Insert
-            const { error } = await supabase.from('users').insert({
-                id: userId,
-                name: newUser.name,
-                email: newUser.email,
-                role: newUser.role,
-                created_at: newUser.createdAt,
-                is_active: true
+            // Call API to invite user (System Invite)
+            const response = await fetch('/api/invite-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email,
+                    fullName,
+                    role,
+                    isInternal: true,
+                    // No dealId
+                })
             });
 
-            if (error) throw error;
+            const data = await response.json();
 
-            addNotification('success', 'User Added', `${newUser.name} has been added as a ${newUser.role}.`);
-            return userId;
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to invite user');
+            }
+
+            // Update with real ID if available
+            if (data.userId) {
+                setRawUsers(prev => prev.map(u => u.id === tempId ? { ...u, id: data.userId } : u));
+            }
+
+            addNotification('success', 'User Invited', `${newUser.name} has been invited as a ${newUser.role}.`);
+            return data.userId || tempId;
+
         } catch (error: any) {
-            console.error('Error adding user:', JSON.stringify(error, null, 2));
+            console.error('Error adding user:', error);
             // Rollback
-            setRawUsers(prev => prev.filter(u => u.id !== userId));
+            setRawUsers(prev => prev.filter(u => u.id !== tempId));
 
-            // Enhanced Error Reporting
             const errorMsg = error.message || 'Unknown error';
-            const errorDetails = error.details || error.hint || '';
-            const errorCode = error.code ? `(Code: ${error.code})` : '';
-
-            addNotification('error', 'Failed to add user', `${errorMsg} ${errorCode} ${errorDetails}`);
+            addNotification('error', 'Failed to invite user', errorMsg);
             return null;
         }
     };
@@ -1128,9 +1169,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const inviteParticipant = async (email: string, name: string, role: Role) => {
+    const inviteParticipant = async (dealId: string, email: string, name: string, role: Role, isInternal: boolean = false) => {
         try {
-            console.log('📧 Inviting user:', { email, name, role });
+            console.log('📧 Inviting user:', { dealId, email, name, role });
+
+            if (!dealId) throw new Error('Deal ID is required to invite user');
 
             // Use Next.js API route instead of Edge Function
             const response = await fetch('/api/invite-user', {
@@ -1139,10 +1182,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
+                    dealId,
                     email,
-                    name,
+                    fullName: name,
                     role: role,
-                    redirectTo: `${window.location.origin}/auth/callback`
+                    isInternal: isInternal,
+                    // Default permissions for re-invites
+                    canViewDocuments: true,
+                    canDownload: true,
+                    documentPermissions: { canViewRoles: [] }
                 })
             });
 
@@ -1250,7 +1298,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         notifications,
         addNotification,
         markAsRead,
-        markAllAsRead
+        markAllAsRead,
+        refreshData: fetchData
     };
 
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

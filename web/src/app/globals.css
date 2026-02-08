@@ -2,19 +2,24 @@
 
 :root {
   /* Core Palette */
-  --primary-navy: #1a2332;
-  --secondary-navy: #243447;
-  --accent-gold: #d4af37;
-  --accent-teal: #2dd4bf;
+  --primary-navy: #0f172a;
+  /* Slate 900 - Darker, richer navy */
+  --secondary-navy: #1e293b;
+  /* Slate 800 */
+  --accent-gold: #fbbf24;
+  /* Amber 400 - brighter gold */
+  --accent-teal: #14b8a6;
+  /* Teal 500 - slightly darker for better contrast on white */
 
   /* Text Colors */
   --text-primary: #0f172a;
-  --text-secondary: #64748b;
+  --text-secondary: #475569;
   --text-light: #94a3b8;
 
   /* Backgrounds */
   --bg-white: #ffffff;
-  --bg-gray: #f8fafc;
+  --bg-gray: #f1f5f9;
+  /* Slate 100 */
 
   /* Borders & Status */
   --border-light: #e2e8f0;
@@ -22,7 +27,7 @@
   --warning: #f59e0b;
   --danger: #ef4444;
 
-  /* Legacy Mappings (soft migration) */
+  /* Legacy Mappings */
   --background: var(--bg-gray);
   --foreground: var(--text-primary);
 }
@@ -54,7 +59,6 @@ body {
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   color: var(--text-primary);
   font-family: var(--font-dm-sans), sans-serif;
-  overflow-x: hidden;
 }
 
 /* Global Animation Utilities */

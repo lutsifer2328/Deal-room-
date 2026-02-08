@@ -197,8 +197,33 @@ export default function SettingsPage() {
                 </div>
             )}
             {activeTab === 'general' && (
-                <div className="bg-white rounded-lg shadow p-6">
-                    <p className="text-gray-500">{t('settings.general.comingSoon')}</p>
+                <div className="space-y-6">
+                    <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+                        <h2 className="text-xl font-bold text-navy-primary mb-4 flex items-center gap-2">
+                            <Shield className="w-6 h-6 text-teal" />
+                            System Health & Recovery
+                        </h2>
+                        <p className="text-gray-600 mb-6">
+                            Tools to manage system consistency and data integrity.
+                        </p>
+
+                        <div className="flex flex-col gap-4">
+                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <div>
+                                    <h3 className="font-bold text-gray-800">Force Profile Synchronization</h3>
+                                    <p className="text-sm text-gray-500">
+                                        Re-fetches your user profile and updates local session metadata. Use this if you see "Access Denied" or incorrect roles.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => window.location.reload()}
+                                    className="px-4 py-2 bg-navy-primary text-white rounded hover:bg-navy-secondary font-bold text-sm transition-colors"
+                                >
+                                    Relaunch Application
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

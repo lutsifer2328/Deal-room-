@@ -94,6 +94,7 @@ export interface Participant {
     canViewRoles: Role[];  // Which roles' documents can this person view? e.g., ['buyer', 'seller']
   };
   isActive: boolean;
+  isUserActive?: boolean; // Reflects the underlying User account status (for Staff/Admin)
   addedAt: string;
   invitationToken?: string;
   invitedAt?: string;

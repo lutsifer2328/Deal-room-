@@ -9,19 +9,19 @@ interface AddUserModalProps {
 }
 
 export default function AddUserModal({ onClose }: AddUserModalProps) {
-    const { inviteParticipant } = useData();
+    const { addUser } = useData();
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [role, setRole] = useState<Role>('staff');
 
     const organizationalRoles: Role[] = ['admin', 'lawyer', 'staff', 'viewer'];
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!fullName.trim() || !email.trim()) return;
 
-        inviteParticipant(email, fullName, role);
-        onClose();
+        const result = await addUser(fullName.trim(), email.trim(), role);
+        if (result) onClose();
     };
 
     return (

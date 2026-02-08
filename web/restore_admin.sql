@@ -1,56 +1,24 @@
--- FIX: Restore Admin Role & Fix RLS on users table
--- Run this script in the Supabase SQL Editor
+-- RESTORE ADMIN ACCESS SCRIPT
+-- Run this in Supabase SQL Editor if you accidentally revoke your own Admin privileges.
 
--- 1. Force Update 'lutsifer@gmail.com' to 'admin'
--- We upsert from auth.users to ensure the ID matches perfectly
-INSERT INTO public.users (id, email, name, role, is_active, created_at)
-SELECT 
-    id, 
-    email, 
-    COALESCE(raw_user_meta_data->>'full_name', 'Admin User'), 
-    'admin', 
-    true,
-    created_at
-FROM auth.users
-WHERE email ILIKE '%lutsifer%'
-ON CONFLICT (id) DO UPDATE
-SET role = 'admin', is_active = true;
+-- 1. Replace 'YOUR_EMAIL_HERE' with your actual email address
+DO $$
+DECLARE
+    target_email TEXT := 'YOUR_EMAIL_HERE';
+BEGIN
+    -- Update public.users
+    UPDATE public.users
+    SET 
+        role = 'admin',
+        is_active = true
+    WHERE email = target_email;
 
--- 2. Force Update 'tommyignatov' to 'admin' (Backup)
-INSERT INTO public.users (id, email, name, role, is_active, created_at)
-SELECT 
-    id, 
-    email, 
-    COALESCE(raw_user_meta_data->>'full_name', 'Tommy Admin'), 
-    'admin', 
-    true,
-    created_at
-FROM auth.users
-WHERE email ILIKE '%tommyignatov%'
-ON CONFLICT (id) DO UPDATE
-SET role = 'admin', is_active = true;
+    -- Update auth.users metadata to ensure session remains in sync
+    UPDATE auth.users
+    SET raw_user_meta_data = 
+        COALESCE(raw_user_meta_data, '{}'::jsonb) || 
+        jsonb_build_object('role', 'admin')
+    WHERE email = target_email;
 
--- 3. Fix RLS on public.users to prevent "Default to Viewer"
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-
--- Policy: Users can view their own profile (Critical for login)
-DROP POLICY IF EXISTS "Users can view own profile" ON public.users;
-CREATE POLICY "Users can view own profile"
-ON public.users FOR SELECT
-TO authenticated
-USING (auth.uid() = id);
-
--- Policy: Admins can view all profiles (Needed for User Management)
-DROP POLICY IF EXISTS "Admins can view all profiles" ON public.users;
-CREATE POLICY "Admins can view all profiles"
-ON public.users FOR SELECT
-TO authenticated
-USING (
-  exists (
-    select 1 from public.users
-    where id = auth.uid() and role = 'admin'
-  )
-);
-
--- Policy: Allow Service Role (if needed, though it bypasses RLS)
--- (Implicitly true for service_role)
+    RAISE NOTICE 'Admin privileges restored for %', target_email;
+END $$;
