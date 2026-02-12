@@ -57,7 +57,7 @@ export async function sendInviteEmail(
 
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Agenzia Deal Room <invites@resend.dev>', // Update this when you have a custom domain
+            from: 'Agenzia Deal Room <dealroom@agenzia.bg>', // Updated to custom domain
             to: [to],
             // bcc: ['admin@agenzia.com'], // Optional: Audit log
             subject: subject,

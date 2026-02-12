@@ -114,6 +114,7 @@ export const MOCK_TASKS: Task[] = [
         assignedTo: 'seller',
         status: 'completed',
         required: true,
+        createdAt: '2025-05-12T10:00:00Z',
         documents: [
             {
                 id: 'doc_1',
@@ -136,6 +137,7 @@ export const MOCK_TASKS: Task[] = [
         assignedTo: 'seller',
         status: 'in_review',
         required: true,
+        createdAt: '2025-05-12T10:00:00Z',
         documents: [
             {
                 id: 'doc_2',
@@ -159,6 +161,7 @@ export const MOCK_TASKS: Task[] = [
         assignedTo: 'buyer',
         status: 'pending',
         required: true,
+        createdAt: '2025-05-12T10:00:00Z',
         documents: [],
         comments: []
     },
@@ -173,7 +176,8 @@ export const MOCK_TASKS: Task[] = [
         status: 'pending',
         documents: [],
         comments: [],
-        required: true
+        required: true,
+        createdAt: '2025-05-12T10:00:00Z'
     },
     {
         id: 't_4',
@@ -183,6 +187,7 @@ export const MOCK_TASKS: Task[] = [
         assignedTo: 'buyer',
         status: 'pending',
         required: true,
+        createdAt: '2025-05-12T10:00:00Z',
         documents: [],
         comments: []
     }

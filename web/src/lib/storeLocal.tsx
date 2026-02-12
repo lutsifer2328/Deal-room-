@@ -18,7 +18,7 @@ interface DataContextType {
 
     // Actions
     createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], dealNumber?: string) => string;
-    addTask: (title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => void;
+    addTask: (dealId: string, title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => Promise<void>;
     deleteTask: (taskId: string, actorId: string) => void;
     setActiveDeal: (dealId: string) => void;
     updateDealStep: (dealId: string, step: DealStep, actorId: string) => void;
@@ -46,9 +46,10 @@ interface DataContextType {
 
     // Standard Documents Actions
     standardDocuments: StandardDocument[];
-    addStandardDocument: (name: string, description: string, createdBy: string) => string;
-    updateStandardDocument: (id: string, name: string, description: string) => void;
-    deleteStandardDocument: (id: string) => void;
+    addStandardDocument: (name: string, description: string, createdBy: string) => Promise<string>;
+    updateStandardDocument: (id: string, name: string, description: string) => Promise<void>;
+    deleteStandardDocument: (id: string) => Promise<void>;
+    restoreStandardDocuments: () => Promise<void>;
 
     // Global Participants Actions
     globalParticipants: GlobalParticipant[];
@@ -59,7 +60,7 @@ interface DataContextType {
     checkDuplicateEmail: (email: string) => GlobalParticipant | null;
     getParticipantDeals: (participantId: string) => Array<{ deal: Deal, dealParticipant: DealParticipant }>;
     getRecentParticipants: (days?: number) => GlobalParticipant[];
-    addParticipantContract: (participantId: string, title: string, uploadedBy: string) => void;
+    addParticipantContract: (participantId: string, title: string, uploadedBy: string, file: File) => void;
     deleteParticipantContract: (participantId: string, contractId: string) => void;
 
     // Logs
@@ -349,19 +350,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return newDeal.id;
     };
 
-    const addTask = (title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => {
+    const addTask = async (dealId: string, title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => {
         const newTask: Task = {
             id: `t_${Date.now()}`,
-            dealId: activeDealId,
+            dealId: dealId,
             title_en: title,
             title_bg: title + ' (BG Translation Needed)', // Mock translation
-            assignedTo: assignedTo as any,
+            assignedTo: assignedTo,
             status: 'pending',
             required: true,
             documents: [],
             comments: [],
             standardDocumentId,
-            expirationDate: expirationDate || undefined
+            expirationDate: expirationDate || undefined,
+            createdAt: new Date().toISOString()
         };
         setTasks([newTask, ...tasks]);
 
@@ -768,53 +770,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     // Standard Documents Actions
-    const addStandardDocument = (name: string, description: string, createdBy: string): string => {
-        // Check for duplicate names (case-insensitive)
-        const duplicate = standardDocuments.find(
-            doc => doc.isActive && doc.name.toLowerCase() === name.toLowerCase()
-        );
-        if (duplicate) {
-            throw new Error('A standard document with this name already exists');
-        }
-
+    const addStandardDocument = async (name: string, description: string, createdBy: string): Promise<string> => {
+        const id = crypto.randomUUID();
         const newDoc: StandardDocument = {
-            id: `std-doc-${Date.now()}`,
+            id,
             name,
             description,
             usageCount: 0,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
             createdBy,
-            isActive: true
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
         };
-
-        setStandardDocuments([...standardDocuments, newDoc]);
-        return newDoc.id;
+        setStandardDocuments(prev => [...prev, newDoc]);
+        return id;
     };
 
-    const updateStandardDocument = (id: string, name: string, description: string) => {
-        // Check for duplicate names (case-insensitive), excluding current document
-        const duplicate = standardDocuments.find(
-            doc => doc.isActive && doc.id !== id && doc.name.toLowerCase() === name.toLowerCase()
-        );
-        if (duplicate) {
-            throw new Error('A standard document with this name already exists');
-        }
-
-        setStandardDocuments(standardDocuments.map(doc =>
+    const updateStandardDocument = async (id: string, name: string, description: string): Promise<void> => {
+        setStandardDocuments(prev => prev.map(doc =>
             doc.id === id
                 ? { ...doc, name, description, updatedAt: new Date().toISOString() }
                 : doc
         ));
     };
 
-    const deleteStandardDocument = (id: string) => {
-        // Soft delete - set isActive to false
-        setStandardDocuments(standardDocuments.map(doc =>
+    const deleteStandardDocument = async (id: string): Promise<void> => {
+        setStandardDocuments(prev => prev.map(doc =>
             doc.id === id
                 ? { ...doc, isActive: false, updatedAt: new Date().toISOString() }
                 : doc
         ));
+    };
+
+    const restoreStandardDocuments = async (): Promise<void> => {
+        setStandardDocuments(MOCK_STANDARD_DOCUMENTS);
     };
 
     // ===== GLOBAL PARTICIPANTS FUNCTIONS =====
@@ -870,7 +859,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     // Contracts
-    const addParticipantContract = (participantId: string, title: string, uploadedBy: string) => {
+    const addParticipantContract = (participantId: string, title: string, uploadedBy: string, file: File) => {
         setGlobalParticipants(prev => prev.map(p => {
             if (p.id !== participantId) return p;
 
@@ -938,6 +927,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             addStandardDocument,
             updateStandardDocument,
             deleteStandardDocument,
+            restoreStandardDocuments,
             // Global Participants
             globalParticipants,
             dealParticipants,

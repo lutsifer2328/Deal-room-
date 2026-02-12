@@ -2,10 +2,11 @@
 
 import { Deal } from '@/lib/types';
 import { useData } from '@/lib/store';
-import { Building, Users, Archive, ChevronDown } from 'lucide-react';
+import { Building, Users, Archive, ChevronDown, Pencil } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import ParticipantsModal from './ParticipantsModal';
 import CloseDealModal from './CloseDealModal';
+import EditDealModal from './EditDealModal';
 import DealStatusBadge from './DealStatusBadge';
 import { useAuth } from '@/lib/authContext';
 import { BundleService } from '@/lib/bundleService';
@@ -17,6 +18,7 @@ export default function DealHeader({ deal }: { deal: Deal }) {
     const { t, language } = useTranslation();
     const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false);
     const [isCloseDealModalOpen, setIsCloseDealModalOpen] = useState(false);
+    const [isEditDealModalOpen, setIsEditDealModalOpen] = useState(false);
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -80,10 +82,26 @@ export default function DealHeader({ deal }: { deal: Deal }) {
                         <DealStatusBadge status={deal.status} />
                     </div>
 
-                    <h1 className="text-4xl font-serif font-bold text-navy-primary mb-2 tracking-tight">{deal.title}</h1>
+                    <h1 className="text-4xl font-serif font-bold text-navy-primary mb-2 tracking-tight flex items-center gap-3">
+                        {deal.title}
+                        {canEdit && (
+                            <button
+                                onClick={() => setIsEditDealModalOpen(true)}
+                                className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-text-light hover:text-teal hover:bg-teal/10 transition-all"
+                                title="Edit Deal"
+                            >
+                                <Pencil className="w-5 h-5" />
+                            </button>
+                        )}
+                    </h1>
                     <p className="text-text-secondary text-lg flex items-center gap-2">
                         {deal.propertyAddress || t('deal.header.noAddress')}
                     </p>
+                    {deal.price != null && deal.price > 0 && (
+                        <p className="text-2xl font-bold text-teal mt-1">
+                            €{deal.price.toLocaleString('en-US')}
+                        </p>
+                    )}
 
                     <div className="mt-6 flex flex-wrap gap-6 text-sm font-medium text-text-light">
                         <div className="flex items-center gap-2">
@@ -200,6 +218,12 @@ export default function DealHeader({ deal }: { deal: Deal }) {
                 onClose={() => setIsCloseDealModalOpen(false)}
                 onConfirm={handleCloseDeal}
                 isOpen={isCloseDealModalOpen}
+            />
+
+            <EditDealModal
+                deal={deal}
+                isOpen={isEditDealModalOpen}
+                onClose={() => setIsEditDealModalOpen(false)}
             />
         </div>
     );

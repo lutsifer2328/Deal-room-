@@ -1,0 +1,101 @@
+﻿
+> web@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.1.4 (Turbopack)
+- Environments: .env.local
+
+node.exe : ΓÜá The 
+"middleware" file 
+convention is 
+deprecated. Please 
+use "proxy" instead. 
+Learn more: https://n
+extjs.org/docs/messag
+es/middleware-to-prox
+y
+At line:1 char:1
++ & "C:\Program Files
+\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (ΓÜá The   
+  "middle...lewar    
+e-to-proxy:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 8.0s
+  Running TypeScript ...
+Failed to compile.
+
+./src/lib/mockData.ts
+:109:5
+Type error: Property 
+'createdAt' is 
+missing in type '{ 
+id: string; dealId: 
+string; title_en: 
+string; title_bg: 
+string; assignedTo: 
+string; status: 
+"completed"; 
+required: true; 
+documents: { id: 
+string; title_en: 
+string; title_bg: 
+string; url: string; 
+uploadedBy: string; 
+status: "released"; 
+uploadedAt: string; 
+verifiedAt: string; 
+}[]; comments: 
+never[]; }' but 
+required in type 
+'Task'.
+
+[0m [90m 107 
+|[39m 
+[36mexport[39m 
+[36mconst[39m [33m
+MOCK_TASKS[39m[33m:
+[39m 
+[33mTask[39m[] 
+[33m=[39m [
+ [90m 108 |[39m    
+ [90m// SELLER 
+TASKS[39m
+[31m[1m>[22m[39m
+[90m 109 |[39m     {
+ [90m     |[39m    
+ [31m[1m^[22m[39m
+ [90m 110 |[39m    
+     id[33m:[39m [
+32m't_1'[39m[33m,[
+39m
+ [90m 111 |[39m    
+     
+dealId[33m:[39m [3
+2m'd_123'[39m[33m,
+[39m
+ [90m 112 |[39m    
+     
+title_en[33m:[39m 
+[32m'Proof of 
+Ownership (Notary Dee
+d)'[39m[33m,[39m[
+0m
+Next.js build worker 
+exited with code: 1 
+and signal: null

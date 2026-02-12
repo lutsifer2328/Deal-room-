@@ -1,0 +1,24 @@
+{
+  "data": null,
+  "error": {
+    "statusCode": 403,
+    "message": "The agenzia.bg domain is not verified. Please, add and verify your domain on https://resend.com/domains",
+    "name": "validation_error"
+  },
+  "headers": {
+    "cf-cache-status": "DYNAMIC",
+    "cf-ray": "9ccb8b1a4ffedc1a-SOF",
+    "connection": "keep-alive",
+    "content-encoding": "br",
+    "content-type": "application/json",
+    "date": "Thu, 12 Feb 2026 10:53:38 GMT",
+    "ratelimit-limit": "2",
+    "ratelimit-policy": "2;w=1",
+    "ratelimit-remaining": "1",
+    "ratelimit-reset": "1",
+    "server": "cloudflare",
+    "transfer-encoding": "chunked",
+    "x-resend-daily-quota": "0",
+    "x-resend-monthly-quota": "5"
+  }
+}

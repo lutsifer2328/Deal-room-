@@ -143,13 +143,14 @@ export interface Task {
   title_bg: string;
   description_en?: string;
   description_bg?: string;
-  assignedTo: Role; // 'buyer' or 'seller' mostly
+  assignedTo: Role | string; // 'buyer' or 'seller' OR specific Participant UUID
   status: 'pending' | 'in_review' | 'completed';
   documents: DealDocument[];
   comments: Comment[];  // Lawyer can leave clarifications here
   required: boolean;
   standardDocumentId?: string;  // Reference to StandardDocument
   expirationDate?: string;      // For tracking expiring docs
+  createdAt: string;            // ISO date string
 }
 
 export interface AuditLogEntry {
@@ -190,6 +191,7 @@ export interface Deal {
   sellerIds: string[];
   lawyerId: string;
   agentId?: string;
+  price?: number;
   createdAt: string;
 }
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useState, useEffect } from 'react';
 import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
 import { StandardDocument } from '@/lib/types';
@@ -19,10 +20,19 @@ export default function StandardDocumentModal({ document, onClose }: StandardDoc
     const [description, setDescription] = useState(document?.description || '');
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        window.document.body.style.overflow = 'hidden';
+        return () => {
+            window.document.body.style.overflow = 'unset';
+        };
+    }, []);
 
     if (!user) return null;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
@@ -47,10 +57,10 @@ export default function StandardDocumentModal({ document, onClose }: StandardDoc
         try {
             if (document) {
                 // Update existing document
-                updateStandardDocument(document.id, name.trim(), description.trim());
+                await updateStandardDocument(document.id, name.trim(), description.trim());
             } else {
                 // Add new document
-                addStandardDocument(name.trim(), description.trim(), user.id);
+                await addStandardDocument(name.trim(), description.trim(), user.id);
             }
             onClose();
         } catch (err) {
@@ -59,8 +69,10 @@ export default function StandardDocumentModal({ document, onClose }: StandardDoc
         }
     };
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    if (!mounted) return null;
+
+    return createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-midnight text-white">
@@ -138,6 +150,7 @@ export default function StandardDocumentModal({ document, onClose }: StandardDoc
                     </div>
                 </form>
             </div>
-        </div>
+        </div>,
+        window.document.body
     );
 }

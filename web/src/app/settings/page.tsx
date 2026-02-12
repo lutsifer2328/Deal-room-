@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/authContext';
 import { useRouter } from 'next/navigation';
 import UserManagementTable from '@/components/settings/UserManagementTable';
-import { Check, X, Shield, Briefcase, Users as UsersIcon, Eye } from 'lucide-react';
+import { Check, X, Shield, Briefcase, Users as UsersIcon } from 'lucide-react';
 import { useTranslation } from '@/lib/useTranslation';
 
 export default function SettingsPage() {
@@ -64,7 +64,7 @@ export default function SettingsPage() {
                             <Shield className="w-5 h-5 text-teal" />
                             {t('settings.permissions.title')}
                         </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {/* Admin */}
                             <div className="bg-white rounded-xl p-4 border border-navy-primary/10 shadow-sm">
                                 <div className="flex items-center gap-2 mb-3">
@@ -103,8 +103,8 @@ export default function SettingsPage() {
                                     <h3 className="font-bold text-gold">{t('settings.role.lawyer')}</h3>
                                 </div>
                                 <ul className="space-y-1.5 text-sm">
-                                    <li className="flex items-center gap-2 text-red-600">
-                                        <X className="w-4 h-4" /> {t('settings.perm.manageUsers')}
+                                    <li className="flex items-center gap-2 text-green-700">
+                                        <Check className="w-4 h-4" /> {t('settings.perm.manageUsers')}
                                     </li>
                                     <li className="flex items-center gap-2 text-green-700">
                                         <Check className="w-4 h-4" /> {t('settings.perm.createDeals')}
@@ -158,37 +158,7 @@ export default function SettingsPage() {
                                 </ul>
                             </div>
 
-                            {/* Viewer */}
-                            <div className="bg-white rounded-lg p-4 border border-gray-200">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Eye className="w-5 h-5 text-gray-600" />
-                                    <h3 className="font-bold text-gray-900">{t('settings.role.viewer')}</h3>
-                                </div>
-                                <ul className="space-y-1.5 text-sm">
-                                    <li className="flex items-center gap-2 text-red-600">
-                                        <X className="w-4 h-4" /> {t('settings.perm.manageUsers')}
-                                    </li>
-                                    <li className="flex items-center gap-2 text-red-600">
-                                        <X className="w-4 h-4" /> {t('settings.perm.createDeals')}
-                                    </li>
-                                    <li className="flex items-center gap-2 text-red-600">
-                                        <X className="w-4 h-4" /> {t('settings.perm.editDeals')}
-                                    </li>
-                                    <li className="flex items-center gap-2 text-red-600">
-                                        <X className="w-4 h-4" /> {t('settings.perm.closeDeals')}
-                                    </li>
-                                    <li className="flex items-center gap-2 text-red-600">
-                                        <X className="w-4 h-4" /> {t('settings.perm.manageDocs')}
-                                    </li>
-                                    <li className="flex items-center gap-2 text-red-600">
-                                        <X className="w-4 h-4" /> {t('settings.perm.editTimeline')}
-                                    </li>
-                                    <li className="flex items-center gap-2 text-red-600">
-                                        <X className="w-4 h-4" /> {t('settings.perm.exportData')}
-                                    </li>
-                                </ul>
-                                <p className="text-xs text-gray-500 mt-2 italic">{t('settings.perm.readOnly')}</p>
-                            </div>
+
                         </div>
                     </div>
 

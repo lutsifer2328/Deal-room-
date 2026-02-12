@@ -14,6 +14,7 @@ export default function StandardDocumentsTab() {
     const [editingDocument, setEditingDocument] = useState<StandardDocument | null>(null);
     const [sortBy, setSortBy] = useState<'name' | 'usageCount'>('name');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const [isLoading, setIsLoading] = useState(false);
 
     if (!user) return null;
 
@@ -36,9 +37,11 @@ export default function StandardDocumentsTab() {
         setIsModalOpen(true);
     };
 
-    const handleDelete = (doc: StandardDocument) => {
+    const handleDelete = async (doc: StandardDocument) => {
         if (confirm(`Are you sure you want to delete "${doc.name}"?\n\nThis will not affect existing documents, but will remove it from suggestions.`)) {
-            deleteStandardDocument(doc.id);
+            setIsLoading(true);
+            await deleteStandardDocument(doc.id);
+            setIsLoading(false);
         }
     };
 
@@ -72,7 +75,8 @@ export default function StandardDocumentsTab() {
                 </div>
                 <button
                     onClick={handleAddNew}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-teal text-white font-bold rounded-xl hover:bg-teal/90 shadow-lg shadow-teal/20 transition-all hover:scale-105"
+                    disabled={isLoading}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-teal text-white font-bold rounded-xl hover:bg-teal/90 shadow-lg shadow-teal/20 transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
                 >
                     <Plus className="w-5 h-5" />
                     Add Name
@@ -92,10 +96,15 @@ export default function StandardDocumentsTab() {
                         </button>
                         <span className="text-gray-300 text-xs">or</span>
                         <button
-                            onClick={restoreStandardDocuments}
-                            className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                            onClick={async () => {
+                                setIsLoading(true);
+                                await restoreStandardDocuments();
+                                setIsLoading(false);
+                            }}
+                            disabled={isLoading}
+                            className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
                         >
-                            Restore Default Documents
+                            {isLoading ? 'Restoring...' : 'Restore Default Documents'}
                         </button>
                     </div>
                 </div>
@@ -143,14 +152,16 @@ export default function StandardDocumentsTab() {
                                             <div className="flex justify-end gap-2">
                                                 <button
                                                     onClick={() => handleEdit(doc)}
-                                                    className="p-2 text-text-light hover:text-teal hover:bg-teal/10 rounded-lg transition-colors"
+                                                    disabled={isLoading}
+                                                    className="p-2 text-text-light hover:text-teal hover:bg-teal/10 rounded-lg transition-colors disabled:opacity-30"
                                                     title="Edit"
                                                 >
                                                     <Pencil className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(doc)}
-                                                    className="p-2 text-text-light hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                    disabled={isLoading}
+                                                    className="p-2 text-text-light hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30"
                                                     title="Delete"
                                                 >
                                                     <Trash2 className="w-4 h-4" />

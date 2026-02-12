@@ -19,7 +19,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission> = {
         canCreateDeals: true,
         canEditDeals: true,
         canDeleteDeals: true,
-        canManageUsers: false,
+        canManageUsers: true,
         canViewAllDeals: true,
         canEditTimeline: true,
         canCloseDeals: true,

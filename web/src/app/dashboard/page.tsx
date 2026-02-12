@@ -62,9 +62,9 @@ export default function DashboardPage() {
 
             const res = await fetch(`/api/deals/search?${query.toString()}`);
             if (res.ok) {
-                const data = await res.json();
-                setGlobalDeals(data.deals);
-                setTotalGlobal(data.total);
+                const responseData = await res.json();
+                setGlobalDeals(responseData.data || []);
+                setTotalGlobal(responseData.meta?.total || 0);
             }
         } catch (error) {
             console.error('Failed to fetch global deals:', error);
@@ -81,7 +81,12 @@ export default function DashboardPage() {
             const res = await fetch('/api/deals/join', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dealId })
+                body: JSON.stringify({
+                    dealId,
+                    userId: user?.id,
+                    userEmail: user?.email,
+                    userRole: user?.role
+                })
             });
 
             if (!res.ok) throw new Error('Failed to join');
@@ -276,10 +281,11 @@ export default function DashboardPage() {
                                                 <span className="bg-gray-100 px-2 py-1 rounded font-bold uppercase tracking-wide">
                                                     {getStepLabel(deal.currentStep || 'onboarding')}
                                                 </span>
-                                                <span className="flex items-center gap-1">
-                                                    <Calendar className="w-3 h-3" />
-                                                    {new Date(deal.createdAt).toLocaleDateString()}
-                                                </span>
+                                                {deal.price != null && deal.price > 0 && (
+                                                    <span className="font-bold text-teal">
+                                                        €{deal.price.toLocaleString('en-US')}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -294,6 +300,7 @@ export default function DashboardPage() {
                                     <th className="px-8 py-6 text-left text-xs font-bold text-text-light uppercase tracking-widest font-sans">{t('dashboard.table.property')}</th>
                                     <th className="px-8 py-6 text-left text-xs font-bold text-text-light uppercase tracking-widest font-sans">{t('dashboard.table.address')}</th>
                                     <th className="px-8 py-6 text-left text-xs font-bold text-text-light uppercase tracking-widest font-sans">{t('dashboard.table.status')}</th>
+                                    <th className="px-8 py-6 text-right text-xs font-bold text-text-light uppercase tracking-widest font-sans">Value</th>
                                     <th className="px-8 py-6 text-left text-xs font-bold text-text-light uppercase tracking-widest font-sans">{t('dashboard.table.phase')}</th>
                                     <th className="px-8 py-6 text-left text-xs font-bold text-text-light uppercase tracking-widest font-sans">{t('dashboard.table.date')}</th>
                                     <th className="px-8 py-6"></th>
@@ -302,7 +309,7 @@ export default function DashboardPage() {
                             <tbody className="divide-y divide-gray-50">
                                 {filteredMyDeals.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-8 py-20 text-center">
+                                        <td colSpan={7} className="px-8 py-20 text-center">
                                             <div className="flex flex-col items-center justify-center text-text-light">
                                                 <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                                                     <Calendar className="w-8 h-8 opacity-20" />
@@ -335,6 +342,13 @@ export default function DashboardPage() {
                                             </td>
                                             <td className="px-8 py-6 text-sm text-text-secondary font-medium">{deal.propertyAddress || 'N/A'}</td>
                                             <td className="px-8 py-6"><div className="transform scale-90 origin-left"><DealStatusBadge status={deal.status} /></div></td>
+                                            <td className="px-8 py-6 text-right">
+                                                {deal.price != null && deal.price > 0 ? (
+                                                    <span className="font-bold text-teal text-sm">€{deal.price.toLocaleString('en-US')}</span>
+                                                ) : (
+                                                    <span className="text-gray-300 text-sm">—</span>
+                                                )}
+                                            </td>
                                             <td className="px-8 py-6">
                                                 <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold bg-navy-primary/5 text-navy-secondary border border-transparent group-hover:border-teal/20 group-hover:bg-teal/5 transition-all">
                                                     {getStepLabel(deal.currentStep || 'onboarding')}

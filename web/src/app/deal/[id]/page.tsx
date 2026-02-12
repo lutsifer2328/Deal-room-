@@ -65,6 +65,9 @@ export default function DealDetailPage() {
         return acc;
     }, {});
 
+    // Get the current user's participant record for this deal to check permissions
+    const currentUserParticipant = deal.participants.find(p => p.userId === user.id);
+
     return (
         <div className="max-w-5xl mx-auto pb-20">
             {/* Back Button */}
@@ -101,6 +104,7 @@ export default function DealDetailPage() {
                             tasks={group.tasks}
                             userRole={user.role}
                             onDeleteTask={(taskId) => deleteTask(taskId, user.id)}
+                            currentUserParticipant={currentUserParticipant}
                         />
                     ))}
 
@@ -136,12 +140,13 @@ export default function DealDetailPage() {
     );
 }
 
-function ParticipantTaskGroup({ participant, role, tasks, userRole, onDeleteTask }: {
+function ParticipantTaskGroup({ participant, role, tasks, userRole, onDeleteTask, currentUserParticipant }: {
     participant?: Deal['participants'][0],
     role: string,
     tasks: Task[],
     userRole: string,
-    onDeleteTask: (id: string) => void
+    onDeleteTask: (id: string) => void,
+    currentUserParticipant?: Deal['participants'][0]
 }) {
     const { t } = useTranslation();
     const roleColors = {
@@ -191,14 +196,27 @@ function ParticipantTaskGroup({ participant, role, tasks, userRole, onDeleteTask
             {/* Tasks List */}
             <div className="divide-y divide-gray-50">
                 {tasks.map(task => (
-                    <TaskItem key={task.id} task={task} userRole={userRole} onDelete={() => onDeleteTask(task.id)} />
+                    <TaskItem
+                        key={task.id}
+                        task={task}
+                        userRole={userRole}
+                        onDelete={() => onDeleteTask(task.id)}
+                        currentUserParticipant={currentUserParticipant}
+                        taskOwnerRole={role} // Pass the group role as the task owner role
+                    />
                 ))}
             </div>
         </div>
     );
 }
 
-function TaskItem({ task, userRole, onDelete }: { task: Task, userRole: string, onDelete: () => void }) {
+function TaskItem({ task, userRole, onDelete, currentUserParticipant, taskOwnerRole }: {
+    task: Task,
+    userRole: string,
+    onDelete: () => void,
+    currentUserParticipant?: Deal['participants'][0],
+    taskOwnerRole?: string
+}) {
     const { t } = useTranslation();
     const isOwner = userRole === task.assignedTo;
     const isLawyer = userRole === 'lawyer';
@@ -258,7 +276,13 @@ function TaskItem({ task, userRole, onDelete }: { task: Task, userRole: string, 
                     <div className="divide-y divide-gray-100">
                         {task.documents.map(doc => (
                             <div key={doc.id} className="p-4 bg-white/50 hover:bg-white transition-colors">
-                                <DocumentRow doc={doc} userRole={userRole} taskId={task.id} />
+                                <DocumentRow
+                                    doc={doc}
+                                    userRole={userRole}
+                                    taskId={task.id}
+                                    currentUserParticipant={currentUserParticipant}
+                                    taskOwnerRole={taskOwnerRole}
+                                />
                             </div>
                         ))}
                     </div>
@@ -297,7 +321,13 @@ function TaskItem({ task, userRole, onDelete }: { task: Task, userRole: string, 
     );
 }
 
-function DocumentRow({ doc, userRole, taskId }: { doc: DealDocument, userRole: string, taskId: string }) {
+function DocumentRow({ doc, userRole, taskId, currentUserParticipant, taskOwnerRole }: {
+    doc: DealDocument,
+    userRole: string,
+    taskId: string,
+    currentUserParticipant?: Deal['participants'][0],
+    taskOwnerRole?: string
+}) {
     const { verifyDocument, releaseDocument, rejectDocument } = useData();
     const { user } = useAuth();
     const { t } = useTranslation();
@@ -307,8 +337,40 @@ function DocumentRow({ doc, userRole, taskId }: { doc: DealDocument, userRole: s
     const isLawyer = userRole === 'lawyer';
     const isAdmin = userRole === 'admin';
     const isOwner = userRole === doc.uploadedBy;
-    const canDownload = isLawyer || isAdmin || isOwner || doc.status === 'released';
-    const canSeeMetadata = isLawyer || isAdmin || isOwner || doc.status !== 'private';
+
+    // --- PERMISSION LOGIC START ---
+
+    // 1. Can Download?
+    // - Lawyers/Admins/Owners always can
+    // - Standard users: Must be 'released' AND they must have download permission enabled
+    const hasDownloadPermission = isLawyer || isAdmin || isOwner || (
+        currentUserParticipant?.canDownload !== false // Default to true if undefined
+    );
+    const canDownload = (isLawyer || isAdmin || isOwner || doc.status === 'released') && hasDownloadPermission;
+
+    // 2. Can View Content? (Metadata is usually visible if they have access to the deal)
+    // - Lawyers/Admins/Owners always can
+    // - Standard Users:
+    //   a) If 'Private', they can't see it (unless owner)
+    //   b) If 'Verified' or 'Released', check detailed permissions:
+    //      - canViewDocuments = true (View ALL) -> ALLOW
+    //      - canViewDocuments = false (Limited) -> ONLY if role is in canViewRoles list
+    const hasViewPermission = isLawyer || isAdmin || isOwner || (
+        // Must be verified/released to even check additional permissions for non-admin/owner
+        (doc.status !== 'private') && (
+            // Full View Access?
+            (currentUserParticipant?.canViewDocuments !== false) ||
+            // Or Specific Role Access?
+            (taskOwnerRole && currentUserParticipant?.documentPermissions?.canViewRoles?.includes(taskOwnerRole as any))
+        )
+    );
+
+    // canSeeMetadata: If they can't view content, do we show the row at all?
+    // Requirement is "Technicaly they can see what's been requested but cant see the content"
+    // So YES, show metadata, but lock the actions.
+    const canSeeMetadata = true; // Always show row if they are in the deal (grouped tasks logic handles deal-level filtering)
+
+    // --- PERMISSION LOGIC END ---
 
     if (!canSeeMetadata) return null;
 
@@ -342,17 +404,17 @@ function DocumentRow({ doc, userRole, taskId }: { doc: DealDocument, userRole: s
     return (
         <>
             <div className={`flex items-center justify-between transition-all rounded-xl ${doc.status === 'rejected' ? 'bg-red-50/50 p-2 -m-2' : ''}`}>
-                <div className="flex items-center gap-4">
-                    <div className={`p-2.5 rounded-xl shadow-sm ${doc.status === 'rejected' ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-teal'}`}>
+                <div className="flex items-center gap-4 min-w-0 flex-1">
+                    <div className={`p-2.5 rounded-xl shadow-sm flex-shrink-0 ${doc.status === 'rejected' ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-teal'}`}>
                         {doc.status === 'rejected' ? <AlertTriangle className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
                     </div>
-                    <div>
-                        <div className="text-sm font-bold text-navy-primary flex items-center gap-2 mb-0.5">
-                            {doc.title_en}
-                            {!canDownload && doc.status !== 'rejected' && <Lock className="w-3 h-3 text-gold" />}
+                    <div className="min-w-0">
+                        <div className="text-sm font-bold text-navy-primary flex items-center gap-2 mb-0.5 truncate pr-2">
+                            <span className="truncate">{doc.title_en}</span>
+                            {!canDownload && doc.status !== 'rejected' && <Lock className="w-3 h-3 text-gold flex-shrink-0" />}
                         </div>
                         {doc.status === 'rejected' ? (
-                            <div className="text-xs text-red-600 font-bold bg-red-100/50 px-2 py-0.5 rounded-md inline-block">
+                            <div className="text-xs text-red-600 font-bold bg-red-100/50 px-2 py-0.5 rounded-md inline-block truncate max-w-full">
                                 {t('deal.rejected')}: {doc.rejectionReason_en}
                             </div>
                         ) : (
@@ -361,12 +423,11 @@ function DocumentRow({ doc, userRole, taskId }: { doc: DealDocument, userRole: s
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    {/* View Button - Available to Lawyer & Admin, OR if can download (Released/Owner) */}
-                    {(canDownload) && (
+                <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                    {/* View Button */}
+                    {(hasViewPermission && canDownload) && (
                         <button
                             onClick={() => {
-                                alert('View Clicked! Opening modal...');
                                 setIsPreviewOpen(true);
                             }}
                             className="p-2 text-teal bg-teal/5 hover:bg-teal/10 rounded-lg transition-colors border border-teal/10"
@@ -417,9 +478,9 @@ function DocumentRow({ doc, userRole, taskId }: { doc: DealDocument, userRole: s
                         </button>
                     ) : (
                         doc.status !== 'rejected' && (
-                            <span className="text-xs font-bold text-gold px-3 py-1 bg-gold/10 rounded-lg flex items-center gap-1.5 border border-gold/20">
-                                {doc.status === 'verified' ? <ShieldCheck className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-                                {doc.status === 'verified' ? t('deal.verified') : t('deal.private')}
+                            <span className="text-xs font-bold text-gray-400 px-3 py-1 bg-gray-100 rounded-lg flex items-center gap-1.5 border border-gray-200" title="Restricted Access">
+                                <Lock className="w-3 h-3" />
+                                {!hasViewPermission ? 'Restricted' : ((doc.status === 'verified' ? t('deal.verified') : t('deal.private')))}
                             </span>
                         )
                     )}

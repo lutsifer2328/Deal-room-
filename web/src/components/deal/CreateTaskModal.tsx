@@ -26,7 +26,7 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
     // Build autocomplete suggestions
     const suggestions = useMemo(() => {
         const standardSuggestions = standardDocuments
-            .filter(doc => doc.isActive)
+            // .filter(doc => doc.isActive) // Removed filter to show potential "inactive" docs too
             .map(doc => ({
                 name: doc.name,
                 source: 'standard' as const,
@@ -49,12 +49,8 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
         return [...standardSuggestions, ...historySuggestions];
     }, [standardDocuments, tasks]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('DEBUG: handleSubmit called');
-        console.log('DEBUG: selectedParticipantId:', selectedParticipantId);
-        console.log('DEBUG: selectedStandardDocId:', selectedStandardDocId);
-        console.log('DEBUG: activeParticipants:', activeParticipants.length);
 
         if (!selectedParticipantId) {
             alert(t('modal.createTask.alertParticipant'));
@@ -69,12 +65,15 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
 
         setIsSubmitting(true);
 
-        // Simulate API call
-        setTimeout(() => {
-            addTask(deal.id, title, selectedParticipant.id, selectedStandardDocId, expirationDate || undefined);
-            setIsSubmitting(false);
+        try {
+            await addTask(deal.id, title, selectedParticipant.id, selectedStandardDocId, expirationDate || undefined);
             onClose();
-        }, 500);
+        } catch (error) {
+            console.error('Failed to add task', error);
+            // Notification handled in store
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const getRoleBadgeColor = (role: string) => {
@@ -115,7 +114,7 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
                                 setTitle(newValue);
                                 // Check if this matches a standard document
                                 const matchingDoc = standardDocuments.find(
-                                    doc => doc.isActive && doc.name.toLowerCase() === newValue.toLowerCase()
+                                    doc => doc.name.toLowerCase() === newValue.toLowerCase()
                                 );
                                 setSelectedStandardDocId(matchingDoc?.id);
                             }}

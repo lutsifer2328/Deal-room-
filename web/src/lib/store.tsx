@@ -15,8 +15,9 @@ interface DataContextType {
     isInitialized: boolean;
 
     // Actions
-    createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string) => Promise<string>;
-    addTask: (dealId: string, title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => void;
+    createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number) => Promise<string>;
+    updateDeal: (dealId: string, updates: { title?: string; propertyAddress?: string; price?: number }) => Promise<void>;
+    addTask: (dealId: string, title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => Promise<void>;
     deleteTask: (taskId: string, actorId: string) => void;
     setActiveDeal: (dealId: string) => void;
     updateDealStep: (dealId: string, step: DealStep, actorId: string) => void;
@@ -46,9 +47,9 @@ interface DataContextType {
     // Standard Documents Actions
     standardDocuments: StandardDocument[];
     addStandardDocument: (name: string, description: string, createdBy: string) => Promise<string>;
-    updateStandardDocument: (id: string, name: string, description: string) => void;
-    deleteStandardDocument: (id: string) => void;
-    restoreStandardDocuments: () => void;
+    updateStandardDocument: (id: string, name: string, description: string) => Promise<void>;
+    deleteStandardDocument: (id: string) => Promise<void>;
+    restoreStandardDocuments: () => Promise<void>;
 
     // Global Participants Actions
     globalParticipants: GlobalParticipant[];
@@ -60,7 +61,7 @@ interface DataContextType {
     inviteParticipant: (dealId: string, email: string, name: string, role: Role, isInternal?: boolean) => Promise<boolean>;
     getParticipantDeals: (participantId: string) => Array<{ deal: Deal, dealParticipant: DealParticipant }>;
     getRecentParticipants: (days?: number) => GlobalParticipant[];
-    addParticipantContract: (participantId: string, title: string, uploadedBy: string) => void;
+    addParticipantContract: (participantId: string, title: string, uploadedBy: string, file: File) => void;
     deleteParticipantContract: (participantId: string, contractId: string) => void;
 
     // Logs
@@ -161,37 +162,65 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     updatedAt: dp.updated_at
                 })));
             }
-            // Only overwrite if DB has valid data (active docs)
-            const validFetchedDocs = fetchedStdDocs ? fetchedStdDocs.filter(d => d.is_active !== false) : [];
+            // Don't filter by is_active for now to ensure visibility
+            const validFetchedDocs = (fetchedStdDocs || []).map(d => ({
+                id: d.id,
+                name: d.name,
+                description: d.description,
+                usageCount: d.usage_count,
+                createdAt: d.created_at,
+                updatedAt: d.updated_at,
+                createdBy: d.created_by,
+                isActive: d.is_active
+            }));
 
-            if (validFetchedDocs.length >= 10) {
-                // CRITICAL FIX: Ignore DB data for now and force local defaults to ensure they stay visible
-                setStandardDocuments(MOCK_STANDARD_DOCUMENTS);
+            // Use real database documents if available
+            if (validFetchedDocs.length > 0) {
+                setStandardDocuments(validFetchedDocs);
             } else {
-                // If DB is empty or partial, trigger BG seed but KEEP MOCK DATA visible
-                console.log('DB missing standard docs. Retaining local defaults & seeding BG...');
+                // If DB is empty, we MUST seed it immediately and wait for it
+                console.log('DB missing standard docs. Seeding now...');
                 const systemUserId = fetchedUsers && fetchedUsers.length > 0 ? fetchedUsers[0].id : null;
 
-                // Background Seed (Fire & Forget)
-                supabase.from('standard_documents').upsert(
-                    MOCK_STANDARD_DOCUMENTS.map(d => ({
-                        id: d.id,
-                        name: d.name,
-                        description: d.description,
-                        usage_count: d.usageCount,
-                        created_at: d.createdAt,
-                        updated_at: d.updatedAt,
-                        created_by: systemUserId || d.createdBy,
-                        is_active: d.isActive
-                    })),
-                    { onConflict: 'id' }
-                ).then(({ error }) => {
-                    if (error) console.warn('BG Seed Error:', error);
-                    else console.log('BG Seed Success');
-                });
+                try {
+                    // Await the seed operation so we can show data immediately
+                    const { error } = await supabase.from('standard_documents').upsert(
+                        MOCK_STANDARD_DOCUMENTS.map(d => ({
+                            id: d.id,
+                            name: d.name,
+                            description: d.description,
+                            usage_count: d.usageCount,
+                            created_at: d.createdAt,
+                            updated_at: d.updatedAt,
+                            created_by: systemUserId || d.createdBy,
+                            is_active: d.isActive
+                        })),
+                        { onConflict: 'id' }
+                    );
+
+                    if (error) {
+                        console.warn('BG Seed Error:', error);
+                        // Fallback to mock if seed fails
+                        setStandardDocuments(MOCK_STANDARD_DOCUMENTS);
+                    } else {
+                        console.log('BG Seed Success');
+                        // Set state to mock docs since we just inserted them
+                        setStandardDocuments(MOCK_STANDARD_DOCUMENTS);
+                    }
+                } catch (e) {
+                    console.error('Seeding exception:', e);
+                    setStandardDocuments(MOCK_STANDARD_DOCUMENTS);
+                }
             }
             if (fetchedLogs) setLogs(fetchedLogs);
-            if (fetchedContracts) setAgencyContracts(fetchedContracts);
+            if (fetchedContracts) setAgencyContracts(fetchedContracts.map((c: any) => ({
+                id: c.id,
+                participantId: c.participant_id,
+                title: c.title,
+                url: c.url,
+                uploadedBy: c.uploaded_by,
+                uploadedAt: c.uploaded_at
+            })));
 
             setIsInitialized(true);
         } catch (error) {
@@ -266,6 +295,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 sellerIds: participants.filter(p => p.role === 'seller' && p.userId).map(p => p.userId!),
                 lawyerId: 'u_lawyer', // Mock
                 agentId: participants.find(p => p.role === 'agent')?.userId,
+                price: d.price ? Number(d.price) : undefined,
                 createdAt: d.created_at,
                 dealNumber: undefined
             };
@@ -303,7 +333,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
             comments: t.comments || [],
             required: t.required,
             standardDocumentId: t.standard_document_id,
-            expirationDate: t.expiration_date
+            expirationDate: t.expiration_date,
+            createdAt: t.created_at
         }));
         setTasks(computedTasks);
 
@@ -343,7 +374,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     // DEBUG: Raw Fetch fallback to bypass client library issues
-    const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string) => {
+    const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number) => {
         const HARDCODED_URL = 'https://qolozennlzllvrqmibls.supabase.co';
         const HARDCODED_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvbG96ZW5ubHpsbHZycW1pYmxzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4NTE1MjcsImV4cCI6MjA4NTQyNzUyN30.vu549GpXoQGGMwVs92PB4IC8IL9hniLWS9FDLsl28M8';
 
@@ -369,7 +400,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 current_step_id: defaultTimeline[0].id,
                 timeline_json: defaultTimeline,
                 created_at: new Date().toISOString(),
-                created_by: validCreatorId
+                created_by: validCreatorId,
+                price: price || null
             };
             if (dealNumber) { /* dealPayload.crm_id = dealNumber; */ }
 
@@ -517,36 +549,55 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const addTask = (dealId: string, title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => {
+    const addTask = async (dealId: string, title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => {
         const taskId = crypto.randomUUID();
-        const newTask = {
+        // We need to construct the "Raw" task (DB shape) for the optimistic update
+        // because the main useEffect maps rawTasks (DB shape) to Task (Client shape)
+        const newRawTask: any = {
             id: taskId,
-            deal_id: dealId, // explicit
+            deal_id: dealId,
             title_en: title,
-            title_bg: title + ' (BG Translation Needed)',
+            title_bg: title, // Fallback
             assigned_to: assignedTo,
             status: 'pending',
             required: true,
             standard_document_id: standardDocumentId,
             expiration_date: expirationDate,
             created_at: new Date().toISOString(),
-            documents: [], // joined
+            documents: [], // DB shape usually has join, but here it's fine
             comments: []
         };
-        setRawTasks(prev => [newTask, ...prev]);
-        supabase.from('tasks').insert({
-            id: taskId,
-            deal_id: dealId,
-            title_en: title,
-            title_bg: title,
-            assigned_to: assignedTo,
-            status: 'pending',
-            required: true,
-            standard_document_id: standardDocumentId,
-            expiration_date: expirationDate
-        }).then(({ error }) => { if (error) console.warn(error); });
 
-        logAction(dealId, 'u_lawyer', 'ADDED_TASK', `Added task "${title}"`);
+        // We also construct the Client Shape in case we need it, but mostly we update rawTasks
+        // The mapping logic in useEffect will handle converting newRawTask -> client Task
+
+        try {
+            const { error } = await supabase.from('tasks').insert({
+                id: taskId,
+                deal_id: dealId,
+                title_en: title,
+                title_bg: title,
+                assigned_to: assignedTo,
+                status: 'pending',
+                required: true,
+                standard_document_id: standardDocumentId,
+                expiration_date: expirationDate,
+                created_at: newRawTask.created_at
+            });
+
+            if (error) throw error;
+
+            setRawTasks(prev => [newRawTask, ...prev]);
+            logAction(dealId, 'u_lawyer', 'ADDED_TASK', `Added task "${title}"`);
+            addNotification('success', 'Task Added', 'Requirement created successfully.');
+        } catch (error: any) {
+            console.error('Failed to add task (FULL ERROR):', JSON.stringify(error, null, 2));
+            console.error('Error message:', error.message);
+            console.error('Error details:', error.details);
+            console.error('Error hint:', error.hint);
+            addNotification('error', 'Failed to add task', error.message || 'Database error');
+            throw error;
+        }
     };
 
     // Placeholder implementations for other actions to fetch full type compliance
@@ -606,6 +657,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
             // Revert
             // setRawDeals(...) // Complex to revert without previous state, simplified for now
             addNotification('error', 'Update Failed', error.message);
+        }
+    };
+
+    const updateDeal = async (dealId: string, updates: { title?: string; propertyAddress?: string; price?: number }) => {
+        try {
+            // Optimistic Update
+            setRawDeals(prev => prev.map(d => d.id === dealId ? {
+                ...d,
+                ...(updates.title !== undefined && { title: updates.title }),
+                ...(updates.propertyAddress !== undefined && { property_address: updates.propertyAddress }),
+                ...(updates.price !== undefined && { price: updates.price })
+            } : d));
+
+            const dbUpdates: any = {};
+            if (updates.title !== undefined) dbUpdates.title = updates.title;
+            if (updates.propertyAddress !== undefined) dbUpdates.property_address = updates.propertyAddress;
+            if (updates.price !== undefined) dbUpdates.price = updates.price;
+
+            const { error } = await supabase.from('deals').update(dbUpdates).eq('id', dealId);
+            if (error) throw error;
+
+            addNotification('success', 'Deal Updated', 'Deal details have been saved.');
+        } catch (error: any) {
+            console.error('Failed to update deal:', error);
+            addNotification('error', 'Update Failed', error.message);
+            fetchData(); // Revert by refetching
         }
     };
 
@@ -1042,26 +1119,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
             isActive: true
         };
 
-        const { error } = await supabase.from('standard_documents').insert({
-            id,
-            name,
-            description,
-            usage_count: 0,
-            created_at: newDoc.createdAt,
-            updated_at: newDoc.updatedAt,
-            created_by: createdBy,
-            is_active: true
-        });
+        let attempts = 0;
+        const maxAttempts = 3;
 
-        if (error) {
-            console.warn('Error adding standard doc:', error);
-            addNotification('error', 'Failed to add', error.message);
-            return '';
+        while (attempts < maxAttempts) {
+            try {
+                const { error } = await supabase.from('standard_documents').insert({
+                    id,
+                    name,
+                    description,
+                    usage_count: 0,
+                    created_at: newDoc.createdAt,
+                    updated_at: newDoc.updatedAt,
+                    created_by: createdBy,
+                    is_active: true
+                });
+
+                if (error) throw error;
+
+                // Success
+                setStandardDocuments(prev => [...prev, newDoc]);
+                addNotification('success', 'Document Added', 'New standard document created.');
+                return id;
+
+            } catch (err: any) {
+                attempts++;
+                console.warn(`Attempt ${attempts} failed:`, err);
+
+                if (attempts === maxAttempts) {
+                    addNotification('error', 'Failed to add', err.message || 'Network error');
+                    return '';
+                }
+
+                // Wait before retrying (exponential backoff: 500ms, 1000ms, 2000ms)
+                await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempts - 1)));
+            }
         }
-
-        setStandardDocuments(prev => [...prev, newDoc]);
-        addNotification('success', 'Document Added', 'New standard document created.');
-        return id;
+        return '';
     };
 
     const updateStandardDocument = async (id: string, name: string, description: string) => {
@@ -1214,7 +1308,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
             return false;
         }
     };
-    const updateGlobalParticipant = (id: string, updates: any) => { };
+    const updateGlobalParticipant = async (id: string, updates: any) => {
+        try {
+            // Map camelCase to snake_case for DB
+            const dbUpdates: Record<string, any> = {};
+            if (updates.name !== undefined) dbUpdates.name = updates.name;
+            if (updates.email !== undefined) dbUpdates.email = updates.email;
+            if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
+            if (updates.agency !== undefined) dbUpdates.agency = updates.agency;
+            if (updates.internalNotes !== undefined) dbUpdates.internal_notes = updates.internalNotes;
+            if (updates.invitationStatus !== undefined) dbUpdates.invitation_status = updates.invitationStatus;
+            dbUpdates.updated_at = new Date().toISOString();
+
+            const { error } = await supabase.from('participants').update(dbUpdates).eq('id', id);
+            if (error) throw error;
+
+            // Optimistic local update
+            setRawGlobalParticipants(prev => prev.map(p =>
+                p.id === id ? { ...p, ...updates, updatedAt: dbUpdates.updated_at } : p
+            ));
+        } catch (error: any) {
+            console.warn('Error updating global participant:', error);
+            addNotification('error', 'Update Failed', error.message);
+        }
+    };
     const deleteGlobalParticipant = async (id: string) => {
         try {
             // Delete from DB
@@ -1238,10 +1355,74 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // Search in loaded global participants
         return enrichedGlobalParticipants.find(p => p.email.toLowerCase() === email.toLowerCase()) || null;
     };
-    const getParticipantDeals = (participantId: string) => [];
-    const getRecentParticipants = (days?: number) => [];
-    const addParticipantContract = (participantId: string, title: string, uploadedBy: string) => { };
-    const deleteParticipantContract = (participantId: string, contractId: string) => { };
+    const getParticipantDeals = (participantId: string) => {
+        const participantDealLinks = rawDealParticipants.filter(dp => dp.participantId === participantId);
+        return participantDealLinks.map(dp => {
+            const deal = deals.find(d => d.id === dp.dealId);
+            return { deal: deal!, dealParticipant: dp };
+        }).filter(item => item.deal !== undefined);
+    };
+    const getRecentParticipants = (days: number = 30) => {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - days);
+        return enrichedGlobalParticipants
+            .filter(p => new Date(p.createdAt) >= cutoffDate)
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    };
+    const addParticipantContract = async (participantId: string, title: string, uploadedBy: string, file: File) => {
+        try {
+            const contractId = crypto.randomUUID();
+            const filePath = `contracts/${participantId}/${Date.now()}_${file.name}`;
+
+            // 1. Upload file to Storage
+            const { error: uploadError } = await supabase.storage
+                .from('documents')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const newContract: AgencyContract = {
+                id: contractId,
+                participantId,
+                title,
+                uploadedBy,
+                url: filePath,
+                uploadedAt: new Date().toISOString()
+            };
+
+            // 2. Insert metadata into DB
+            const { error: dbError } = await supabase.from('agency_contracts').insert({
+                id: newContract.id,
+                participant_id: participantId,
+                title,
+                uploaded_by: uploadedBy,
+                url: filePath,
+                uploaded_at: newContract.uploadedAt
+            });
+
+            if (dbError) throw dbError;
+
+            // Optimistic local update
+            setAgencyContracts(prev => [...prev, newContract]);
+            addNotification('success', 'Contract Uploaded', `"${title}" has been added successfully.`);
+        } catch (error: any) {
+            console.warn('Error adding contract:', error);
+            addNotification('error', 'Upload Failed', error.message);
+        }
+    };
+    const deleteParticipantContract = async (participantId: string, contractId: string) => {
+        try {
+            const { error } = await supabase.from('agency_contracts').delete().eq('id', contractId);
+            if (error) throw error;
+
+            // Optimistic local update
+            setAgencyContracts(prev => prev.filter(c => c.id !== contractId));
+            addNotification('success', 'Contract Deleted', 'The contract has been removed.');
+        } catch (error: any) {
+            console.warn('Error deleting contract:', error);
+            addNotification('error', 'Delete Failed', error.message);
+        }
+    };
 
     // Notifications - Local only for now
     const addNotification = (type: 'info' | 'success' | 'warning' | 'error', title: string, message: string, link?: string) => {
@@ -1258,6 +1439,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         tasks,
         isInitialized,
         createDeal,
+        updateDeal,
         addTask,
         deleteTask,
         setActiveDeal,
