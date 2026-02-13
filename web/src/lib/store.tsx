@@ -955,20 +955,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
     const updateParticipant = async (dealId: string, participantId: string, updates: Partial<Participant>) => {
         try {
+            // Find current participant to merge permissions correctly
+            const currentDP = rawDealParticipants.find(dp => dp.dealId === dealId && dp.participantId === participantId);
+            if (!currentDP) {
+                console.warn('Participant not found for update:', participantId);
+                return;
+            }
+
             // 1. Update Deal-Specific Data (Role, Permissions)
             const dealUpdates: any = {};
             if (updates.role) dealUpdates.role = updates.role;
+
             if (updates.canViewDocuments !== undefined || updates.canDownload !== undefined || updates.documentPermissions) {
-                // Fetch current permissions to merge? Or just overwrite specific keys if we had them separate. 
-                // Currently assume 'updates' has the flattened keys, but DB has a JSONB 'permissions' column.
-                // We need to construct the full permissions object or merge.
-                // For now, let's just update what we have.
+                // Merge with existing permissions
+                const currentPerms = currentDP.permissions || {};
+
                 const newPermissions = {
-                    canViewDocuments: updates.canViewDocuments,
-                    canDownloadDocuments: updates.canDownload, // Mapped name
-                    canViewRoles: updates.documentPermissions?.canViewRoles
+                    canViewDocuments: updates.canViewDocuments !== undefined ? updates.canViewDocuments : currentPerms.canViewDocuments,
+                    canDownloadDocuments: updates.canDownload !== undefined ? updates.canDownload : currentPerms.canDownloadDocuments, // Note: Mapped name in DB is often check
+                    canViewRoles: updates.documentPermissions?.canViewRoles ?? currentPerms.canViewRoles ?? []
                 };
-                // We should probably merge with existing, but for now this is okay if we pass full state
+
                 dealUpdates.permissions = newPermissions;
             }
 
@@ -977,6 +984,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     .update(dealUpdates)
                     .eq('deal_id', dealId)
                     .eq('participant_id', participantId);
+
                 if (dpError) throw dpError;
 
                 // Update Local Deal Participants
@@ -987,9 +995,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
                             role: updates.role || dp.role,
                             permissions: {
                                 ...dp.permissions,
-                                canViewDocuments: updates.canViewDocuments ?? dp.permissions.canViewDocuments,
-                                canDownloadDocuments: updates.canDownload ?? dp.permissions.canDownloadDocuments,
-
+                                canViewDocuments: dealUpdates.permissions?.canViewDocuments ?? dp.permissions.canViewDocuments,
+                                canDownloadDocuments: dealUpdates.permissions?.canDownloadDocuments ?? dp.permissions.canDownloadDocuments,
+                                canViewRoles: dealUpdates.permissions?.canViewRoles ?? dp.permissions.canViewRoles
                             }
                         };
                     }

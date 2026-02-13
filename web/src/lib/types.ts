@@ -72,6 +72,7 @@ export interface DealParticipant {
     canDownloadDocuments: boolean;
     canUploadDocuments: boolean;
     canViewTimeline: boolean;
+    canViewRoles?: Role[]; // Added for granular permissions
   };
 
   joinedAt: string;
