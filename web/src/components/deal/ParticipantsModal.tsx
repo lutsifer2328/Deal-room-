@@ -80,31 +80,37 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
     const [isCheckingUser, setIsCheckingUser] = useState(false);
 
     const handleEmailBlur = async () => {
-        if (!newParticipant.email.trim()) return;
+        const emailToCheck = newParticipant.email.trim();
+        if (!emailToCheck) return;
 
         // Don't check if we just checked this email
-        if (smartUser && smartUser.email === newParticipant.email) return;
+        if (smartUser && smartUser.email === emailToCheck) return;
 
         setIsCheckingUser(true);
         try {
             const response = await fetch('/api/check-user', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: newParticipant.email })
+                body: JSON.stringify({ email: emailToCheck })
             });
             const data = await response.json();
 
             if (data.exists && data.user) {
-                setSmartUser(data.user);
-                // Auto-fill available data
-                setNewParticipant(prev => ({
-                    ...prev,
-                    userId: data.user.id,
-                    fullName: data.user.name || prev.fullName,
-                    phone: data.user.phone || prev.phone,
-                    // If they are staff/admin, hint at it but don't force role unless internal
-                    role: (data.user.role === 'admin' || data.user.role === 'staff') && !isInternalUser ? 'agent' : prev.role
-                }));
+                // Only auto-fill if the email hasn't changed while we were fetching
+                setNewParticipant(prev => {
+                    if (prev.email.trim() !== emailToCheck) {
+                        console.log('⚠️ Email changed during lookup, ignoring result');
+                        return prev;
+                    }
+                    setSmartUser(data.user);
+                    return {
+                        ...prev,
+                        userId: data.user.id,
+                        fullName: data.user.name || prev.fullName,
+                        phone: data.user.phone || prev.phone,
+                        role: (data.user.role === 'admin' || data.user.role === 'staff') && !isInternalUser ? 'agent' : prev.role
+                    };
+                });
             } else {
                 setSmartUser(null);
             }
@@ -116,6 +122,13 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
     };
 
     const handleAddParticipant = async () => {
+        console.log('🚀 handleAddParticipant called with:', {
+            email: newParticipant.email,
+            fullName: newParticipant.fullName,
+            role: newParticipant.role,
+            smartUser: smartUser?.email || null
+        });
+
         if (!newParticipant.fullName || !newParticipant.email) {
             alert('Name and email are required');
             return;
@@ -126,15 +139,14 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
             return;
         }
 
-        // Logic split: EXISTING USER vs NEW USER
-        if (smartUser) {
-            // LINK EXISTING USER
-            // The backend will handle "Re-Activation" if they are soft-deleted
-            // We just need to add them to the deal participants table
-            // Update: We'll use the NEW unified invite endpoint which checks existence too
-            await proceedWithAddingParticipant(newParticipant, true); // true = existing
+        // CRITICAL: Only treat as existing if smartUser email matches what's in the form
+        const isExistingUser = smartUser && smartUser.email === newParticipant.email.trim();
+
+        if (isExistingUser) {
+            console.log('✅ Linking existing user:', smartUser.email);
+            await proceedWithAddingParticipant(newParticipant, true);
         } else {
-            // INVITE NEW USER
+            console.log('✅ Inviting new user:', newParticipant.email);
             await proceedWithAddingParticipant(newParticipant, false);
         }
     };
@@ -473,7 +485,14 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                             <input
                                                 type="email"
                                                 value={newParticipant.email}
-                                                onChange={(e) => setNewParticipant({ ...newParticipant, email: e.target.value })}
+                                                onChange={(e) => {
+                                                    const newEmail = e.target.value;
+                                                    // Clear stale smartUser when email changes
+                                                    if (smartUser && smartUser.email !== newEmail.trim()) {
+                                                        setSmartUser(null);
+                                                    }
+                                                    setNewParticipant({ ...newParticipant, email: newEmail, userId: undefined });
+                                                }}
                                                 onBlur={handleEmailBlur}
                                                 className="w-full px-3 py-2 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-teal outline-none"
                                             />
