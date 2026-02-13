@@ -1,6 +1,7 @@
 'use client';
 
 import { useData } from '@/lib/store';
+import { User } from '@/lib/types';
 import { useAuth } from '@/lib/authContext';
 import { useTranslation } from '@/lib/useTranslation';
 import { Search, FileText, Eye, ExternalLink, Filter } from 'lucide-react';
@@ -10,7 +11,7 @@ import DocumentPreviewModal from '@/components/deal/DocumentPreviewModal';
 import { DealDocument } from '@/lib/types';
 
 export default function SearchAllDocumentsTab() {
-    const { deals, tasks } = useData();
+    const { deals, tasks, users } = useData();
     const { user } = useAuth();
     const router = useRouter();
     const { t } = useTranslation();
@@ -21,6 +22,32 @@ export default function SearchAllDocumentsTab() {
     const [previewDoc, setPreviewDoc] = useState<DealDocument | null>(null);
 
     if (!user) return null;
+
+    // Safe date formatter – handles null, undefined, and invalid dates
+    const formatDate = (dateStr: string | undefined | null): string => {
+        if (!dateStr) return 'Just now';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return 'Just now';
+        return d.toLocaleDateString();
+    };
+    const formatTime = (dateStr: string | undefined | null): string => {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
+        return d.toLocaleTimeString();
+    };
+
+    // Resolve uploader name from user ID
+    const resolveUploaderName = (uploadedBy: string | undefined, deal: any): string => {
+        if (!uploadedBy) return 'Admin';
+        // Check internal users map first
+        const internalUser: User | undefined = users[uploadedBy];
+        if (internalUser) return internalUser.name;
+        // Check deal participants
+        const participant = deal?.participants?.find((p: any) => p.userId === uploadedBy || p.id === uploadedBy);
+        if (participant) return participant.fullName || participant.email || 'Participant';
+        return 'Admin';
+    };
 
     // Collect all documents from all tasks
     const allDocuments: Array<{
@@ -38,8 +65,6 @@ export default function SearchAllDocumentsTab() {
         const deal = deals.find(d => d.id === task.dealId);
         if (!deal) return;
 
-        const participant = deal.participants.find(p => p.role === task.assignedTo);
-
         task.documents.forEach(doc => {
             allDocuments.push({
                 doc,
@@ -49,7 +74,7 @@ export default function SearchAllDocumentsTab() {
                 dealTitle: deal.title,
                 dealAddress: deal.propertyAddress,
                 dealStatus: deal.status,
-                participantName: participant?.fullName || 'Unknown'
+                participantName: resolveUploaderName(doc.uploadedBy, deal)
             });
         });
     });
@@ -79,10 +104,12 @@ export default function SearchAllDocumentsTab() {
         filteredDocuments = filteredDocuments.filter(item => item.dealId === dealFilter);
     }
 
-    // Sort by upload date (newest first)
-    filteredDocuments.sort((a, b) =>
-        new Date(b.doc.uploadedAt).getTime() - new Date(a.doc.uploadedAt).getTime()
-    );
+    // Sort by upload date (newest first), handle missing dates
+    filteredDocuments.sort((a, b) => {
+        const dateA = a.doc.uploadedAt ? new Date(a.doc.uploadedAt).getTime() : 0;
+        const dateB = b.doc.uploadedAt ? new Date(b.doc.uploadedAt).getTime() : 0;
+        return (isNaN(dateB) ? 0 : dateB) - (isNaN(dateA) ? 0 : dateA);
+    });
 
     const handleViewDeal = (dealId: string) => {
         router.push(`/deal/${dealId}`);
@@ -252,9 +279,9 @@ export default function SearchAllDocumentsTab() {
                                             {item.participantName}
                                         </td>
                                         <td className="py-4 px-6 text-text-secondary text-sm">
-                                            {new Date(item.doc.uploadedAt).toLocaleDateString()}
+                                            {formatDate(item.doc.uploadedAt)}
                                             <div className="text-xs text-text-light opacity-60 font-medium">
-                                                {new Date(item.doc.uploadedAt).toLocaleTimeString()}
+                                                {formatTime(item.doc.uploadedAt)}
                                             </div>
                                         </td>
                                         <td className="py-4 px-6">
