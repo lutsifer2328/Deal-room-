@@ -1026,43 +1026,61 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     const uploadDocument = async (taskId: string, file: File, uploadedBy: string) => {
-        const docId = crypto.randomUUID();
-        const filePath = `${activeDealId}/${taskId}/${Date.now()}_${file.name}`;
+        try {
+            // 1. Upload to Storage
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+            const filePath = `${activeDealId}/${taskId}/${fileName}`;
 
-        // 1. Upload to Storage
-        const { error: uploadError } = await supabase.storage
-            .from('documents')
-            .upload(filePath, file);
+            const { error: uploadError } = await supabase.storage
+                .from('documents')
+                .upload(filePath, file);
 
-        if (uploadError) {
-            console.warn('Error uploading file:', uploadError);
-            addNotification('error', 'Upload Failed', uploadError.message);
-            return;
-        }
+            if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
-        // 2. Insert Metadata into DB
-        const newDoc = {
-            id: docId,
-            deal_id: activeDealId,
-            task_id: taskId,
-            title_en: file.name,
-            title_bg: file.name,
-            url: filePath, // Storing internal path for security
-            uploaded_by: uploadedBy,
-            status: 'private',
-            uploaded_at: new Date().toISOString()
-        };
+            // 2. Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('documents')
+                .getPublicUrl(filePath);
 
-        // Optimistic Update
-        setRawTasks(prev => prev.map(t => t.id === taskId ? { ...t, documents: [...(t.documents || []), newDoc] } : t));
+            // 3. Create Document Object
+            const newDoc: DealDocument = {
+                id: crypto.randomUUID(),
+                title_en: file.name,
+                title_bg: file.name,
+                url: publicUrl,
+                uploadedBy: uploadedBy,
+                status: 'verified', // Auto-verify for now so it's visible
+                uploadedAt: new Date().toISOString()
+            };
 
-        const { error: dbError } = await supabase.from('documents').insert(newDoc);
-        if (dbError) {
-            console.warn('Error saving document metadata:', dbError);
-            addNotification('error', 'Save Failed', 'File uploaded but metadata failed.');
-        } else {
+            // 4. Update Task in DB (JSONB append)
+            // Fetch current task to get existing docs
+            const task = rawTasks.find(t => t.id === taskId);
+            const currentDocs = task?.documents || [];
+            const updatedDocs = [...currentDocs, newDoc];
+
+            const { error: dbError } = await supabase
+                .from('tasks')
+                .update({ documents: updatedDocs })
+                .eq('id', taskId);
+
+            if (dbError) throw new Error(`DB Update failed: ${dbError.message}`);
+
+            // 5. Optimistic Update
+            setRawTasks(prev => prev.map(t => {
+                if (t.id === taskId) {
+                    return { ...t, documents: updatedDocs };
+                }
+                return t;
+            }));
+
+            addNotification('success', 'Document Uploaded', `${file.name} saved.`);
             logAction(activeDealId, uploadedBy, 'UPLOADED_DOC', file.name);
-            addNotification('success', 'Document Uploaded', 'File saved securely.');
+
+        } catch (error: any) {
+            console.error('Upload error:', error);
+            addNotification('error', 'Upload Failed', error.message);
         }
     };
 

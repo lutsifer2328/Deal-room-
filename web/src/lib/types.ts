@@ -54,6 +54,7 @@ export interface GlobalParticipant {
   // Internal notes (never visible to participants)
   internalNotes?: string;
 
+  price?: number; // Deal value
   createdAt: string;
   updatedAt: string;
 }
