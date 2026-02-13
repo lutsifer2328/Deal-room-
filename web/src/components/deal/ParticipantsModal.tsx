@@ -178,10 +178,12 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
 
             if (!response.ok) throw new Error(result.error || 'Failed to add participant');
 
+            console.log('✅ Participant added successfully:', result);
+
             setInviteSuccess(isExisting ? `✅ Linked ${participantData.fullName} to deal` : `✅ Invite sent to ${participantData.email}`);
             setTimeout(() => setInviteSuccess(''), 5000);
 
-            // Close and Reset
+            // Close the add form and reset
             setIsAddingNew(false);
             setSmartUser(null);
             setNewParticipant({
@@ -196,8 +198,11 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                 documentPermissions: { canViewRoles: [] }
             });
 
-            // Trigger a refresh of deal data if possible (handled by store subscription usually)
+            // Force refresh and wait for it to complete + propagate
             await refreshData();
+            // Small delay to let React useEffect propagate the new deals array
+            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log('🔄 Data refreshed after adding participant');
 
         } catch (error: any) {
             console.error('Add participant error:', error);

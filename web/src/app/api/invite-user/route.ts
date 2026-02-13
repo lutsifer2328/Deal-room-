@@ -213,7 +213,10 @@ export async function POST(request: Request) {
                 .single();
 
             if (existingLink) {
-                return NextResponse.json({ success: true, message: 'User already in deal' });
+                return NextResponse.json(
+                    { error: 'User already in deal', success: false },
+                    { status: 409 }
+                );
             }
 
             // D. Create Link
