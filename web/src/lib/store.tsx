@@ -550,6 +550,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     const addTask = async (dealId: string, title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => {
+        const normalizedAssignedTo = assignedTo.toLowerCase().trim(); // Enforce lowercase
         const taskId = crypto.randomUUID();
         // We need to construct the "Raw" task (DB shape) for the optimistic update
         // because the main useEffect maps rawTasks (DB shape) to Task (Client shape)
@@ -558,7 +559,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             deal_id: dealId,
             title_en: title,
             title_bg: title, // Fallback
-            assigned_to: assignedTo,
+            assigned_to: normalizedAssignedTo,
             status: 'pending',
             required: true,
             standard_document_id: standardDocumentId,
@@ -577,7 +578,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 deal_id: dealId,
                 title_en: title,
                 title_bg: title,
-                assigned_to: assignedTo,
+                assigned_to: normalizedAssignedTo,
                 status: 'pending',
                 required: true,
                 standard_document_id: standardDocumentId,
