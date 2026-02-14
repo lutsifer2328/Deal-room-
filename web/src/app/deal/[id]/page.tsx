@@ -334,8 +334,12 @@ function DocumentRow({ doc, userRole, taskId, currentUserParticipant, taskOwnerR
     const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-    const isLawyer = userRole === 'lawyer';
-    const isAdmin = userRole === 'admin';
+    // SUPERIORITY LOGIC: Global role (user.role) ALWAYS overrides deal role (userRole)
+    const globalRole = user?.role || userRole;
+    const isLawyer = globalRole === 'lawyer';
+    const isAdmin = globalRole === 'admin';
+    const isStaff = globalRole === 'staff' || globalRole === 'broker';
+    const isViewer = globalRole === 'viewer'; // External read-only
     const isOwner = userRole === doc.uploadedBy;
 
     // --- PERMISSION LOGIC START ---
@@ -437,7 +441,8 @@ function DocumentRow({ doc, userRole, taskId, currentUserParticipant, taskOwnerR
                         </button>
                     )}
 
-                    {(isLawyer || isAdmin) && user && (
+                    {/* Document actions: Only if global role is lawyer/admin (NOT viewer) */}
+                    {(isLawyer || isAdmin) && !isViewer && user && (
                         <>
                             {doc.status !== 'rejected' && doc.status !== 'released' && (
                                 <button

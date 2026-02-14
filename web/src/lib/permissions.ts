@@ -144,8 +144,9 @@ export function hasPermission(permissions: Permission, permission: keyof Permiss
 }
 
 /**
- * Check if a role is an organizational role (not a deal participant)
+ * Check if a role is an organizational/internal role (not an external participant).
+ * 'viewer' is explicitly excluded — they are external guests, not team members.
  */
 export function isOrganizationalRole(role: Role): boolean {
-    return ['admin', 'lawyer', 'staff', 'viewer'].includes(role);
+    return ['admin', 'lawyer', 'staff', 'broker'].includes(role);
 }
