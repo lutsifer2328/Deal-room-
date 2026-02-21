@@ -66,8 +66,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             // Handle Password Recovery & Invite Redirects
             if (_event === 'PASSWORD_RECOVERY') {
-                console.log('🔄 Password Recovery Event Detected. Redirecting to update password...');
-                router.push('/auth/update-password');
+                const currentPath = window.location.pathname;
+                // Only redirect if NOT already on auth callback or set-password pages
+                if (!currentPath.includes('/auth/')) {
+                    console.log('🔄 Password Recovery Event Detected. Redirecting to set password...');
+                    router.push('/auth/set-password');
+                } else {
+                    console.log('🔄 Password Recovery Event Detected (already on auth page, skipping redirect)');
+                }
                 return;
             }
 
@@ -99,7 +105,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => subscription.unsubscribe();
     }, []);
 
+    const lastFetchRef = React.useRef<number>(0);
+    const isFetchingRef = React.useRef<boolean>(false);
+
     const fetchUserProfile = async (userId: string, email: string, existingSession: any = null) => {
+        const now = Date.now();
+        // Prevent redundant fetches within 2 seconds or if already fetching
+        if (isFetchingRef.current || (now - lastFetchRef.current < 2000)) {
+            console.log('⏳ Skipping redundant profile fetch (debounced)');
+            return;
+        }
+
+        isFetchingRef.current = true;
+        lastFetchRef.current = now;
+
         let dbData = null;
         let retryCount = 0;
         const maxRetries = 3;
@@ -147,6 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 lastLogin: dbData.last_login
             });
             setIsLoading(false);
+            isFetchingRef.current = false;
             return;
         }
 
@@ -175,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     createdAt: new Date().toISOString()
                 });
                 setIsLoading(false);
+                isFetchingRef.current = false;
                 return;
             }
         } catch (metaError) {
@@ -193,20 +214,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             createdAt: new Date().toISOString()
         });
         setIsLoading(false);
+        isFetchingRef.current = false;
     };
 
     const login = async (email: string, password: string) => {
         setIsLoading(true);
+        console.log('🔐 Login attempt:', email);
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password
         });
 
         if (error) {
+            console.error('🔐 Login FAILED:', error.message, error.status, JSON.stringify(error));
             setIsLoading(false);
             return { error };
         }
 
+        console.log('🔐 Login SUCCESS:', data.user?.id);
         return { error: null };
     };
 

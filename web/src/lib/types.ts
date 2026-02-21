@@ -146,7 +146,7 @@ export interface Task {
   description_en?: string;
   description_bg?: string;
   assignedTo: Role | string; // 'buyer' or 'seller' OR specific Participant UUID
-  status: 'pending' | 'in_review' | 'completed';
+  status: 'pending' | 'in_review' | 'pending_review' | 'rejected' | 'completed';
   documents: DealDocument[];
   comments: Comment[];  // Lawyer can leave clarifications here
   required: boolean;

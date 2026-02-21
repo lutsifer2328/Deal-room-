@@ -12,17 +12,19 @@ if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Supabase Env Vars Missing! (Even hardcoded fallback failed?)')
 }
 
-// Create a client with cookie support for SSR/Middleware compatibility
-// Create a client with cookie support for SSR/Middleware compatibility
+// We use createBrowserClient from @supabase/ssr to automatically handle cookie synchronization
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
     auth: {
         flowType: 'pkce',
         detectSessionInUrl: true,
         persistSession: true,
         autoRefreshToken: true,
-    }
+        // Bypass navigator.locks entirely — prevents AbortError on init
+        lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<any>) => {
+            return fn();
+        },
+    },
 })
 
 // Debugging
 // console.log('✅ Supabase Browser Client Initialized');
-

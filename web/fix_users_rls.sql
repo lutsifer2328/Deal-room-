@@ -1,52 +1,31 @@
--- FIX RECURSION: The 'users' table has policies that query 'users', causing infinite loops.
--- We must remove these recursive policies and replace them with simple, safe ones.
+-- FIX: Users table RLS - Solve "User Object: NULL" authentication crash
+-- 
+-- PROBLEM: The client-side auth context queries `users` table to load the profile.
+-- If RLS blocks the read, user = null and the app shows "Authentication Status: Unknown".
+--
+-- IMPORTANT: We use auth.jwt() for the admin policy to avoid RECURSION 
+-- (a policy on `users` cannot query `users` again).
 
--- 1. DROP ALL EXISTING POLICIES ON public.users (Clean Slate)
-DROP POLICY IF EXISTS "Admins can update profiles" ON public.users;
-DROP POLICY IF EXISTS "Admins can view all profiles" ON public.users;
-DROP POLICY IF EXISTS "Admins can view and update everything" ON public.users; -- The RECURSIVE culprit
-DROP POLICY IF EXISTS "Allow all authenticated to read users" ON public.users;
-DROP POLICY IF EXISTS "Allow logged-in read access" ON public.users;
-DROP POLICY IF EXISTS "Enable all access for anon" ON public.users;
-DROP POLICY IF EXISTS "Enable all access for authenticated users0" ON public.users;
-DROP POLICY IF EXISTS "Enable anon insert" ON public.users;
-DROP POLICY IF EXISTS "Enable anon read" ON public.users;
-DROP POLICY IF EXISTS "Enable anon update" ON public.users;
-DROP POLICY IF EXISTS "Users can view own profile" ON public.users;
-DROP POLICY IF EXISTS "Allow users to read own record" ON public.users; -- Potential leftover
+-- Step 1: Drop any conflicting/broken policies first
+-- (Uncomment the lines below if you get "policy already exists" errors)
+-- DROP POLICY IF EXISTS "Users can read own profile" ON users;
+-- DROP POLICY IF EXISTS "Admins can read all users" ON users;
+-- DROP POLICY IF EXISTS "Users can read their own data" ON users;
+-- DROP POLICY IF EXISTS "Staff can view all users" ON users;
+-- DROP POLICY IF EXISTS "users_select_own" ON users;
+-- DROP POLICY IF EXISTS "users_select_admin" ON users;
 
--- 2. CREATE NON-RECURSIVE POLICIES
+-- Step 2: Ensure RLS is enabled
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
--- SELECT: Allow ALL authenticated users to read ALL user profiles.
--- This breaks recursion. When "Am I Admin" check runs, it hits this simple TRUE policy and returns immediately.
-CREATE POLICY "Allow authenticated to read users"
-ON public.users FOR SELECT TO authenticated
-USING (true);
+-- Step 3: Allow every authenticated user to read their OWN row (critical for login)
+CREATE POLICY "users_select_own" ON users FOR SELECT
+USING (id = auth.uid());
 
--- UPDATE: Users can update their own profile
-CREATE POLICY "Allow users to update own profile"
-ON public.users FOR UPDATE TO authenticated
-USING (auth.uid() = id)
-WITH CHECK (auth.uid() = id);
-
--- UPDATE: Admins can update everyone
--- This contains a subquery, BUT because the SELECT policy above is "true", it is safe.
--- It will safely recurse exactly once (Query Users Table -> Hit SELECT Policy -> Return True -> Result).
-CREATE POLICY "Allow admins to update users"
-ON public.users FOR UPDATE TO authenticated
+-- Step 4: Allow admins/lawyers/staff to read ALL users (uses JWT metadata, NOT a subquery on users)
+CREATE POLICY "users_select_admin" ON users FOR SELECT
 USING (
-  EXISTS (
-    SELECT 1 FROM public.users
-    WHERE id = auth.uid()
-    AND role::text = 'admin' -- Cast to text to match either enum or string
-  )
+  (auth.jwt() ->> 'role')::text IN ('admin', 'staff', 'lawyer')
+  OR
+  (auth.jwt() -> 'user_metadata' ->> 'role')::text IN ('admin', 'staff', 'lawyer')
 );
-
--- INSERT: Allow Trigger/Auth (Service Role) implicitly.
--- If we need authenticated users to insert (rare for users table, usually auth system does it), add specific policy.
--- For now, we assume user creation happens via Auth Trigger or Admin function.
-
--- Verify the new clean state
-SELECT policyname, cmd, roles 
-FROM pg_policies 
-WHERE tablename = 'users';

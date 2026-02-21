@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { sendInviteEmail } from '@/lib/emailService';
+import { rateLimit } from '@/lib/limiter';
 
 export async function POST(request: Request) {
     try {
@@ -36,6 +37,19 @@ export async function POST(request: Request) {
                 }
             }
         );
+
+        // --- Rate Limiting Strategy ---
+        // We use the caller IP if available, otherwise a global fallback for the invite route.
+        // In Next.js App Router, extracting IP robustly can sometimes require headers().
+        // For simplicity and security, we'll limit by 'invite-user' globally or by specific email attempt.
+        const reqIp = request.headers.get('x-forwarded-for') || 'unknown-ip';
+        const rateKey = `invite-user:${reqIp}`;
+        const { ok, remaining } = await rateLimit(rateKey, 10, 600); // 10 requests per 10 minutes (600s)
+
+        if (!ok) {
+            console.warn(`[RATE LIMIT] Too many invites from ${reqIp}`);
+            return NextResponse.json({ error: 'Rate limit exceeded. Please wait before inviting more users.' }, { status: 429 });
+        }
 
         // 1. Check if user exists in public.users
         const { data: existingUser } = await supabaseAdmin
@@ -94,27 +108,55 @@ export async function POST(request: Request) {
                 email,
                 user_metadata: {
                     name: fullName,
-                    role: isInternal ? 'staff' : 'user',
+                    role: isInternal ? (['admin', 'lawyer', 'staff'].includes(role) ? role : 'staff') : 'user',
                     functional_role: role // 'broker', 'buyer', etc.
                 },
                 email_confirm: true // We will verify them via the magic link
             });
 
-            if (authError) throw authError;
-            userId = authData.user.id;
+            if (authError) {
+                // If the user already exists in Auth but was missing from public.users (Sync Issue)
+                if (authError.message.includes('already exists') || authError.status === 422) {
+                    console.log(`User ${email} already exists in Auth, recovering ID...`);
+                    // We can't use getUserByEmail directly without fetching all or using a workaround, 
+                    // but listUsers with a search works, or we can just try to update their auth metadata
+                    // The easiest reliable way is listUsers
+                    const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
+                    const existingAuthUser = listData.users.find(u => u.email === email);
 
-            // B. Create in Public Users (Sync)
+                    if (existingAuthUser) {
+                        userId = existingAuthUser.id;
+
+                        // Ensure metadata is up to date
+                        await supabaseAdmin.auth.admin.updateUserById(userId, {
+                            user_metadata: {
+                                name: fullName,
+                                role: isInternal ? 'staff' : 'user',
+                                functional_role: role
+                            }
+                        });
+                    } else {
+                        throw authError; // Really failed
+                    }
+                } else {
+                    throw authError; // Other error
+                }
+            } else {
+                userId = authData.user.id;
+            }
+
+            // B. Create/Update in Public Users (Sync)
             const { error: publicError } = await supabaseAdmin
                 .from('users')
-                .insert({
+                .upsert({
                     id: userId,
                     email,
                     name: fullName,
-                    role: isInternal ? (role === 'admin' ? 'admin' : 'staff') : 'user',
+                    role: isInternal ? (['admin', 'lawyer', 'staff'].includes(role) ? role : 'staff') : 'user',
                     is_active: true,
                     requires_password_change: true, // Force them to set password on first login
                     created_at: new Date().toISOString()
-                });
+                }, { onConflict: 'id' });
 
             if (publicError) {
                 console.error('Failed to create public user record:', publicError);

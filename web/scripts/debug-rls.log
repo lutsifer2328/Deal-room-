@@ -1,0 +1,13 @@
+🕵️‍♀️ Debugging RLS Policies...
+
+--- Probe 1: Lawyer Permissions ---
+Lawyer Logged In: 8f775751-b01d-4faf-87cb-1e62e9ce4dd0
+✅ Lawyer can read public.users (Self): admin
+
+--- Probe 2: Buyer Permissions ---
+Buyer Logged In: a8d6e314-4f52-46ca-bcd5-c884e91af89d
+✅ Buyer can read public.users (Self): viewer
+❌ Buyer CANNOT upload: new row violates row-level security policy
+
+--- Probe 3: Service Role ---
+Service Role sees users: stranger_1771426002628@test.com (viewer), lutsifer+seller@gmail.com (viewer), lawyer@agency.com (admin), kalin@yahoo.com (staff), staff@agency.com (staff)

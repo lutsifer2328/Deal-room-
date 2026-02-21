@@ -1,0 +1,14 @@
+IS_INTERNAL FUNC:
+null
+
+DOCUMENTS POLICIES:
+null
+
+ADMIN USER DB RECORD:
+[
+  {
+    "id": "a8d6e314-4f52-46ca-bcd5-c884e91af89d",
+    "role": "viewer"
+  }
+]
+

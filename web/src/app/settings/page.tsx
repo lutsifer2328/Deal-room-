@@ -4,14 +4,15 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/authContext';
 import { useRouter } from 'next/navigation';
 import UserManagementTable from '@/components/settings/UserManagementTable';
-import { Check, X, Shield, Briefcase, Users as UsersIcon } from 'lucide-react';
+import AuditLogTable from '@/components/settings/AuditLogTable';
+import { Check, X, Shield, Briefcase, Users as UsersIcon, History } from 'lucide-react';
 import { useTranslation } from '@/lib/useTranslation';
 
 export default function SettingsPage() {
     const { user } = useAuth();
     const router = useRouter();
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState<'users' | 'general'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'general' | 'audit'>('users');
 
     // Redirect if not admin
     useEffect(() => {
@@ -51,6 +52,16 @@ export default function SettingsPage() {
                             }`}
                     >
                         {t('settings.tab.general')}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('audit')}
+                        className={`py-4 px-1 border-b-2 font-bold text-sm transition-colors flex items-center gap-1.5 ${activeTab === 'audit'
+                            ? 'border-teal text-teal'
+                            : 'border-transparent text-text-light hover:text-navy-primary hover:border-gray-300'
+                            }`}
+                    >
+                        <History className="w-4 h-4" />
+                        Audit Log
                     </button>
                 </nav>
             </div>
@@ -195,6 +206,9 @@ export default function SettingsPage() {
                         </div>
                     </div>
                 </div>
+            )}
+            {activeTab === 'audit' && (
+                <AuditLogTable />
             )}
         </div>
     );

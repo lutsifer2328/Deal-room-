@@ -1,0 +1,17 @@
+[
+  "id",
+  "deal_id",
+  "title_en",
+  "title_bg",
+  "description_en",
+  "description_bg",
+  "assigned_to",
+  "status",
+  "required",
+  "standard_document_id",
+  "expiration_date",
+  "created_at",
+  "comments",
+  "documents",
+  "assigned_participant_id"
+]

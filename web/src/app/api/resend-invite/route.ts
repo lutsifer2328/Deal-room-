@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/limiter';
 
 export async function POST(request: Request) {
     try {
@@ -13,6 +14,15 @@ export async function POST(request: Request) {
         }
 
         console.log('🔄 Resending invitation to:', email);
+
+        // --- Rate Limiting (5 attempts per 10 minutes per email to prevent spam) ---
+        const rateKey = `resend:${email.toLowerCase()}`;
+        const { ok } = await rateLimit(rateKey, 5, 600);
+
+        if (!ok) {
+            console.warn(`[RATE LIMIT] Too many password resets requested for ${email}`);
+            return NextResponse.json({ error: 'Too many requests. Please wait before trying again.' }, { status: 429 });
+        }
 
         // Create admin client
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;

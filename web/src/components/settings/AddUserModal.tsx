@@ -14,7 +14,7 @@ export default function AddUserModal({ onClose }: AddUserModalProps) {
     const [email, setEmail] = useState('');
     const [role, setRole] = useState<Role>('staff');
 
-    const organizationalRoles: Role[] = ['admin', 'lawyer', 'staff', 'viewer'];
+    const organizationalRoles: Role[] = ['admin', 'lawyer', 'staff'];
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

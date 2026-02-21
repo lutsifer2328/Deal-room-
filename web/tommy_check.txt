@@ -1,0 +1,11 @@
+TABLES WITH 'participant': null
+
+deal_participants sample: [{"id":"44444444-4444-4444-4444-444444440002","deal_id":"33333333-3333-3333-3333-333333330001","participant_id":"22222222-2222-2222-2222-222222220002","role":"seller","permissions":{"canViewDocuments":true,"canUploadDocuments":true},"joined_at":"2026-01-31T13:19:51.810165+00:00","is_active":true}] | error: null
+
+participants sample: [{"id":"22222222-2222-2222-2222-222222220002","user_id":null,"name":"Maria Ivanova","email":"maria.ivanova@abv.bg","phone":"+359 888 234 567","agency":null,"invitation_status":"accepted","internal_notes":null,"created_at":"2026-01-31T13:19:51.810165+00:00","updated_at":"2026-01-31T13:19:51.810165+00:00","functional_role":null}] | error: null
+
+DEAL COLUMNS: id, title, property_address, status, current_step_id, timeline_json, created_at, closed_at, closed_by, closure_notes, created_by, price
+
+deal_participants for tommy (or): null | error: {"code":"42703","details":null,"hint":null,"message":"column deal_participants.user_id does not exist"}
+
+deal_participants total count: 107 | sample: [{"id":"44444444-4444-4444-4444-444444440002","deal_id":"33333333-3333-3333-3333-333333330001","participant_id":"22222222-2222-2222-2222-222222220002","role":"seller","permissions":{"canViewDocuments":true,"canUploadDocuments":true},"joined_at":"2026-01-31T13:19:51.810165+00:00","is_active":true},{"id":"cf174271-0993-4bc7-9c18-7ce0fc4926a7","deal_id":"41f6d055-a62b-434d-bf70-bec6c672425b","participant_id":"7a32f1d2-7e20-4717-931d-480efbf77a69","role":"buyer","permissions":{"canViewTimeline":true,"canViewDocuments":true,"canUploadDocuments":true,"canDownloadDocuments":true},"joined_at":"2026-01-31T21:14:24.318+00:00","is_active":true},{"id":"636ec73b-ec76-4728-803f-c535c9432035","deal_id":"41f6d055-a62b-434d-bf70-bec6c672425b","participant_id":"316d28b8-4d26-489d-a912-4b0e56b262da","role":"seller","permissions":{"canViewTimeline":true,"canViewDocuments":true,"canUploadDocuments":true,"canDownloadDocuments":true},"joined_at":"2026-01-31T21:14:24.712+00:00","is_active":true}] | error: null

@@ -29,25 +29,28 @@ export default function UploadModal({ taskId, taskTitle, onClose, isOpen = true 
         }
     };
 
-    const handleUpload = () => {
+    const handleUpload = async () => {
         if (!selectedFile || !user) {
             alert('Please select a file first');
             return;
         }
 
-        setIsUploading(true);
+        console.log('[DEBUG] handling upload from modal for:', selectedFile.name);
 
-        setIsUploading(true);
+        try {
+            setIsUploading(true);
 
-        // Pass the actual File object to the store function
-        uploadDocument(taskId, selectedFile, user.id);
+            // Pass the actual File object to the store function
+            await uploadDocument(taskId, selectedFile, user.id);
 
-        // We can close immediately or wait, but since upload is async in background (optimistic in store),
-        // we can close the modal now or let the store handle loading state if we returned a promise.
-        // For now, let's just close it after a brief interaction delay or await if we updated store to return promise.
-        // Store implementation is void (fire and forget with notifications), so we close:
-        setIsUploading(false);
-        onClose();
+            // Only close on success
+            setIsUploading(false);
+            onClose();
+        } catch (error) {
+            console.error('[DEBUG] Upload failed in modal:', error);
+            // Notification should be handled by store, but we keep modal open
+            setIsUploading(false);
+        }
     };
 
     return (
@@ -71,7 +74,8 @@ export default function UploadModal({ taskId, taskTitle, onClose, isOpen = true 
                                 onChange={handleFileSelect}
                                 className="hidden"
                                 id="file-upload"
-                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                accept="image/*,application/pdf,.doc,.docx"
+                                capture="environment"
                             />
                             <label htmlFor="file-upload" className="cursor-pointer block w-full h-full">
                                 {selectedFile ? (

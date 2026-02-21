@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/authContext';
 import DealHeader from '@/components/deal/DealHeader';
 import SingleProgressBar from '@/components/deal/SingleProgressBar';
 import { FileText, Lock, ShieldCheck, Download, Upload, AlertTriangle, Eye, Mail, ArrowLeft } from 'lucide-react';
-import { Task, DealDocument, Deal } from '@/lib/types';
+import { Task, DealDocument, Deal, DealParticipant } from '@/lib/types';
 import { useState } from 'react';
 import CreateTaskModal from '@/components/deal/CreateTaskModal';
 import RejectionModal from '@/components/deal/RejectionModal';
@@ -16,13 +16,14 @@ import DocumentPreviewModal from '@/components/deal/DocumentPreviewModal';
 import TaskComments from '@/components/deal/TaskComments';
 import { useTranslation, TranslationKey } from '@/lib/useTranslation';
 import { supabase } from '@/lib/supabase';
+import { getDocumentSignedUrl } from '@/app/actions/documents';
 
 export default function DealDetailPage() {
     const params = useParams();
     const router = useRouter();
     const dealId = params?.id as string;
     const { user } = useAuth();
-    const { isInitialized, deals, tasks, deleteTask } = useData();
+    const { isInitialized, deals, tasks, deleteTask, rawDealParticipants } = useData();
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const { t } = useTranslation();
 
@@ -31,21 +32,37 @@ export default function DealDetailPage() {
     if (!isInitialized || !user) return <div className="p-10 text-center">{t('common.loading')}</div>;
     if (!deal) return <div className="p-10 text-center">Deal not found</div>;
 
+    // Get the current user's general participant record for this deal
+    const currentUserParticipant = deal.participants.find(p => p.userId === user.id);
+
+    // Get the exact deal_participants join record for permissions
+    const currentDealParticipantRecord = rawDealParticipants.find(
+        dp => dp.dealId === deal.id && dp.participantId === currentUserParticipant?.id
+    );
+
     const relevantTasks = tasks.filter(t => {
         if (t.dealId !== deal.id) return false;
         if (user.permissions.canViewAllDeals) return true;
 
-        // View tasks assigned to their specific ID OR their role
-        if (t.assignedTo === user.id) return true;
-        return t.assignedTo === user.role;
+        // If this participant has been granted "Full View" (canViewDocuments is true), show them all tasks
+        if (currentDealParticipantRecord?.permissions?.canViewDocuments) return true;
+
+        // Otherwise, only view tasks assigned to their specific Participant ID OR their Deal Role
+        if (t.assignedTo === currentUserParticipant?.id) return true;
+        return t.assignedTo === currentUserParticipant?.role;
     });
 
     // Group tasks by participant/role
     const groupedTasks = relevantTasks.reduce((acc: Record<string, { participant?: Deal['participants'][0], role: string, tasks: Task[] }>, task: Task) => {
-        // 1. Try to find by specific Participant ID (New Logic)
+        // 1. Try to find by specific Participant ID
         let participant = deal.participants.find(p => p.id === task.assignedTo);
 
-        // 2. If not found, try to fallback to Role (Legacy Logic)
+        // 2. Try to find by Email (Case-Insensitive) - NEW FIX
+        if (!participant) {
+            participant = deal.participants.find(p => p.email.toLowerCase() === task.assignedTo.toLowerCase());
+        }
+
+        // 3. If not found, try to fallback to Role (Legacy Logic)
         if (!participant) {
             participant = deal.participants.find(p => p.role === task.assignedTo && p.isActive);
         }
@@ -65,8 +82,7 @@ export default function DealDetailPage() {
         return acc;
     }, {});
 
-    // Get the current user's participant record for this deal to check permissions
-    const currentUserParticipant = deal.participants.find(p => p.userId === user.id);
+    // currentUserParticipant already found above
 
     return (
         <div className="max-w-5xl mx-auto pb-20">
@@ -81,6 +97,19 @@ export default function DealDetailPage() {
 
             <DealHeader deal={deal} />
             <SingleProgressBar deal={deal} />
+
+            {/* Warm Welcome Banner — client (non-staff) view only */}
+            {!user.permissions.canViewAllDeals && (
+                <div className="mb-6 bg-gradient-to-r from-teal/5 via-blue-50/50 to-teal/5 border border-teal/15 rounded-2xl p-5 flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-teal/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-lg">👋</span>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-navy-primary text-sm mb-1">{t('deal.welcome.title' as TranslationKey)}</h3>
+                        <p className="text-sm text-gray-600 leading-relaxed">{t('deal.welcome.text' as TranslationKey)}</p>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-2 space-y-6">
@@ -104,7 +133,7 @@ export default function DealDetailPage() {
                             tasks={group.tasks}
                             userRole={user.role}
                             onDeleteTask={(taskId) => deleteTask(taskId, user.id)}
-                            currentUserParticipant={currentUserParticipant}
+                            currentDealParticipantRecord={currentDealParticipantRecord}
                         />
                     ))}
 
@@ -132,21 +161,18 @@ export default function DealDetailPage() {
             {isTaskModalOpen && <CreateTaskModal deal={deal} onClose={() => setIsTaskModalOpen(false)} />}
             <AuditLogPanel />
 
-            {/* VISUAL VERIFICATION BADGE */}
-            <div className="fixed bottom-4 right-4 bg-red-600 text-white border-4 border-yellow-400 p-4 rounded-xl z-[99999] shadow-2xl animate-pulse font-bold text-lg">
-                🚀 CODE UPDATED: TRY VIEWING NOW
-            </div>
+            {/* VISUAL VERIFICATION BADGE — REMOVED FOR PRODUCTION */}
         </div>
     );
 }
 
-function ParticipantTaskGroup({ participant, role, tasks, userRole, onDeleteTask, currentUserParticipant }: {
+function ParticipantTaskGroup({ participant, role, tasks, userRole, onDeleteTask, currentDealParticipantRecord }: {
     participant?: Deal['participants'][0],
     role: string,
     tasks: Task[],
     userRole: string,
     onDeleteTask: (id: string) => void,
-    currentUserParticipant?: Deal['participants'][0]
+    currentDealParticipantRecord?: DealParticipant
 }) {
     const { t } = useTranslation();
     const roleColors = {
@@ -178,17 +204,11 @@ function ParticipantTaskGroup({ participant, role, tasks, userRole, onDeleteTask
                         {t('deal.unassigned')}
                     </span>
                 )}
-                {participant && (
+                {participant && participant.isUserActive === false && (
                     <div className="flex items-center gap-2">
-                        {participant.isUserActive === false && (
-                            <span className="text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded shadow-sm">
-                                FORMER STAFF
-                            </span>
-                        )}
-                        <div className="flex items-center gap-2 text-xs text-text-light font-medium bg-white px-3 py-1.5 rounded-full border border-gray-100 shadow-sm">
-                            <Mail className="w-3 h-3 text-teal" />
-                            {participant.email}
-                        </div>
+                        <span className="text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded shadow-sm">
+                            FORMER STAFF
+                        </span>
                     </div>
                 )}
             </div>
@@ -201,7 +221,7 @@ function ParticipantTaskGroup({ participant, role, tasks, userRole, onDeleteTask
                         task={task}
                         userRole={userRole}
                         onDelete={() => onDeleteTask(task.id)}
-                        currentUserParticipant={currentUserParticipant}
+                        currentDealParticipantRecord={currentDealParticipantRecord}
                         taskOwnerRole={role} // Pass the group role as the task owner role
                     />
                 ))}
@@ -210,17 +230,32 @@ function ParticipantTaskGroup({ participant, role, tasks, userRole, onDeleteTask
     );
 }
 
-function TaskItem({ task, userRole, onDelete, currentUserParticipant, taskOwnerRole }: {
+function TaskItem({ task, userRole, onDelete, currentDealParticipantRecord, taskOwnerRole }: {
     task: Task,
     userRole: string,
     onDelete: () => void,
-    currentUserParticipant?: Deal['participants'][0],
+    currentDealParticipantRecord?: DealParticipant,
     taskOwnerRole?: string
 }) {
     const { t } = useTranslation();
-    const isOwner = userRole === task.assignedTo;
-    const isLawyer = userRole === 'lawyer';
-    const isAdmin = userRole === 'admin';
+    const { user } = useAuth();
+
+    // Deal-level ownership: the user's PARTICIPANT record is assigned this task either by ID or by Role (e.g. 'buyer')
+    // We check `user.id` matches the global `Participant` in `page.tsx`, but here we have the joined `DealParticipant`.
+    // The previous implementation used `currentUserParticipant.id`, which was the global `Participant` id...
+    // To be safe, checking whether current user holds the assigned role, or if they have full edit access.
+    const isAssignedParticipant = !!(currentDealParticipantRecord && (
+        task.assignedTo === currentDealParticipantRecord.participantId ||
+        task.assignedTo === currentDealParticipantRecord.role ||
+        taskOwnerRole === currentDealParticipantRecord.role
+    ));
+
+    // Also check global role for staff actions
+    const globalRole = user?.role || userRole;
+    const isOwner = isAssignedParticipant || globalRole === task.assignedTo;
+    const isLawyer = globalRole === 'lawyer';
+    const isAdmin = globalRole === 'admin';
+    const isStaffOrAbove = isLawyer || isAdmin || globalRole === 'staff';
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
     // Import Trash icon
@@ -262,6 +297,14 @@ function TaskItem({ task, userRole, onDelete, currentUserParticipant, taskOwnerR
                         <span className="flex items-center gap-1.5 text-success font-bold text-xs bg-success/10 px-3 py-1 rounded-full border border-success/20 shadow-sm whitespace-nowrap">
                             <ShieldCheck className="w-3.5 h-3.5" /> {t('status.verified')}
                         </span>
+                    ) : task.status === 'rejected' ? (
+                        <span className="flex items-center gap-1.5 text-amber-700 font-bold text-xs bg-amber-50 px-3 py-1 rounded-full border border-amber-200 shadow-sm whitespace-nowrap">
+                            <AlertTriangle className="w-3.5 h-3.5" /> {t('deal.actionRequired' as TranslationKey)}
+                        </span>
+                    ) : task.status === 'pending_review' || task.status === 'in_review' ? (
+                        <span className="flex items-center gap-1.5 text-blue-600 font-bold text-xs bg-blue-50 px-3 py-1 rounded-full border border-blue-200 shadow-sm whitespace-nowrap">
+                            <Eye className="w-3.5 h-3.5" /> {t('deal.underReview' as TranslationKey)}
+                        </span>
                     ) : (
                         <span className="text-xs font-bold text-text-secondary bg-gray-100/80 px-3 py-1 rounded-full border border-gray-200 whitespace-nowrap">
                             {getStatusLabel(task.status)}
@@ -280,7 +323,7 @@ function TaskItem({ task, userRole, onDelete, currentUserParticipant, taskOwnerR
                                     doc={doc}
                                     userRole={userRole}
                                     taskId={task.id}
-                                    currentUserParticipant={currentUserParticipant}
+                                    currentDealParticipantRecord={currentDealParticipantRecord}
                                     taskOwnerRole={taskOwnerRole}
                                 />
                             </div>
@@ -294,7 +337,7 @@ function TaskItem({ task, userRole, onDelete, currentUserParticipant, taskOwnerR
                             </div>
                             {t('deal.noDocs')}
                         </span>
-                        {(isOwner || isLawyer || isAdmin) && (
+                        {(isOwner || isAssignedParticipant || isStaffOrAbove) && (
                             <button
                                 onClick={() => setIsUploadModalOpen(true)}
                                 className="flex items-center gap-2 text-white font-bold bg-teal hover:bg-teal/90 shadow-md shadow-teal/20 transition-all text-sm px-4 py-2 rounded-xl transform hover:scale-105"
@@ -321,11 +364,11 @@ function TaskItem({ task, userRole, onDelete, currentUserParticipant, taskOwnerR
     );
 }
 
-function DocumentRow({ doc, userRole, taskId, currentUserParticipant, taskOwnerRole }: {
+function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, taskOwnerRole }: {
     doc: DealDocument,
     userRole: string,
     taskId: string,
-    currentUserParticipant?: Deal['participants'][0],
+    currentDealParticipantRecord?: DealParticipant,
     taskOwnerRole?: string
 }) {
     const { verifyDocument, releaseDocument, rejectDocument } = useData();
@@ -334,38 +377,44 @@ function DocumentRow({ doc, userRole, taskId, currentUserParticipant, taskOwnerR
     const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-    // SUPERIORITY LOGIC: Global role (user.role) ALWAYS overrides deal role (userRole)
+    // Deal participant role takes priority over deprecated global 'viewer' role
     const globalRole = user?.role || userRole;
+    const dealRole = currentDealParticipantRecord?.role; // e.g. 'broker', 'buyer', 'seller'
+    const effectiveRole = dealRole || globalRole; // Deal role wins
     const isLawyer = globalRole === 'lawyer';
     const isAdmin = globalRole === 'admin';
-    const isStaff = globalRole === 'staff' || globalRole === 'broker';
-    const isViewer = globalRole === 'viewer'; // External read-only
-    const isOwner = userRole === doc.uploadedBy;
+    const isStaff = globalRole === 'staff';
+    const isStaffOrAbove = isLawyer || isAdmin || isStaff;
+    // A 'viewer' with a deal participant role (broker/buyer/seller) is NOT read-only
+    const isViewer = globalRole === 'viewer' && !currentDealParticipantRecord;
+    const isOwner = userRole === doc.uploadedBy || currentDealParticipantRecord?.participantId === doc.uploadedBy;
 
     // --- PERMISSION LOGIC START ---
 
+    const isFullViewer = currentDealParticipantRecord?.permissions?.canViewDocuments === true;
+
     // 1. Can Download?
-    // - Lawyers/Admins/Owners always can
+    // - Lawyers/Admins/Owners/FullViewers always can
     // - Standard users: Must be 'released' AND they must have download permission enabled
-    const hasDownloadPermission = isLawyer || isAdmin || isOwner || (
-        currentUserParticipant?.canDownload !== false // Default to true if undefined
+    // Note: permission flags are mapped into currentDealParticipantRecord.permissions
+    const hasDownloadPermission = isLawyer || isAdmin || isOwner || isFullViewer || (
+        currentDealParticipantRecord?.permissions?.canDownloadDocuments !== false // Default to true if undefined
     );
-    const canDownload = (isLawyer || isAdmin || isOwner || doc.status === 'released') && hasDownloadPermission;
+    const canDownload = isFullViewer || isLawyer || isAdmin || isOwner || (doc.status === 'released' && hasDownloadPermission);
 
     // 2. Can View Content? (Metadata is usually visible if they have access to the deal)
-    // - Lawyers/Admins/Owners always can
+    // - Lawyers/Admins/Owners/FullViewers always can
     // - Standard Users:
     //   a) If 'Private', they can't see it (unless owner)
     //   b) If 'Verified' or 'Released', check detailed permissions:
-    //      - canViewDocuments = true (View ALL) -> ALLOW
     //      - canViewDocuments = false (Limited) -> ONLY if role is in canViewRoles list
-    const hasViewPermission = isLawyer || isAdmin || isOwner || (
+    const hasViewPermission = isFullViewer || isLawyer || isAdmin || isOwner || (
         // Must be verified/released to even check additional permissions for non-admin/owner
         (doc.status !== 'private') && (
-            // Full View Access?
-            (currentUserParticipant?.canViewDocuments !== false) ||
-            // Or Specific Role Access?
-            (taskOwnerRole && currentUserParticipant?.documentPermissions?.canViewRoles?.includes(taskOwnerRole as any))
+            // Fallback: If no explicit setting, they can see roles assigned to them (default behavior)
+            (currentDealParticipantRecord?.permissions?.canViewDocuments === undefined && (taskOwnerRole === currentDealParticipantRecord?.role)) ||
+            // Or Specific Role Access via canViewRoles targeting taskOwnerRole
+            (taskOwnerRole && currentDealParticipantRecord?.permissions?.canViewRoles?.includes(taskOwnerRole as any))
         )
     );
 
@@ -385,20 +434,10 @@ function DocumentRow({ doc, userRole, taskId, currentUserParticipant, taskOwnerR
                 return;
             }
 
-            const { data, error } = await supabase.storage
-                .from('documents')
-                .download(doc.url);
-
-            if (error) throw error;
-
-            const url = window.URL.createObjectURL(data);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = doc.title_en; // or use original filename
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+            // Phase 3 Hardening: Proxy Downloads via same-origin API route
+            // The /api/download route streams the file with Content-Disposition: attachment
+            // so the browser triggers a native download without leaving this page
+            window.location.href = `/api/download?id=${doc.id}`;
         } catch (error: any) {
             console.error('Download failed:', error);
             alert(`Download failed: ${error.message || 'Unknown error'}`);
@@ -407,9 +446,9 @@ function DocumentRow({ doc, userRole, taskId, currentUserParticipant, taskOwnerR
 
     return (
         <>
-            <div className={`flex items-center justify-between transition-all rounded-xl ${doc.status === 'rejected' ? 'bg-red-50/50 p-2 -m-2' : ''}`}>
+            <div className={`flex items-center justify-between transition-all rounded-xl ${doc.status === 'rejected' ? 'bg-amber-50/50 p-2 -m-2 border border-amber-100' : ''}`}>
                 <div className="flex items-center gap-4 min-w-0 flex-1">
-                    <div className={`p-2.5 rounded-xl shadow-sm flex-shrink-0 ${doc.status === 'rejected' ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-teal'}`}>
+                    <div className={`p-2.5 rounded-xl shadow-sm flex-shrink-0 ${doc.status === 'rejected' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-teal'}`}>
                         {doc.status === 'rejected' ? <AlertTriangle className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
                     </div>
                     <div className="min-w-0">
@@ -418,8 +457,8 @@ function DocumentRow({ doc, userRole, taskId, currentUserParticipant, taskOwnerR
                             {!canDownload && doc.status !== 'rejected' && <Lock className="w-3 h-3 text-gold flex-shrink-0" />}
                         </div>
                         {doc.status === 'rejected' ? (
-                            <div className="text-xs text-red-600 font-bold bg-red-100/50 px-2 py-0.5 rounded-md inline-block truncate max-w-full">
-                                {t('deal.rejected')}: {doc.rejectionReason_en}
+                            <div className="text-xs text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-md inline-block truncate max-w-full border border-amber-200">
+                                {t('deal.actionRequired' as TranslationKey)}: {doc.rejectionReason_en}
                             </div>
                         ) : (
                             <div className="text-xs text-text-light font-medium">{new Date(doc.uploadedAt).toLocaleDateString()}</div>

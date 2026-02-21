@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/limiter';
 
 export async function DELETE(
     request: Request,
@@ -29,6 +30,16 @@ export async function DELETE(
                 }
             }
         );
+
+        // --- Rate Limit check (Admin bulk deletion protection) ---
+        const reqIp = request.headers.get('x-forwarded-for') || 'unknown-ip';
+        const rateKey = `delete-user:${reqIp}`;
+        const { ok } = await rateLimit(rateKey, 10, 600); // Max 10 user deletions per 10 minutes
+
+        if (!ok) {
+            console.warn(`[RATE LIMIT] Too many user deletions attempted from ${reqIp}`);
+            return NextResponse.json({ error: 'Too many deletions. Please wait a moment.' }, { status: 429 });
+        }
 
         // 1. Delete from Auth (This usually cascades to public.users if set up, but let's be explicit)
         const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);

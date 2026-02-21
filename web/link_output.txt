@@ -1,0 +1,1 @@
+http://localhost:3000/auth/callback?token_hash=24a7914d3c300b9fe2f3483e5cf6c0a0ad61b1285abe933e5ea1cf91&type=recovery

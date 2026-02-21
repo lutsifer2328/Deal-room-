@@ -156,21 +156,24 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
 
         setSendingInvite(true);
         try {
-            // Call the UNIFIED invite/link endpoint
-            const response = await fetch('/api/invite-user', {
+            // Get current session token for auth
+            const supabase = (await import('@/lib/supabase')).supabase;
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) throw new Error('Not authenticated');
+
+            // Call the idempotent invite endpoint
+            const response = await fetch('/api/participants/invite', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
                 body: JSON.stringify({
                     dealId: deal.id,
                     email: participantData.email,
-                    fullName: participantData.fullName,
-                    role: participantData.role,
-                    agency: participantData.agency,
-                    isInternal: isInternalUser,
-                    // Permissions
-                    canViewDocuments: participantData.canViewDocuments,
-                    canDownload: participantData.canDownload,
-                    documentPermissions: participantData.documentPermissions
+                    name: participantData.fullName,
+                    participantRole: participantData.role,
+                    resend: false
                 })
             });
 
@@ -178,9 +181,12 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
 
             if (!response.ok) throw new Error(result.error || 'Failed to add participant');
 
-            console.log('✅ Participant added successfully:', result);
+            console.log('✅ Participant added/linked successfully:', result);
 
-            setInviteSuccess(isExisting ? `✅ Linked ${participantData.fullName} to deal` : `✅ Invite sent to ${participantData.email}`);
+            const successMsg = result.message === 'already-linked'
+                ? `✅ ${participantData.fullName} re-linked to deal (invite sent)`
+                : `✅ ${participantData.fullName} invited to deal`;
+            setInviteSuccess(successMsg);
             setTimeout(() => setInviteSuccess(''), 5000);
 
             // Close the add form and reset
@@ -314,15 +320,10 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
 
         setSendingInvite(true);
 
-        const success = await inviteParticipant(deal.id, participant.email, participant.fullName, participant.role, isInternalUser);
+        // Use the new idempotent endpoint with resend:true
+        const success = await inviteParticipant(deal.id, participant.email, participant.fullName, participant.role, isInternalUser, true);
 
         if (success) {
-            // Update participant state to show they are invited
-            updateParticipant(deal.id, participant.id, {
-                invitationToken: 'sent_via_supa', // Placeholder to indicate invited
-                invitedAt: new Date().toISOString()
-            });
-
             setInviteSuccess(`✅ Invitation sent to ${participant.email}`);
             setTimeout(() => setInviteSuccess(''), 5000);
         }
@@ -789,21 +790,16 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
-                                        {!participant.invitedAt ? (
-                                            <Button
-                                                onClick={() => handleSendInvite(participant)}
-                                                variant="outline"
-                                                size="sm"
-                                                className="text-teal border-teal/20 hover:bg-teal/5 h-8 px-2 text-xs flex items-center gap-1"
-                                                title="Send Invitation Email"
-                                            >
-                                                <Send className="w-3 h-3" /> Invite
-                                            </Button>
-                                        ) : (
-                                            <div className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded border border-green-200 flex items-center h-8">
-                                                Invited
-                                            </div>
-                                        )}
+                                        {/* Always show Invite/Resend button */}
+                                        <Button
+                                            onClick={() => handleSendInvite(participant)}
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-teal border-teal/20 hover:bg-teal/5 h-8 px-2 text-xs flex items-center gap-1"
+                                            title={participant.invitedAt ? 'Resend Invitation' : 'Send Invitation Email'}
+                                        >
+                                            <Send className="w-3 h-3" /> {participant.invitedAt ? 'Resend' : 'Invite'}
+                                        </Button>
                                         <Button
                                             onClick={() => startEdit(participant)}
                                             variant="ghost"

@@ -1,0 +1,277 @@
+ALL PARTICIPANTS (Tommy/Tomi):
+[
+  {
+    "id": "5b449346-1705-4710-8649-fc21aa2d84aa",
+    "user_id": null,
+    "name": "Tommy Ignatov",
+    "email": "lutsifer@gmail.com",
+    "phone": "6464796795",
+    "agency": "Agenzia",
+    "invitation_status": "pending",
+    "internal_notes": "",
+    "created_at": "2026-02-04T11:35:44.397+00:00",
+    "updated_at": "2026-02-04T11:35:44.397+00:00",
+    "functional_role": null
+  },
+  {
+    "id": "e6dd799d-307f-4cff-acf1-a60bd017d0f4",
+    "user_id": null,
+    "name": "Tommy Ignatov",
+    "email": "vasko@yahoo.com",
+    "phone": "",
+    "agency": "Agenzia",
+    "invitation_status": "pending",
+    "internal_notes": "",
+    "created_at": "2026-02-01T13:26:26.310732+00:00",
+    "updated_at": "2026-02-01T13:26:26.310732+00:00",
+    "functional_role": null
+  },
+  {
+    "id": "b6de5272-77a5-4424-9696-e44bc90abc07",
+    "user_id": "7fe10a22-b837-4fe0-a4bd-72a36f4df91b",
+    "name": "Tomi Vaskov",
+    "email": "tommy@imotco.bg",
+    "phone": "",
+    "agency": null,
+    "invitation_status": "resent",
+    "internal_notes": "",
+    "created_at": "2026-02-02T11:19:13.626+00:00",
+    "updated_at": "2026-02-21T10:18:47.845+00:00",
+    "functional_role": null
+  },
+  {
+    "id": "bc21b22c-79bb-4923-a2e3-33dda3c433a8",
+    "user_id": "19757a91-8afa-49b2-bef4-a16ee9101314",
+    "name": "Tommy vaskov",
+    "email": "tommyignatov@yahoo.com",
+    "phone": "",
+    "agency": null,
+    "invitation_status": "resent",
+    "internal_notes": "",
+    "created_at": "2026-02-04T11:35:45.467+00:00",
+    "updated_at": "2026-02-16T07:18:19.591+00:00",
+    "functional_role": null
+  }
+]
+
+THEIR DEALS:
+[
+  {
+    "id": "eb6df984-4c97-4492-aaa3-1a266fb53615",
+    "deal_id": "cd2e0f86-2117-4a10-a5a6-85c19e8a39d9",
+    "participant_id": "e6dd799d-307f-4cff-acf1-a60bd017d0f4",
+    "role": "seller"
+  },
+  {
+    "id": "35691220-61e3-447c-a297-eae98a64a447",
+    "deal_id": "f53e9cb3-225c-43c4-9ebd-fde8b39912c5",
+    "participant_id": "b6de5272-77a5-4424-9696-e44bc90abc07",
+    "role": "buyer"
+  },
+  {
+    "id": "609d1670-c1c7-4147-93b6-fffe82000b74",
+    "deal_id": "3a14145e-0384-443d-8ee1-a1bf8c2702c3",
+    "participant_id": "b6de5272-77a5-4424-9696-e44bc90abc07",
+    "role": "buyer"
+  },
+  {
+    "id": "d2751e86-56ef-4bdb-abba-79b82d44f34d",
+    "deal_id": "3a14145e-0384-443d-8ee1-a1bf8c2702c3",
+    "participant_id": "e6dd799d-307f-4cff-acf1-a60bd017d0f4",
+    "role": "buyer"
+  },
+  {
+    "id": "43da2616-5edc-4301-813d-0e1d4e14b497",
+    "deal_id": "bc58b35b-c782-4964-bc57-c2aad939fcbd",
+    "participant_id": "b6de5272-77a5-4424-9696-e44bc90abc07",
+    "role": "buyer"
+  },
+  {
+    "id": "b082fdaf-f98e-46d3-bd19-94fc0357f15d",
+    "deal_id": "bc58b35b-c782-4964-bc57-c2aad939fcbd",
+    "participant_id": "e6dd799d-307f-4cff-acf1-a60bd017d0f4",
+    "role": "seller"
+  },
+  {
+    "id": "fdc08d49-5dd7-418d-8e00-a2e77d77d142",
+    "deal_id": "ca6a0ce8-0cb9-4f6c-9ddb-8e1a994cd95f",
+    "participant_id": "5b449346-1705-4710-8649-fc21aa2d84aa",
+    "role": "buyer"
+  },
+  {
+    "id": "0c6a2b16-0d28-45a5-b2ca-8ac7f34a8a04",
+    "deal_id": "ca6a0ce8-0cb9-4f6c-9ddb-8e1a994cd95f",
+    "participant_id": "bc21b22c-79bb-4923-a2e3-33dda3c433a8",
+    "role": "agent"
+  },
+  {
+    "id": "df8f4842-d3a1-4b23-a82f-c07aff05154b",
+    "deal_id": "ee56de18-ca80-4e9b-9af6-1f188942bd5e",
+    "participant_id": "bc21b22c-79bb-4923-a2e3-33dda3c433a8",
+    "role": "buyer"
+  },
+  {
+    "id": "d7d7d8a3-ab09-4e62-bf99-634f0ddb5aa2",
+    "deal_id": "0e344281-b5f7-4222-84fd-9037190acb15",
+    "participant_id": "5b449346-1705-4710-8649-fc21aa2d84aa",
+    "role": "agent"
+  },
+  {
+    "id": "63b07b13-da12-43e9-be0e-4ee9a96dcb9a",
+    "deal_id": "0fb47ada-5cb0-40d5-9974-72c665f7bfe8",
+    "participant_id": "5b449346-1705-4710-8649-fc21aa2d84aa",
+    "role": "buyer"
+  },
+  {
+    "id": "522e308a-0b1a-45ba-b477-a6308f62148e",
+    "deal_id": "0fb47ada-5cb0-40d5-9974-72c665f7bfe8",
+    "participant_id": "e6dd799d-307f-4cff-acf1-a60bd017d0f4",
+    "role": "seller"
+  },
+  {
+    "id": "694553a0-a627-40be-803f-81c0d8375a0b",
+    "deal_id": "0fb47ada-5cb0-40d5-9974-72c665f7bfe8",
+    "participant_id": "bc21b22c-79bb-4923-a2e3-33dda3c433a8",
+    "role": "notary"
+  },
+  {
+    "id": "4281a6f6-d785-443f-9aa3-0fa043792d7c",
+    "deal_id": "ee56de18-ca80-4e9b-9af6-1f188942bd5e",
+    "participant_id": "5b449346-1705-4710-8649-fc21aa2d84aa",
+    "role": "seller"
+  },
+  {
+    "id": "7ec03b94-7722-47f5-a4a3-6508b618529f",
+    "deal_id": "9c16e761-1aec-492f-a8b3-4f0a26769398",
+    "participant_id": "bc21b22c-79bb-4923-a2e3-33dda3c433a8",
+    "role": "attorney"
+  },
+  {
+    "id": "98f053e4-9b3f-425c-b951-de289deb943b",
+    "deal_id": "8c1a413d-5e49-4b53-b3ba-27caf69ce6f3",
+    "participant_id": "bc21b22c-79bb-4923-a2e3-33dda3c433a8",
+    "role": "buyer"
+  },
+  {
+    "id": "8c0d24dc-136f-412c-aef5-c1aea00973ee",
+    "deal_id": "8c1a413d-5e49-4b53-b3ba-27caf69ce6f3",
+    "participant_id": "e6dd799d-307f-4cff-acf1-a60bd017d0f4",
+    "role": "seller"
+  },
+  {
+    "id": "51cbab13-2564-409c-9bf7-daf8bc47b1cc",
+    "deal_id": "65996e42-a304-404a-a5a6-13257cef8c76",
+    "participant_id": "b6de5272-77a5-4424-9696-e44bc90abc07",
+    "role": "agent"
+  },
+  {
+    "id": "7c1c2388-955d-4b66-ad17-ef2e87e96245",
+    "deal_id": "97c53938-56e2-40c6-bc6b-2b816686439d",
+    "participant_id": "5b449346-1705-4710-8649-fc21aa2d84aa",
+    "role": "buyer"
+  },
+  {
+    "id": "7a3b3a32-6b25-495b-8480-ce27d43534ba",
+    "deal_id": "97c53938-56e2-40c6-bc6b-2b816686439d",
+    "participant_id": "bc21b22c-79bb-4923-a2e3-33dda3c433a8",
+    "role": "seller"
+  }
+]
+
+DEALS NAMED LOZENEC:
+[
+  {
+    "id": "ca6a0ce8-0cb9-4f6c-9ddb-8e1a994cd95f",
+    "title": "Lozenec"
+  }
+]
+
+PARTICIPANTS IN LOZENEC DEALS:
+[
+  {
+    "id": "fdc08d49-5dd7-418d-8e00-a2e77d77d142",
+    "deal_id": "ca6a0ce8-0cb9-4f6c-9ddb-8e1a994cd95f",
+    "participant_id": "5b449346-1705-4710-8649-fc21aa2d84aa",
+    "role": "buyer",
+    "permissions": {
+      "canViewTimeline": true,
+      "canViewDocuments": true,
+      "canUploadDocuments": true,
+      "canDownloadDocuments": true
+    },
+    "joined_at": "2026-02-04T11:35:44.946+00:00",
+    "is_active": true
+  },
+  {
+    "id": "febb0247-7e2f-41b9-b654-2cb2b11a06b9",
+    "deal_id": "ca6a0ce8-0cb9-4f6c-9ddb-8e1a994cd95f",
+    "participant_id": "24f192c0-de93-47ef-9049-239c1e00818b",
+    "role": "seller",
+    "permissions": {
+      "canViewTimeline": true,
+      "canViewDocuments": true,
+      "canUploadDocuments": true,
+      "canDownloadDocuments": true
+    },
+    "joined_at": "2026-02-04T11:35:45.342+00:00",
+    "is_active": true
+  },
+  {
+    "id": "0c6a2b16-0d28-45a5-b2ca-8ac7f34a8a04",
+    "deal_id": "ca6a0ce8-0cb9-4f6c-9ddb-8e1a994cd95f",
+    "participant_id": "bc21b22c-79bb-4923-a2e3-33dda3c433a8",
+    "role": "agent",
+    "permissions": {
+      "canViewTimeline": true,
+      "canViewDocuments": true,
+      "canUploadDocuments": true,
+      "canDownloadDocuments": true
+    },
+    "joined_at": "2026-02-04T11:35:45.587+00:00",
+    "is_active": true
+  }
+]
+
+ACTUAL PARTICIPANTS IN LOZENEC:
+[
+  {
+    "id": "24f192c0-de93-47ef-9049-239c1e00818b",
+    "user_id": null,
+    "name": "Iana Marinova",
+    "email": "iana@yahoo.com",
+    "phone": "",
+    "agency": null,
+    "invitation_status": "pending",
+    "internal_notes": "",
+    "created_at": "2026-02-04T11:35:45.224+00:00",
+    "updated_at": "2026-02-04T11:35:45.224+00:00",
+    "functional_role": null
+  },
+  {
+    "id": "5b449346-1705-4710-8649-fc21aa2d84aa",
+    "user_id": null,
+    "name": "Tommy Ignatov",
+    "email": "lutsifer@gmail.com",
+    "phone": "6464796795",
+    "agency": "Agenzia",
+    "invitation_status": "pending",
+    "internal_notes": "",
+    "created_at": "2026-02-04T11:35:44.397+00:00",
+    "updated_at": "2026-02-04T11:35:44.397+00:00",
+    "functional_role": null
+  },
+  {
+    "id": "bc21b22c-79bb-4923-a2e3-33dda3c433a8",
+    "user_id": "19757a91-8afa-49b2-bef4-a16ee9101314",
+    "name": "Tommy vaskov",
+    "email": "tommyignatov@yahoo.com",
+    "phone": "",
+    "agency": null,
+    "invitation_status": "resent",
+    "internal_notes": "",
+    "created_at": "2026-02-04T11:35:45.467+00:00",
+    "updated_at": "2026-02-16T07:18:19.591+00:00",
+    "functional_role": null
+  }
+]
+

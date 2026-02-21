@@ -59,19 +59,29 @@ export default function SetPassword() {
         setLoading(true);
 
         try {
-            // Update the user's password
+            console.log('🔐 Updating password for:', userEmail);
+
             const { error: updateError } = await supabase.auth.updateUser({
                 password: password
             });
 
-            if (updateError) throw updateError;
+            if (updateError) {
+                // "Same password" means the user already knows their password — treat as success
+                if (updateError.message?.toLowerCase().includes('same') ||
+                    updateError.message?.toLowerCase().includes('different')) {
+                    console.log('✅ Password already set to this value — redirecting to dashboard');
+                    router.push('/');
+                    return;
+                }
+                console.error('❌ Password update error:', updateError);
+                throw updateError;
+            }
 
-            // Success - redirect to dashboard
+            console.log('✅ Password updated successfully!');
             router.push('/');
         } catch (err: any) {
-            console.error('Password update error:', err);
+            console.error('❌ Password update failed:', err);
             setError(err.message || 'Failed to set password');
-        } finally {
             setLoading(false);
         }
     };

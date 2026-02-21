@@ -1,0 +1,147 @@
+DOCUMENTS RLS ENABLED:
+null
+
+RECENT DOCUMENTS:
+[
+  {
+    "id": "6600b6ce-7694-4046-8ab1-ef40fba38237",
+    "task_id": "e012bcdc-e798-4d7b-beab-e83fe05c5597",
+    "deal_id": "f53e9cb3-225c-43c4-9ebd-fde8b39912c5",
+    "title_en": "210577319.jpg",
+    "title_bg": "210577319.jpg",
+    "url": "f53e9cb3-225c-43c4-9ebd-fde8b39912c5/e012bcdc-e798-4d7b-beab-e83fe05c5597/1771680600632_e92o47afa.jpg",
+    "status": "verified",
+    "uploaded_by": "7fe10a22-b837-4fe0-a4bd-72a36f4df91b",
+    "uploaded_at": "2026-02-21T13:30:01.643+00:00",
+    "verified_at": null,
+    "rejection_reason_en": null,
+    "rejection_reason_bg": null
+  },
+  {
+    "id": "3efe448d-1225-4301-b634-ccce381ce5bb",
+    "task_id": "031da723-ca3d-4c4b-9fa3-262c7e746414",
+    "deal_id": "8ab40b1e-22af-411f-b3b4-0d5b26d33114",
+    "title_en": "Final Verification Doc",
+    "title_bg": "Final Verification Doc",
+    "url": "8ab40b1e-22af-411f-b3b4-0d5b26d33114/031da723-ca3d-4c4b-9fa3-262c7e746414/3efe448d-1225-4301-b634-ccce381ce5bb-final.pdf",
+    "status": "verified",
+    "uploaded_by": "a8d6e314-4f52-46ca-bcd5-c884e91af89d",
+    "uploaded_at": "2026-02-21T09:16:05.918849+00:00",
+    "verified_at": null,
+    "rejection_reason_en": null,
+    "rejection_reason_bg": null
+  },
+  {
+    "id": "94018295-8e95-44be-9ba0-e30d3316c6b5",
+    "task_id": "4d909943-88ee-4bdf-bda0-1f920c0ee09a",
+    "deal_id": "9473f26c-b0b0-4372-b623-0aff15145bed",
+    "title_en": "Final Verification Doc",
+    "title_bg": "Final Verification Doc",
+    "url": "9473f26c-b0b0-4372-b623-0aff15145bed/4d909943-88ee-4bdf-bda0-1f920c0ee09a/94018295-8e95-44be-9ba0-e30d3316c6b5-final.pdf",
+    "status": "verified",
+    "uploaded_by": "a8d6e314-4f52-46ca-bcd5-c884e91af89d",
+    "uploaded_at": "2026-02-21T09:15:37.52665+00:00",
+    "verified_at": null,
+    "rejection_reason_en": null,
+    "rejection_reason_bg": null
+  },
+  {
+    "id": "2ad6c7ac-5953-4cc4-9edb-11c13e0b1cd5",
+    "task_id": "57ccc845-29c1-4550-91f1-a5a8514e3b24",
+    "deal_id": "65996e42-a304-404a-a5a6-13257cef8c76",
+    "title_en": "golden stamp.png",
+    "title_bg": "golden stamp.png",
+    "url": "65996e42-a304-404a-a5a6-13257cef8c76/57ccc845-29c1-4550-91f1-a5a8514e3b24/1771578113063_vizv32oqk.png",
+    "status": "verified",
+    "uploaded_by": "8f51b0ca-17ca-4b17-b40b-b19a9c28f756",
+    "uploaded_at": "2026-02-20T09:01:54.867+00:00",
+    "verified_at": null,
+    "rejection_reason_en": null,
+    "rejection_reason_bg": null
+  },
+  {
+    "id": "640ddb83-b5a1-4856-9814-d2ead846607e",
+    "task_id": "973afdce-9dad-4316-98fe-14b200efdfb1",
+    "deal_id": "a6237d68-7c24-4011-a474-8560478306c9",
+    "title_en": "Final Verification Doc",
+    "title_bg": "Final Verification Doc",
+    "url": "a6237d68-7c24-4011-a474-8560478306c9/973afdce-9dad-4316-98fe-14b200efdfb1/640ddb83-b5a1-4856-9814-d2ead846607e-final.pdf",
+    "status": "verified",
+    "uploaded_by": "a8d6e314-4f52-46ca-bcd5-c884e91af89d",
+    "uploaded_at": "2026-02-19T11:57:52.184006+00:00",
+    "verified_at": null,
+    "rejection_reason_en": null,
+    "rejection_reason_bg": null
+  },
+  {
+    "id": "fafa3d5e-ac1d-41b3-9824-28dd09e072fe",
+    "task_id": "9df6fcc5-1531-4749-8dbb-cd33b88478f0",
+    "deal_id": "3bd58fd6-c489-4d28-b37d-29f500c89450",
+    "title_en": "Final Verification Doc",
+    "title_bg": "Final Verification Doc",
+    "url": "3bd58fd6-c489-4d28-b37d-29f500c89450/9df6fcc5-1531-4749-8dbb-cd33b88478f0/fafa3d5e-ac1d-41b3-9824-28dd09e072fe-final.pdf",
+    "status": "verified",
+    "uploaded_by": "a8d6e314-4f52-46ca-bcd5-c884e91af89d",
+    "uploaded_at": "2026-02-18T15:06:49.175616+00:00",
+    "verified_at": null,
+    "rejection_reason_en": null,
+    "rejection_reason_bg": null
+  },
+  {
+    "id": "ba6c3fda-f2cd-4c59-8468-768020073421",
+    "task_id": "7ed58d26-cf95-4388-9421-405db1421e02",
+    "deal_id": "f16d4f65-1350-4912-8f80-86e9dcc36df9",
+    "title_en": "Final Verification Doc",
+    "title_bg": "Final Verification Doc",
+    "url": "f16d4f65-1350-4912-8f80-86e9dcc36df9/7ed58d26-cf95-4388-9421-405db1421e02/ba6c3fda-f2cd-4c59-8468-768020073421-final.pdf",
+    "status": "verified",
+    "uploaded_by": "a8d6e314-4f52-46ca-bcd5-c884e91af89d",
+    "uploaded_at": "2026-02-18T15:04:46.822928+00:00",
+    "verified_at": null,
+    "rejection_reason_en": null,
+    "rejection_reason_bg": null
+  },
+  {
+    "id": "d9435fd8-cf4c-4519-91ef-2aef5bac38bd",
+    "task_id": "17f43de0-e26f-4623-90e3-2b80a638125d",
+    "deal_id": "0d5abae9-41e5-4e6a-ac80-272414af5f46",
+    "title_en": "Final Verification Doc",
+    "title_bg": "Final Verification Doc",
+    "url": "0d5abae9-41e5-4e6a-ac80-272414af5f46/17f43de0-e26f-4623-90e3-2b80a638125d/d9435fd8-cf4c-4519-91ef-2aef5bac38bd-final.pdf",
+    "status": "verified",
+    "uploaded_by": "a8d6e314-4f52-46ca-bcd5-c884e91af89d",
+    "uploaded_at": "2026-02-18T15:03:15.849309+00:00",
+    "verified_at": null,
+    "rejection_reason_en": null,
+    "rejection_reason_bg": null
+  },
+  {
+    "id": "2e3f8fe3-59a2-4bd7-b64e-9b3931e80b3e",
+    "task_id": "91869f7f-16c3-4736-88cc-85aaa738028e",
+    "deal_id": "dbf03f29-5133-4662-a449-26e99a74f65e",
+    "title_en": "Final Verification Doc",
+    "title_bg": "Final Verification Doc",
+    "url": "dbf03f29-5133-4662-a449-26e99a74f65e/91869f7f-16c3-4736-88cc-85aaa738028e/2e3f8fe3-59a2-4bd7-b64e-9b3931e80b3e-final.pdf",
+    "status": "verified",
+    "uploaded_by": "a8d6e314-4f52-46ca-bcd5-c884e91af89d",
+    "uploaded_at": "2026-02-18T15:02:55.441863+00:00",
+    "verified_at": null,
+    "rejection_reason_en": null,
+    "rejection_reason_bg": null
+  },
+  {
+    "id": "955d7616-aab5-4d9c-8497-6c49c8250068",
+    "task_id": "7c421871-2879-4cab-926f-d05dcf43ea2e",
+    "deal_id": "4457d074-0b7f-43c6-a90a-875d0f41c573",
+    "title_en": "Final Verification Doc",
+    "title_bg": "Final Verification Doc",
+    "url": "4457d074-0b7f-43c6-a90a-875d0f41c573/7c421871-2879-4cab-926f-d05dcf43ea2e/955d7616-aab5-4d9c-8497-6c49c8250068-final.pdf",
+    "status": "verified",
+    "uploaded_by": "a8d6e314-4f52-46ca-bcd5-c884e91af89d",
+    "uploaded_at": "2026-02-18T15:02:30.07855+00:00",
+    "verified_at": null,
+    "rejection_reason_en": null,
+    "rejection_reason_bg": null
+  }
+]
+

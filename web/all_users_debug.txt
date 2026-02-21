@@ -1,0 +1,292 @@
+ALL USERS:
+[
+  {
+    "id": "26e4f3d5-9cd1-4e95-b503-f13509e8369b",
+    "name": "Ivan Ivanov",
+    "email": "ivan@yahoo.com",
+    "role": "user"
+  },
+  {
+    "id": "cc2db1a0-4b88-4bc5-8477-8aef877c5dd1",
+    "name": null,
+    "email": "stranger_1771426002628@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "fddd4c32-da81-4902-a095-550ea3404a9a",
+    "name": null,
+    "email": "lutsifer+seller@gmail.com",
+    "role": "viewer"
+  },
+  {
+    "id": "8f775751-b01d-4faf-87cb-1e62e9ce4dd0",
+    "name": null,
+    "email": "lawyer@agency.com",
+    "role": "admin"
+  },
+  {
+    "id": "bd04d1b9-8119-4db4-b866-d7190864802e",
+    "name": "Kalin Kalinov",
+    "email": "kalin@yahoo.com",
+    "role": "staff"
+  },
+  {
+    "id": "f2c89a44-e833-458b-8738-622306c69be2",
+    "name": null,
+    "email": "staff@agency.com",
+    "role": "staff"
+  },
+  {
+    "id": "a8d6e314-4f52-46ca-bcd5-c884e91af89d",
+    "name": null,
+    "email": "buyer_test_user@agenzia.com",
+    "role": "viewer"
+  },
+  {
+    "id": "7f92c1c8-0939-4c48-b6ad-4e04fa9568dd",
+    "name": null,
+    "email": "seller_test_user@agenzia.com",
+    "role": "viewer"
+  },
+  {
+    "id": "2a2344e3-159c-4f82-85e7-bd9274c5fca4",
+    "name": null,
+    "email": "sec_reg_lawyer_1771425184801@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "559c44a8-1f76-401c-8566-b2dca0db2b16",
+    "name": null,
+    "email": "sec_reg_lawyer_1771425297290@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "4e87eb1e-4235-4087-9ba2-e6be0c75f6f2",
+    "name": null,
+    "email": "sec_reg_lawyer_1771425316235@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "14bfe5c4-813d-49be-95e3-5176b9b867ca",
+    "name": null,
+    "email": "sec_reg_lawyer_1771425362813@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "7da7c57e-4873-41b7-8c7e-70372622d21a",
+    "name": null,
+    "email": "sec_reg_lawyer_1771425470826@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "c4cb1336-2698-4ed1-9430-f9b1d2dc73d9",
+    "name": null,
+    "email": "sec_reg_lawyer_1771425491012@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "e27a6f63-a5ed-49c6-bac4-ed439d61eca8",
+    "name": null,
+    "email": "sec_reg_lawyer_1771425545510@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "947da975-b3bf-4f34-b8ae-e48bf48adbd2",
+    "name": null,
+    "email": "sec_reg_lawyer_1771425762617@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "7ab28570-cfe3-460e-b9df-63cc7afe7851",
+    "name": null,
+    "email": "sec_reg_lawyer_1771425851798@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "efbc676e-239e-4a8a-99e0-79d58c7635db",
+    "name": null,
+    "email": "sec_reg_lawyer_1771425909542@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "de169830-4949-490d-b642-9a8fc3f0912a",
+    "name": null,
+    "email": "stranger_1771426040708@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "41f94d9a-5013-4f7c-97b4-2efc9222d4bc",
+    "name": null,
+    "email": "stranger_1771426104510@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "e1a4d434-c88a-4cae-9e5e-475de1e184a0",
+    "name": null,
+    "email": "stranger_1771426163139@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "32388b5e-9ef7-433f-990e-3a5dc81a9df1",
+    "name": null,
+    "email": "stranger_1771426298645@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "025fb4a0-b29b-4b1d-9070-b598724a4508",
+    "name": null,
+    "email": "stranger_1771426316547@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "fb705448-bdb6-4421-a414-4a89ac5e9bd2",
+    "name": null,
+    "email": "stranger_1771426508714@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "3e44484c-8852-405f-82b6-f6280a2d0420",
+    "name": null,
+    "email": "stranger_1771427083680@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "34cabb46-6409-424a-b5ba-32337975e038",
+    "name": null,
+    "email": "stranger_1771427206062@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "304a08d5-0fef-49f1-81f6-f873e11ec394",
+    "name": null,
+    "email": "akoseva@genzia.bg",
+    "role": "viewer"
+  },
+  {
+    "id": "19757a91-8afa-49b2-bef4-a16ee9101314",
+    "name": "Tommy vaskov",
+    "email": "tommyignatov@yahoo.com",
+    "role": "admin"
+  },
+  {
+    "id": "8f51b0ca-17ca-4b17-b40b-b19a9c28f756",
+    "name": "Tommy Ignatov",
+    "email": "lutsifer@gmail.com",
+    "role": "admin"
+  },
+  {
+    "id": "41e302f4-28c4-4505-a84f-fb8fd8ea0ca7",
+    "name": "Tommi",
+    "email": "tignatov@agenzia.bg",
+    "role": "viewer"
+  },
+  {
+    "id": "2b6ccbe9-ef18-4b76-a934-8ea53c323dab",
+    "name": "API Test User",
+    "email": "test.invite.api@pagenzia.com",
+    "role": "viewer"
+  },
+  {
+    "id": "eecb6eb4-5872-4a9c-8537-ba0c5578a3a3",
+    "name": "API Test User 3",
+    "email": "test.invite.api.3@agenzia.com",
+    "role": "viewer"
+  },
+  {
+    "id": "7fe10a22-b837-4fe0-a4bd-72a36f4df91b",
+    "name": "Tomi Vaskov",
+    "email": "tommy@imotco.bg",
+    "role": "viewer"
+  },
+  {
+    "id": "769d5e37-8a05-4634-8c2f-4d88060b5d4c",
+    "name": "Ayten Hristova",
+    "email": "ayten.y.hristova@gmail.com",
+    "role": "viewer"
+  },
+  {
+    "id": "6d5d35c8-8a57-4747-988e-984ebee21ca9",
+    "name": null,
+    "email": "stranger_1771502268218@test.com",
+    "role": "viewer"
+  },
+  {
+    "id": "8c2f7f98-cc7d-45f0-9270-5d9f57f1c024",
+    "name": null,
+    "email": "test-staff-1@agency.com",
+    "role": "viewer"
+  },
+  {
+    "id": "68499e9f-e232-4cb5-89cd-aa34932258bb",
+    "name": null,
+    "email": "test-viewer-1@agency.com",
+    "role": "viewer"
+  },
+  {
+    "id": "aa10ec56-b0ee-416a-90f7-9fa3fa0f6cf3",
+    "name": null,
+    "email": "test-viewer-2@agency.com",
+    "role": "viewer"
+  },
+  {
+    "id": "2e7a27fc-43a2-436b-b806-126a893e8cf1",
+    "name": null,
+    "email": "test-viewer-3@agency.com",
+    "role": "viewer"
+  },
+  {
+    "id": "90000347-b107-4a14-aa29-714408131600",
+    "name": null,
+    "email": "test-staff-23@agency.com",
+    "role": "viewer"
+  },
+  {
+    "id": "aad53d96-3b41-4d4c-bb6d-607d6d6787fa",
+    "name": null,
+    "email": "test-staff-99@agency.com",
+    "role": "viewer"
+  },
+  {
+    "id": "544c8752-43b5-476b-9a7f-458d8f55cf50",
+    "name": null,
+    "email": "test-staff-101@agency.com",
+    "role": "viewer"
+  },
+  {
+    "id": "c5767730-e737-47f3-83fc-6ee91bd131d8",
+    "name": "Check Enum",
+    "email": "fake-insert-test@agency.com",
+    "role": "user"
+  },
+  {
+    "id": "3acbacb3-ea87-40b2-9b8d-08e2364c4c82",
+    "name": "Test Trigger User",
+    "email": "fake-insert-staff@agency.com",
+    "role": "staff"
+  },
+  {
+    "id": "5a4c731c-bbb2-4d26-8e83-d51c5c846397",
+    "name": "API Test User",
+    "email": "test-api-1771577675653@agency.com",
+    "role": "admin"
+  },
+  {
+    "id": "76fdb90d-c7da-4432-8770-165a02d5e2d9",
+    "name": "Final Test Staff",
+    "email": "test-staff-final@agency.com",
+    "role": "staff"
+  },
+  {
+    "id": "576d2054-586c-404e-9adf-52f72c66367b",
+    "name": "stranger_1771665332801",
+    "email": "stranger_1771665332801@test.com",
+    "role": "user"
+  },
+  {
+    "id": "cdd35b48-2155-4e95-a11a-4f58b3b67761",
+    "name": "stranger_1771665362631",
+    "email": "stranger_1771665362631@test.com",
+    "role": "user"
+  }
+]
+

@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 import { X, FileText, AlertTriangle } from 'lucide-react';
 import { DealDocument } from '@/lib/types';
-import { supabase } from '@/lib/supabase';
+import { getDocumentSignedUrl } from '@/app/actions/documents';
 
 export default function DocumentPreviewModal({ doc, onClose }: {
     doc: DealDocument,
@@ -12,32 +12,50 @@ export default function DocumentPreviewModal({ doc, onClose }: {
     const [signedUrl, setSignedUrl] = useState<string | null>(null);
     const [isLoadingUrl, setIsLoadingUrl] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [retryCount, setRetryCount] = useState(0);
 
     useEffect(() => {
         setMounted(true);
         document.body.style.overflow = 'hidden';
 
-        const fetchUrl = async () => {
-            setErrorMsg(null);
+        const fetchUrl = async (isRetry = false) => {
+            if (!isRetry) setErrorMsg(null);
+
             if (doc.url.startsWith('http') || doc.url.startsWith('blob')) {
                 setSignedUrl(doc.url);
                 setIsLoadingUrl(false);
                 return;
             }
 
-            // Fetch signed URL for internal path
-            const { data, error } = await supabase.storage
-                .from('documents')
-                .createSignedUrl(doc.url, 3600); // 1 hour expiry
+            try {
+                // Fetch signed URL for internal path via Server Action
+                const { url, error } = await getDocumentSignedUrl(doc.id);
 
-            if (error) {
-                console.error('Error fetching signed URL:', error);
-                setErrorMsg(error.message); // <--- CAPTURE ERROR
-                setSignedUrl(null);
-            } else {
-                setSignedUrl(data.signedUrl);
+                if (error) {
+                    console.error('Error fetching signed URL:', error);
+                    if (!isRetry && retryCount < 1) {
+                        console.log('Retrying fetch...');
+                        setRetryCount(prev => prev + 1);
+                        setTimeout(() => fetchUrl(true), 1000); // Wait 1s then retry
+                        return;
+                    }
+                    setErrorMsg(error);
+                    setSignedUrl(null);
+                } else {
+                    setSignedUrl(url);
+                }
+            } catch (err: any) {
+                console.error('Exception fetching signed URL:', err);
+                if (!isRetry && retryCount < 1) {
+                    console.log('Retrying fetch...');
+                    setRetryCount(prev => prev + 1);
+                    setTimeout(() => fetchUrl(true), 1000);
+                    return;
+                }
+                setErrorMsg('Failed to load document preview');
+            } finally {
+                if (!isRetry || (isRetry && (errorMsg || signedUrl))) setIsLoadingUrl(false);
             }
-            setIsLoadingUrl(false);
         };
 
         fetchUrl();
@@ -75,7 +93,20 @@ export default function DocumentPreviewModal({ doc, onClose }: {
                         </div>
                     ) : signedUrl ? (
                         doc.title_en.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/) ? (
-                            <img src={signedUrl} alt={doc.title_en} className="max-w-full h-auto rounded shadow-sm" />
+                            <img
+                                src={signedUrl}
+                                alt={doc.title_en}
+                                className="max-w-full h-auto rounded shadow-sm"
+                                onError={() => {
+                                    if (retryCount < 1) {
+                                        setRetryCount(prev => prev + 1);
+                                        // Force re-fetch? We can't easily recall fetchUrl from here without refactoring.
+                                        // But invalidating signedUrl might trigger effect? No, effect depends on doc.url.
+                                        // We'll just show error for now if image fails to load despite valid URL.
+                                        setErrorMsg('Image failed to load.');
+                                    }
+                                }}
+                            />
                         ) : doc.title_en.toLowerCase().endsWith('.pdf') ? (
                             <iframe src={signedUrl} className="w-full h-[600px] border-none rounded shadow-sm" />
                         ) : doc.title_en.toLowerCase().match(/\.(doc|docx|xls|xlsx|ppt|pptx)$/) ? (

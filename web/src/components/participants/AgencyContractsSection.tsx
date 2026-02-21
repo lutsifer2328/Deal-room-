@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { GlobalParticipant, AgencyContract } from '@/lib/types';
+import { getAgencyContractSignedUrl } from '@/app/actions/agency-contracts';
 import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
 import { supabase } from '@/lib/supabase';
@@ -40,19 +41,23 @@ export default function AgencyContractsSection({ participant }: { participant: G
                 return;
             }
 
-            // Fetch signed URL from Supabase Storage
-            const { data, error } = await supabase.storage
-                .from('documents')
-                .createSignedUrl(previewContract.url, 3600); // 1 hour expiry
+            try {
+                // Fetch signed URL from Server Action
+                const { url, error } = await getAgencyContractSignedUrl(previewContract.id);
 
-            if (error) {
-                console.error('Error fetching signed URL:', error);
-                setErrorMsg(error.message);
-                setSignedUrl(null);
-            } else {
-                setSignedUrl(data.signedUrl);
+                if (error) {
+                    console.error('Error fetching signed URL:', error);
+                    setErrorMsg(error);
+                    setSignedUrl(null);
+                } else {
+                    setSignedUrl(url);
+                }
+            } catch (err) {
+                console.error('Exception fetching signed URL:', err);
+                setErrorMsg('Failed to load document');
+            } finally {
+                setIsLoadingUrl(false);
             }
-            setIsLoadingUrl(false);
         };
 
         if (previewContract) {

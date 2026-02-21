@@ -15,11 +15,44 @@ export default function AuthCallback() {
                 console.log('🔍 Callback started');
                 console.log('🔍 Full URL:', window.location.href);
                 console.log('🔍 Hash:', window.location.hash);
+                console.log('🔍 Search:', window.location.search);
 
-                // Supabase invite emails use hash-based tokens, not PKCE code
+                // ── Strategy 0: Direct token_hash verification (our invite links) ──
+                // Our invite endpoint sends links like: /auth/callback?token_hash=TOKEN&type=recovery
+                const searchParams = new URLSearchParams(window.location.search);
+                const tokenHash = searchParams.get('token_hash');
+                const tokenType = searchParams.get('type') as 'recovery' | 'magiclink' | 'invite' | 'signup' | 'email';
+
+                if (tokenHash) {
+                    console.log('🔐 Verifying OTP token_hash directly (Strategy 0)...');
+                    const { data, error } = await supabase.auth.verifyOtp({
+                        token_hash: tokenHash,
+                        type: tokenType || 'recovery',
+                    });
+
+                    if (error) {
+                        console.error('❌ verifyOtp error:', error);
+                        setStatus('error');
+                        if (error.message.includes('expired')) {
+                            setErrorMessage('This invitation link has expired. Please request a new one.');
+                        } else {
+                            setErrorMessage(error.message);
+                        }
+                        return;
+                    }
+
+                    if (data.session) {
+                        console.log('✅ Session established via verifyOtp!');
+                        setStatus('success');
+                        setTimeout(() => router.push('/auth/set-password'), 1500);
+                        return;
+                    }
+                }
+
+                // ── Strategy 1: Hash-based tokens (legacy invite emails) ─────────
                 const hashParams = new URLSearchParams(window.location.hash.substring(1));
 
-                // Check for errors first
+                // Check for errors in hash
                 const authError = hashParams.get('error');
                 const errorCode = hashParams.get('error_code');
                 const errorDescription = hashParams.get('error_description');
@@ -27,7 +60,6 @@ export default function AuthCallback() {
                 if (authError) {
                     console.error('❌ Auth error from Supabase:', { authError, errorCode, errorDescription });
                     setStatus('error');
-
                     if (errorCode === 'otp_expired') {
                         setErrorMessage('This invitation link has expired. Please request a new invitation.');
                     } else {
@@ -38,51 +70,61 @@ export default function AuthCallback() {
 
                 const accessToken = hashParams.get('access_token');
                 const refreshToken = hashParams.get('refresh_token');
-                const type = hashParams.get('type');
 
-                console.log('🔍 Extracted tokens:', {
-                    hasAccessToken: !!accessToken,
-                    hasRefreshToken: !!refreshToken,
-                    type,
-                    accessTokenPreview: accessToken?.substring(0, 20) + '...'
-                });
+                if (accessToken) {
+                    console.log('🔐 Setting session from hash tokens (Strategy 1)...');
+                    const { data, error } = await supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken || ''
+                    });
 
-                if (!accessToken) {
-                    console.error('❌ No access token found');
-                    setStatus('error');
-                    setErrorMessage('No authentication token found in the invitation link');
-                    return;
+                    if (error) {
+                        console.error('❌ setSession error:', error);
+                        setStatus('error');
+                        setErrorMessage(error.message);
+                        return;
+                    }
+
+                    if (data.session) {
+                        console.log('✅ Session established from hash tokens');
+                        setStatus('success');
+                        setTimeout(() => router.push('/auth/set-password'), 1500);
+                        return;
+                    }
                 }
 
-                console.log('🔐 Calling supabase.auth.setSession...');
+                // ── Strategy 2: PKCE code exchange ──────────────────────
+                const code = searchParams.get('code');
+                if (code) {
+                    console.log('🔐 Exchanging PKCE code (Strategy 2)...');
+                    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-                // Set the session with the tokens from the invite
-                const { data, error } = await supabase.auth.setSession({
-                    access_token: accessToken,
-                    refresh_token: refreshToken || ''
-                });
-
-                console.log('🔐 setSession response:', { data, error });
-
-                if (error) {
-                    console.error('❌ Session error:', error);
-                    setStatus('error');
-                    setErrorMessage(error.message);
-                    return;
+                    if (error) {
+                        console.error('❌ Code exchange error:', error);
+                        // Don't set error yet - try fallback
+                    } else if (data.session) {
+                        console.log('✅ Session established from PKCE code');
+                        setStatus('success');
+                        setTimeout(() => router.push('/auth/set-password'), 1500);
+                        return;
+                    }
                 }
 
-                if (data.session) {
-                    console.log('✅ Session established successfully');
+                // ── Strategy 3: Check existing session ──────────────────
+                console.log('🔍 Checking for existing session (Strategy 3)...');
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    console.log('✅ Session found via getSession()');
                     setStatus('success');
-                    // Redirect to password setup page
-                    setTimeout(() => {
-                        router.push('/auth/set-password');
-                    }, 1500);
-                } else {
-                    console.error('❌ No session returned');
-                    setStatus('error');
-                    setErrorMessage('Could not establish session');
+                    setTimeout(() => router.push('/auth/set-password'), 1500);
+                    return;
                 }
+
+                // ── No tokens found at all ──
+                console.error('❌ No tokens found in any strategy');
+                setStatus('error');
+                setErrorMessage('No authentication token found. The link may have expired or been used already. Please request a new invitation.');
+
             } catch (error: any) {
                 console.error('❌ Auth callback error:', error);
                 setStatus('error');
@@ -90,12 +132,11 @@ export default function AuthCallback() {
             }
         };
 
-        // Add timeout to prevent infinite loading
         const timeout = setTimeout(() => {
-            console.error('⏱️ Callback timeout - forcing error state');
+            console.error('⏱️ Callback timeout');
             setStatus('error');
-            setErrorMessage('The invitation verification took too long. Please try clicking the link again.');
-        }, 10000); // 10 second timeout
+            setErrorMessage('Verification took too long. Please try clicking the link again.');
+        }, 15000);
 
         handleCallback().finally(() => clearTimeout(timeout));
     }, [router]);

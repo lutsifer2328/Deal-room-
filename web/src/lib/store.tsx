@@ -1,11 +1,16 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { supabase } from './supabase';
 import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, DealStatus, Role, StandardDocument, GlobalParticipant, DealParticipant, Notification, AgencyContract, DealDocument } from './types';
 import { createDefaultTimeline } from './defaultTimeline';
 import { MOCK_STANDARD_DOCUMENTS } from './mockStandardDocuments';
 import { getPermissionsForRole } from './permissions';
+import {
+    workflowVerifyDocument,
+    workflowRejectDocument,
+    workflowReleaseDocument
+} from '@/app/actions/document-workflow';
 
 interface DataContextType {
     users: Record<string, User>;
@@ -17,7 +22,7 @@ interface DataContextType {
     // Actions
     createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number) => Promise<string>;
     updateDeal: (dealId: string, updates: { title?: string; propertyAddress?: string; price?: number }) => Promise<void>;
-    addTask: (dealId: string, title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => Promise<void>;
+    addTask: (dealId: string, title: string, assignedToEmail: string, assignedParticipantId: string, standardDocumentId?: string, expirationDate?: string, customId?: string) => Promise<void>;
     deleteTask: (taskId: string, actorId: string) => void;
     setActiveDeal: (dealId: string) => void;
     updateDealStep: (dealId: string, step: DealStep, actorId: string) => void;
@@ -53,12 +58,13 @@ interface DataContextType {
 
     // Global Participants Actions
     globalParticipants: GlobalParticipant[];
+    rawDealParticipants: DealParticipant[];
     dealParticipants: DealParticipant[];
     createGlobalParticipant: (participant: Omit<GlobalParticipant, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string | null>;
     updateGlobalParticipant: (id: string, updates: Partial<GlobalParticipant>) => void;
     deleteGlobalParticipant: (id: string) => void;
     checkDuplicateEmail: (email: string) => GlobalParticipant | null;
-    inviteParticipant: (dealId: string, email: string, name: string, role: Role, isInternal?: boolean) => Promise<boolean>;
+    inviteParticipant: (dealId: string, email: string, name: string, role: Role, isInternal?: boolean, resend?: boolean) => Promise<boolean>;
     getParticipantDeals: (participantId: string) => Array<{ deal: Deal, dealParticipant: DealParticipant }>;
     getRecentParticipants: (days?: number) => GlobalParticipant[];
     addParticipantContract: (participantId: string, title: string, uploadedBy: string, file: File) => void;
@@ -89,8 +95,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const [standardDocuments, setStandardDocuments] = useState<StandardDocument[]>(MOCK_STANDARD_DOCUMENTS);
     const [logs, setLogs] = useState<AuditLogEntry[]>([]);
     const [agencyContracts, setAgencyContracts] = useState<AgencyContract[]>([]);
+    const [rawDocuments, setRawDocuments] = useState<any[]>([]);
 
-    // Computed State
+    // Refs
+    const lastFetchRef = useRef<number>(0);
+    const channelRef = useRef<any>(null);
     const [users, setUsers] = useState<Record<string, User>>({});
     const [deals, setDeals] = useState<Deal[]>([]);
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -108,18 +117,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 { data: fetchedDPs },
                 { data: fetchedStdDocs },
                 { data: fetchedLogs },
-                { data: fetchedContracts }
+                { data: fetchedContracts },
+                { data: fetchedDocuments }
             ] = await Promise.all([
-                supabase.from('users').select('*'),
+                supabase.from('users').select('*').order('created_at', { ascending: false }),
                 supabase.from('deals').select('*'),
-                supabase.from('tasks').select('*, documents(*)'),
+                supabase.from('tasks').select('*'), // Removed documents(*) join
                 supabase.from('participants').select('*'),
                 supabase.from('deal_participants').select('*'),
                 supabase.from('standard_documents').select('*'),
-                // TEMPORARILY DISABLED - audit_logs causing 400 error
-                // supabase.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(100),
-                Promise.resolve({ data: [] }), // Return empty array instead
-                supabase.from('agency_contracts').select('*')
+                supabase.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(100),
+                supabase.from('agency_contracts').select('*'),
+                supabase.from('documents').select('*') // Direct fetch
             ]);
 
             if (fetchedUsers) setRawUsers(fetchedUsers.map(u => ({
@@ -129,12 +138,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 role: u.role,
                 permissions: getPermissionsForRole(u.role),
                 avatarUrl: u.avatar_url,
-                isActive: u.is_active !== false, // Handle null/undefined as true if needed, or stick to strict check
+                isActive: u.is_active !== false,
                 createdAt: u.created_at,
                 lastLogin: u.last_login
             })));
             if (fetchedDeals) setRawDeals(fetchedDeals);
             if (fetchedTasks) setRawTasks(fetchedTasks);
+            if (fetchedDocuments) {
+                console.log(`[DEBUG] Fetched ${fetchedDocuments.length} documents from DB.`);
+                setRawDocuments(fetchedDocuments);
+            }
             if (fetchedGPs) setRawGlobalParticipants(fetchedGPs.map(gp => ({
                 id: gp.id,
                 userId: gp.user_id,
@@ -263,8 +276,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 return {
                     id: gp?.id || dp.participantId, // Use GP ID as Participant ID in legacy view
                     userId: gp?.userId || undefined,
-                    fullName: gp?.name || 'Unknown',
-                    email: gp?.email || '',
+                    fullName: gp?.name || user?.name || 'Unknown',
+                    email: gp?.email || user?.email || '',
                     phone: gp?.phone || '',
                     agency: dp.agency || gp?.agency, // Deal specific agency overrides global
                     role: dp.role,
@@ -309,36 +322,123 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setDeals(computedDeals);
 
         // Map Tasks
-        const computedTasks: Task[] = rawTasks.map(t => ({
-            id: t.id,
-            dealId: t.deal_id,
-            title_en: t.title_en,
-            title_bg: t.title_bg || t.title_en,
-            description_en: t.description_en,
-            description_bg: t.description_bg,
-            assignedTo: t.assigned_to,
-            status: t.status,
-            documents: (t.documents || []).map((d: any) => ({
-                id: d.id,
-                title_en: d.title_en,
-                title_bg: d.title_bg,
-                url: d.url,
-                uploadedBy: d.uploaded_by,
-                status: d.status,
-                uploadedAt: d.uploaded_at,
-                verifiedAt: d.verified_at,
-                rejectionReason_en: d.rejection_reason_en,
-                rejectionReason_bg: d.rejection_reason_bg
-            })),
-            comments: t.comments || [],
-            required: t.required,
-            standardDocumentId: t.standard_document_id,
-            expirationDate: t.expiration_date,
-            createdAt: t.created_at
-        }));
+        const computedTasks: Task[] = rawTasks.map(t => {
+            const taskDocs = rawDocuments.filter(d => d.task_id === t.id);
+            return {
+                id: t.id,
+                dealId: t.deal_id,
+                title_en: t.title_en,
+                title_bg: t.title_bg || t.title_en,
+                description_en: t.description_en,
+                description_bg: t.description_bg,
+                assignedTo: t.assigned_to,
+                status: t.status,
+                documents: taskDocs.map((d: any) => ({
+                    id: d.id,
+                    title_en: d.title_en,
+                    title_bg: d.title_bg || d.title_en,
+                    url: d.url,
+                    uploadedBy: d.uploaded_by,
+                    status: d.status,
+                    uploadedAt: d.uploaded_at,
+                    verifiedAt: d.verified_at,
+                    rejectionReason_en: d.rejection_reason_en,
+                    rejectionReason_bg: d.rejection_reason_bg
+                })),
+                comments: t.comments || [],
+                required: t.required,
+                standardDocumentId: t.standard_document_id,
+                expirationDate: t.expiration_date,
+                createdAt: t.created_at
+            };
+        });
         setTasks(computedTasks);
 
-    }, [rawUsers, rawDeals, rawTasks, rawDealParticipants, activeDealId, enrichedGlobalParticipants]);
+    }, [rawUsers, rawDeals, rawTasks, rawDealParticipants, activeDealId, enrichedGlobalParticipants, rawDocuments]);
+
+    // --- Realtime Subscriptions ---
+    useEffect(() => {
+        if (!activeDealId) return;
+
+        // Cleanup previous channel if exists
+        if (channelRef.current) {
+            supabase.removeChannel(channelRef.current);
+        }
+
+        const channel = supabase.channel(`deal-room-${activeDealId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'documents',
+                    filter: `deal_id=eq.${activeDealId}`
+                },
+                (payload) => {
+                    console.log('Realtime Document Update:', payload);
+                    if (payload.eventType === 'INSERT') {
+                        setRawDocuments(prev => {
+                            if (prev.find(d => d.id === payload.new.id)) return prev;
+                            return [...prev, payload.new];
+                        });
+                    } else if (payload.eventType === 'UPDATE') {
+                        setRawDocuments(prev => prev.map(d => d.id === payload.new.id ? payload.new : d));
+                    } else if (payload.eventType === 'DELETE') {
+                        setRawDocuments(prev => prev.filter(d => d.id !== payload.old.id));
+                    }
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'tasks',
+                    filter: `deal_id=eq.${activeDealId}`
+                },
+                (payload) => {
+                    console.log('Realtime Task Update:', payload);
+                    if (payload.eventType === 'INSERT') {
+                        setRawTasks(prev => {
+                            if (prev.find(t => t.id === payload.new.id)) return prev;
+                            return [...prev, payload.new];
+                        });
+                    } else if (payload.eventType === 'UPDATE') {
+                        setRawTasks(prev => prev.map(t => t.id === payload.new.id ? payload.new : t));
+                    } else if (payload.eventType === 'DELETE') {
+                        setRawTasks(prev => prev.filter(t => t.id !== payload.old.id));
+                    }
+                }
+            )
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log(`Realtime connected for deal ${activeDealId}`);
+                }
+            });
+
+        channelRef.current = channel;
+
+        return () => {
+            if (channelRef.current) {
+                supabase.removeChannel(channelRef.current);
+            }
+        };
+    }, [activeDealId]);
+
+    // --- Focus Re-sync ---
+    useEffect(() => {
+        const handleFocus = () => {
+            const now = Date.now();
+            if (now - lastFetchRef.current > 60000) {
+                console.log('Window focus: refreshing data...');
+                fetchData();
+                lastFetchRef.current = now;
+            }
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, []); // Empty deps as fetchData is stable? Or add it if needed. safely empty for now or disable lint.
 
     // --- ACTIONS ---
 
@@ -355,21 +455,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
             details,
             timestamp: new Date().toISOString()
         };
-        // Optimistic
+        // Optimistic update for UI
         setLogs(prev => [newLog, ...prev]);
-        // DB - wrapped in try-catch since audit_logs table may not exist or have permission issues
+        // Server-side audit log via API route (uses service_role to bypass RLS)
         try {
-            await supabase.from('audit_logs').insert({
-                id: newLog.id,
-                deal_id: dealId,
-                actor_id: actorId,
-                actor_name: newLog.actorName,
-                action,
-                details,
-                timestamp: newLog.timestamp
-            });
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+                fetch('/api/audit-log', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({ deal_id: dealId, action, details })
+                }).catch(err => console.warn('Audit log API call failed (non-critical):', err));
+            }
         } catch (error) {
-            console.warn('Failed to log to audit_logs (table may not exist):', error);
+            console.warn('Failed to send audit log (non-critical):', error);
         }
     };
 
@@ -549,9 +651,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const addTask = async (dealId: string, title: string, assignedTo: string, standardDocumentId?: string, expirationDate?: string) => {
-        const normalizedAssignedTo = assignedTo.toLowerCase().trim(); // Enforce lowercase
-        const taskId = crypto.randomUUID();
+    const addTask = async (dealId: string, title: string, assignedToEmail: string, assignedParticipantId: string, standardDocumentId?: string, expirationDate?: string, customId?: string) => {
+        const normalizedAssignedTo = assignedToEmail.toLowerCase().trim();
+        const taskId = customId || crypto.randomUUID();
+
+        // No need to lookup participant, we have it explicitly
+        // Logic simplified to use passed ID directly
+        // const assignedParticipantId = matchedParticipant?.id || null; // <--- REMOVE THIS
+
+        // We ensure assignedParticipantId is passed, or handle if it's empty string/null
+        const finalParticipantId = assignedParticipantId || null;
+
         // We need to construct the "Raw" task (DB shape) for the optimistic update
         // because the main useEffect maps rawTasks (DB shape) to Task (Client shape)
         const newRawTask: any = {
@@ -560,6 +670,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             title_en: title,
             title_bg: title, // Fallback
             assigned_to: normalizedAssignedTo,
+            assigned_participant_id: finalParticipantId,
             status: 'pending',
             required: true,
             standard_document_id: standardDocumentId,
@@ -569,9 +680,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
             comments: []
         };
 
-        // We also construct the Client Shape in case we need it, but mostly we update rawTasks
-        // The mapping logic in useEffect will handle converting newRawTask -> client Task
-
         try {
             const { error } = await supabase.from('tasks').insert({
                 id: taskId,
@@ -579,6 +687,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 title_en: title,
                 title_bg: title,
                 assigned_to: normalizedAssignedTo,
+                assigned_participant_id: finalParticipantId,
                 status: 'pending',
                 required: true,
                 standard_document_id: standardDocumentId,
@@ -586,16 +695,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 created_at: newRawTask.created_at
             });
 
-            if (error) throw error;
+            if (error) {
+                // IDEMPOTENCY CHECK: If conflict (409/23505), check if it's the same task ID
+                if (error.code === '23505' || error.code === '409') {
+                    console.log('[DEBUG] Task creation 409 Conflict. Checking if task exists...', taskId);
 
+                    // If we passed a customID, we likely double-submitted. 
+                    // Verify if the task exists in DB with this ID.
+                    const { data: existing } = await supabase.from('tasks').select('id').eq('id', taskId).single();
+                    if (existing) {
+                        console.log('[DEBUG] Task already exists. Treating as success.');
+                        // Ensure local state has it (in case of race where optimistic update missed)
+                        setRawTasks(prev => {
+                            if (prev.find(t => t.id === taskId)) return prev;
+                            return [newRawTask, ...prev];
+                        });
+                        addNotification('info', 'Task Exists', 'Requirement already created.');
+                        return; // Exit success
+                    } else {
+                        // Conflict was NOT on ID (maybe unique title constraint?)
+                        console.warn('[DEBUG] Conflict was NOT on ID. Re-throwing.', error);
+                        throw error;
+                    }
+                }
+                throw error;
+            }
+
+            // Success path
             setRawTasks(prev => [newRawTask, ...prev]);
             logAction(dealId, 'u_lawyer', 'ADDED_TASK', `Added task "${title}"`);
             addNotification('success', 'Task Added', 'Requirement created successfully.');
+
+            if (!finalParticipantId) {
+                console.warn(`Task created but assigned_participant_id is NULL (no participant found for email: ${normalizedAssignedTo}). Participant won't see this task until linked.`);
+                addNotification('warning', 'Assignment Warning', `No participant found for "${normalizedAssignedTo}". The participant won't see this task until they are invited and linked.`);
+            }
         } catch (error: any) {
             console.error('Failed to add task (FULL ERROR):', JSON.stringify(error, null, 2));
-            console.error('Error message:', error.message);
-            console.error('Error details:', error.details);
-            console.error('Error hint:', error.hint);
             addNotification('error', 'Failed to add task', error.message || 'Database error');
             throw error;
         }
@@ -743,10 +879,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 throw new Error(data.error || 'Failed to invite user');
             }
 
-            // Update with real ID if available
-            if (data.userId) {
-                setRawUsers(prev => prev.map(u => u.id === tempId ? { ...u, id: data.userId } : u));
-            }
+            // Sync with backend immediately to ensure accurate state
+            await fetchData();
 
             addNotification('success', 'User Invited', `${newUser.name} has been invited as a ${newUser.role}.`);
             return data.userId || tempId;
@@ -1035,6 +1169,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     const uploadDocument = async (taskId: string, file: File, uploadedBy: string) => {
+        console.log(`[DEBUG] uploadDocument called for task ${taskId}, file: ${file.name}, by: ${uploadedBy}`);
+        if (!taskId) {
+            addNotification('error', 'Upload Error', 'You must upload a document under a specific task.');
+            return;
+        }
+
         try {
             // 1. Upload to Storage
             const fileExt = file.name.split('.').pop();
@@ -1047,45 +1187,63 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
             if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
-            // 2. Get Public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('documents')
-                .getPublicUrl(filePath);
 
-            // 3. Create Document Object
+
+            // 2. Insert into 'documents' table (Required for Signed URLs)
+            const docId = crypto.randomUUID();
+            const now = new Date().toISOString();
+
+            // Create Document Object (Optimistic)
             const newDoc: DealDocument = {
-                id: crypto.randomUUID(),
+                id: docId,
                 title_en: file.name,
                 title_bg: file.name,
-                url: publicUrl,
+                url: filePath, // Store path, NOT public URL
                 uploadedBy: uploadedBy,
-                status: 'verified', // Auto-verify for now so it's visible
-                uploadedAt: new Date().toISOString()
+                status: 'verified', // Auto-verify for now
+                uploadedAt: now
             };
 
-            // 4. Update Task in DB (JSONB append)
-            // Fetch current task to get existing docs
-            const task = rawTasks.find(t => t.id === taskId);
-            const currentDocs = task?.documents || [];
-            const updatedDocs = [...currentDocs, newDoc];
+            const dbDoc = {
+                id: docId,
+                deal_id: activeDealId,
+                task_id: taskId,
+                url: filePath,
+                title_en: file.name,
+                title_bg: file.name,
+                uploaded_by: uploadedBy,
+                status: 'verified',
+                uploaded_at: now
+            };
 
-            const { error: dbError } = await supabase
-                .from('tasks')
-                .update({ documents: updatedDocs })
-                .eq('id', taskId);
+            const { error: insertError } = await supabase
+                .from('documents')
+                .insert(dbDoc);
 
-            if (dbError) throw new Error(`DB Update failed: ${dbError.message}`);
+            if (insertError) {
+                console.error('Failed to insert into documents table:', insertError);
+                throw new Error(`DB Insert failed: ${insertError.message}`);
+            }
 
-            // 5. Optimistic Update
-            setRawTasks(prev => prev.map(t => {
-                if (t.id === taskId) {
-                    return { ...t, documents: updatedDocs };
-                }
-                return t;
-            }));
+            // --- TEMP DISABLED FOR DEBUGGING LAG ---
+            // 3. Update parent task to pending_review
+            // const { error: taskError } = await supabase
+            //     .from('tasks')
+            //     .update({ status: 'pending_review' })
+            //     .eq('id', taskId);
+            //
+            // if (taskError) {
+            //     console.error('Failed to update task status:', taskError);
+            // }
+            // ----------------------------------------
+
+            // 4. Optimistic Update (Raw Documents & Tasks)
+            setRawDocuments(prev => [...prev, dbDoc]);
+            setRawTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'pending_review' } : t));
 
             addNotification('success', 'Document Uploaded', `${file.name} saved.`);
             logAction(activeDealId, uploadedBy, 'UPLOADED_DOC', file.name);
+            console.log('[DEBUG] Document inserted successfully:', dbDoc);
 
         } catch (error: any) {
             console.error('Upload error:', error);
@@ -1093,44 +1251,57 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const updateLocalDocStatus = (taskId: string, docId: string, updates: any) => {
-        setRawTasks(prev => prev.map(t => {
-            if (t.id !== taskId) return t;
-            return {
-                ...t,
-                documents: t.documents.map((d: any) => d.id === docId ? { ...d, ...updates } : d)
-            };
-        }));
+    const updateLocalDocRow = (docId: string, updates: any) => {
+        setRawDocuments(prev => prev.map(d => d.id === docId ? { ...d, ...updates } : d));
     };
 
-    const verifyDocument = (actorId: string, taskId: string, docId: string) => {
-        const updates = { status: 'verified', verified_at: new Date().toISOString() };
-        updateLocalDocStatus(taskId, docId, updates);
-        supabase.from('documents').update(updates).eq('id', docId).then();
-        logAction(activeDealId, actorId, 'VERIFIED_DOC', `Verified document`);
-    };
-
-    const releaseDocument = (actorId: string, taskId: string, docId: string) => {
-        const updates = { status: 'released' };
-        updateLocalDocStatus(taskId, docId, updates);
-
-        // Also mark task as completed?
+    const verifyDocument = async (actorId: string, taskId: string, docId: string) => {
+        // Optimistic update
+        updateLocalDocRow(docId, { status: 'verified', verified_at: new Date().toISOString() });
         setRawTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed' } : t));
-        supabase.from('tasks').update({ status: 'completed' }).eq('id', taskId).then();
 
-        supabase.from('documents').update(updates).eq('id', docId).then();
-        logAction(activeDealId, actorId, 'RELEASED_DOC', `Released document`);
+        try {
+            await workflowVerifyDocument(docId, activeDealId);
+            logAction(activeDealId, actorId, 'VERIFIED_DOC', `Verified document`);
+        } catch (error: any) {
+            console.error('Verify failed:', error);
+            addNotification('error', 'Verify Failed', error.message);
+            // Revert? (Ideally yes, but let's rely on refresh/realtime correction for now)
+            fetchData();
+        }
     };
 
-    const rejectDocument = (actorId: string, taskId: string, docId: string, reasonEn: string, reasonBg: string) => {
-        const updates = {
+    const releaseDocument = async (actorId: string, taskId: string, docId: string) => {
+        // Optimistic
+        updateLocalDocRow(docId, { status: 'released' });
+        setRawTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed' } : t));
+
+        try {
+            await workflowReleaseDocument(docId, activeDealId);
+            logAction(activeDealId, actorId, 'RELEASED_DOC', `Released document`);
+        } catch (error: any) {
+            console.error('Release failed:', error);
+            addNotification('error', 'Release Failed', error.message);
+            fetchData();
+        }
+    };
+
+    const rejectDocument = async (actorId: string, taskId: string, docId: string, reasonEn: string, reasonBg: string) => {
+        // Optimistic
+        updateLocalDocRow(docId, {
             status: 'rejected',
             rejection_reason_en: reasonEn,
             rejection_reason_bg: reasonBg
-        };
-        updateLocalDocStatus(taskId, docId, updates);
-        supabase.from('documents').update(updates).eq('id', docId).then();
-        logAction(activeDealId, actorId, 'REJECTED_DOC', `Rejected document: ${reasonEn}`);
+        });
+
+        try {
+            await workflowRejectDocument(docId, activeDealId, reasonEn, reasonBg);
+            logAction(activeDealId, actorId, 'REJECTED_DOC', `Rejected document: ${reasonEn}`);
+        } catch (error: any) {
+            console.error('Reject failed:', error);
+            addNotification('error', 'Reject Failed', error.message);
+            fetchData();
+        }
     };
 
     const addStandardDocument = async (name: string, description: string, createdBy: string) => {
@@ -1290,28 +1461,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const inviteParticipant = async (dealId: string, email: string, name: string, role: Role, isInternal: boolean = false) => {
+    const inviteParticipant = async (dealId: string, email: string, name: string, role: Role, isInternal: boolean = false, resend: boolean = false) => {
         try {
-            console.log('📧 Inviting user:', { dealId, email, name, role });
+            console.log('📧 Inviting user via /api/participants/invite:', { dealId, email, name, role, resend });
 
             if (!dealId) throw new Error('Deal ID is required to invite user');
 
-            // Use Next.js API route instead of Edge Function
-            const response = await fetch('/api/invite-user', {
+            // Get current session token for auth
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) throw new Error('Not authenticated');
+
+            const response = await fetch('/api/participants/invite', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
                 },
                 body: JSON.stringify({
                     dealId,
                     email,
-                    fullName: name,
-                    role: role,
-                    isInternal: isInternal,
-                    // Default permissions for re-invites
-                    canViewDocuments: true,
-                    canDownload: true,
-                    documentPermissions: { canViewRoles: [] }
+                    name,
+                    participantRole: role,
+                    resend
                 })
             });
 
@@ -1322,12 +1493,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 throw new Error(data.error || 'Failed to send invitation');
             }
 
-            // Check if user already exists
-            if (data.alreadyExists) {
-                console.log('User already registered, assume invite sent/resent or already active.');
-            }
-
-            addNotification('success', 'Invitation Sent', `Invitation email sent to ${email}`);
+            // Always show success (idempotent endpoint)
+            const toastMsg = data.message === 'resent'
+                ? `Invitation resent to ${email}`
+                : data.message === 'already-linked'
+                    ? `${email} is already linked — invite resent`
+                    : `Invitation sent to ${email}`;
+            addNotification('success', 'Invitation Sent', toastMsg);
             return true;
         } catch (error: any) {
             console.error('❌ Invite Error:', error);
@@ -1493,7 +1665,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         deleteStandardDocument,
         restoreStandardDocuments,
         globalParticipants: enrichedGlobalParticipants || [],
-        dealParticipants: rawDealParticipants,
+        rawDealParticipants: rawDealParticipants,
+        dealParticipants: rawDealParticipants, // Alias or distinct depending on future
         createGlobalParticipant,
         updateGlobalParticipant,
         deleteGlobalParticipant,

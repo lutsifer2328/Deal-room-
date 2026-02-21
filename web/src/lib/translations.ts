@@ -240,8 +240,9 @@ export const translations = {
         // Statuses
         "status.pending": "Pending",
         "status.in_review": "In Review",
+        "status.pending_review": "Under Review",
         "status.completed": "Completed",
-        "status.rejected": "Rejected",
+        "status.rejected": "Action Required",
         "status.verified": "Verified",
         "status.released": "Released",
         "status.private": "Private",
@@ -249,6 +250,14 @@ export const translations = {
         "status.on_hold": "On Hold",
         "status.closed": "Closed",
         "status.draft": "Draft",
+
+        // Deal Welcome Banner
+        "deal.welcome.title": "Welcome to your Deal Room",
+        "deal.welcome.text": "Please review the required documents below. Contact your agent if you need assistance.",
+
+        // Soft Rejection Labels
+        "deal.actionRequired": "Action Required",
+        "deal.underReview": "Under Review",
 
         // Common
         "common.loading": "Loading...",
@@ -503,8 +512,9 @@ export const translations = {
         // Statuses
         "status.pending": "Изчакващ",
         "status.in_review": "В преглед",
+        "status.pending_review": "В процес на преглед",
         "status.completed": "Завършен",
-        "status.rejected": "Отхвърлен",
+        "status.rejected": "Изисква се действие",
         "status.verified": "Потвърден",
         "status.released": "Освободен",
         "status.private": "Частен",
@@ -512,6 +522,14 @@ export const translations = {
         "status.on_hold": "Задържан",
         "status.closed": "Приключен",
         "status.draft": "Чернови",
+
+        // Deal Welcome Banner
+        "deal.welcome.title": "Добре дошли във вашата Сделка",
+        "deal.welcome.text": "Моля, прегледайте необходимите документи по-долу. Свържете се с вашия брокер, ако имате нужда от съдействие.",
+
+        // Soft Rejection Labels
+        "deal.actionRequired": "Изисква се действие",
+        "deal.underReview": "В процес на преглед",
 
         // Common
         "common.loading": "Зареждане...",

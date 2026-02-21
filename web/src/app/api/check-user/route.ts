@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/limiter';
 
 export async function POST(request: Request) {
     try {
@@ -19,6 +20,17 @@ export async function POST(request: Request) {
                 }
             }
         );
+
+        // --- Rate Limiting (Prevent email enumeration/spam) ---
+        // Basic protection: 30 requests per 5 minutes per IP
+        const reqIp = request.headers.get('x-forwarded-for') || 'unknown-ip';
+        const rateKey = `check-user:${reqIp}`;
+        const { ok, remaining } = await rateLimit(rateKey, 30, 300);
+
+        if (!ok) {
+            console.warn(`[RATE LIMIT] Too many user checks from ${reqIp}`);
+            return NextResponse.json({ error: 'Too many requests. Please slow down.' }, { status: 429 });
+        }
 
         // 1. Check public.users (CRM Source of Truth)
         const { data: user, error } = await supabaseAdmin

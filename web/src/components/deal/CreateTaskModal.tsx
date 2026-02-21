@@ -3,7 +3,7 @@
 import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
 import { X, User } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Deal, Participant } from '@/lib/types';
 import AutocompleteInput from '@/components/common/AutocompleteInput';
 import { useTranslation, TranslationKey } from '@/lib/useTranslation';
@@ -18,6 +18,7 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
     const [selectedStandardDocId, setSelectedStandardDocId] = useState<string | undefined>(undefined);
     const [expirationDate, setExpirationDate] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = useRef(false);
 
     if (!user || (user.role !== 'lawyer' && user.role !== 'admin')) return null;
 
@@ -52,6 +53,8 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (isSubmittingRef.current) return;
+
         if (!selectedParticipantId) {
             alert(t('modal.createTask.alertParticipant'));
             return;
@@ -63,15 +66,28 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
             return;
         }
 
+        isSubmittingRef.current = true;
         setIsSubmitting(true);
 
+        // Generate ID here to ensure idempotency (if user clicks twice or network retry happens)
+        const newTaskId = crypto.randomUUID();
+
         try {
-            await addTask(deal.id, title, selectedParticipant.id, selectedStandardDocId, expirationDate || undefined);
+            await addTask(
+                deal.id,
+                title,
+                selectedParticipant.email, // AssignedTo (Email)
+                selectedParticipant.id, // AssignedParticipantId
+                selectedStandardDocId,
+                expirationDate || undefined,
+                newTaskId
+            );
             onClose();
         } catch (error) {
             console.error('Failed to add task', error);
             // Notification handled in store
         } finally {
+            isSubmittingRef.current = false;
             setIsSubmitting(false);
         }
     };
