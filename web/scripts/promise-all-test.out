@@ -1,0 +1,13 @@
+Testing identical Promise.all fetch...
+✅ Logged in as brand_new_admin (2ffbfb50-6af8-4956-b9b2-16fbe8f52897)
+✅ Fetched 54 users
+✅ Fetched 82 deals
+✅ Fetched 87 tasks
+✅ Fetched 44 parts
+✅ Fetched 112 dps
+✅ Fetched 18 stdDocs
+✅ Fetched 10 logs
+✅ Fetched 4 contracts
+✅ Fetched 38 docs
+
+🎉 Promise.all succeeded perfectly!

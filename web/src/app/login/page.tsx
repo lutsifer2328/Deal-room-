@@ -24,8 +24,8 @@ export default function LoginPage() {
             setError(loginError.message || 'Invalid email or password');
             setLoading(false);
         } else {
-            // Successful login will trigger auth state change and redirect
-            router.push('/dashboard');
+            // Successful login will trigger auth state change and let the root page handle redirect logic
+            router.push('/');
         }
     };
 

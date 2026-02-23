@@ -14,15 +14,33 @@ export default function UserManagementTable() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
 
+    // Inline confirmation state (replaces window.confirm which can be suppressed)
+    const [pendingAction, setPendingAction] = useState<{
+        type: 'delete' | 'deactivate' | 'activate';
+        userId: string;
+        userName: string;
+    } | null>(null);
+    const [actionLoading, setActionLoading] = useState(false);
+
     // Filter to show only organizational users
     const organizationalUsers = Object.values(users).filter(u =>
         isOrganizationalRole(u.role)
     );
 
-    const handleDeactivate = (userId: string) => {
-        if (!currentUser) return;
-        if (confirm('Are you sure you want to deactivate this user?')) {
-            deactivateUser(userId, currentUser.id);
+    const handleConfirmAction = async () => {
+        if (!pendingAction || !currentUser) return;
+        setActionLoading(true);
+        try {
+            if (pendingAction.type === 'delete') {
+                await deleteUser(pendingAction.userId);
+            } else if (pendingAction.type === 'deactivate') {
+                await deactivateUser(pendingAction.userId, currentUser.id);
+            } else if (pendingAction.type === 'activate') {
+                await updateUser(pendingAction.userId, { isActive: true });
+            }
+        } finally {
+            setActionLoading(false);
+            setPendingAction(null);
         }
     };
 
@@ -140,18 +158,14 @@ export default function UserManagementTable() {
                                             <>
                                                 {user.isActive ? (
                                                     <button
-                                                        onClick={() => handleDeactivate(user.id)}
+                                                        onClick={() => setPendingAction({ type: 'deactivate', userId: user.id, userName: user.name })}
                                                         className="text-amber-500 hover:text-amber-700 font-bold mr-3 transition-colors text-sm"
                                                     >
                                                         Deactivate
                                                     </button>
                                                 ) : (
                                                     <button
-                                                        onClick={() => {
-                                                            if (currentUser && confirm('Reactivate this user?')) {
-                                                                updateUser(user.id, { isActive: true });
-                                                            }
-                                                        }}
+                                                        onClick={() => setPendingAction({ type: 'activate', userId: user.id, userName: user.name })}
                                                         className="text-teal hover:text-teal/80 font-bold mr-3 transition-colors text-sm"
                                                     >
                                                         Activate
@@ -159,11 +173,7 @@ export default function UserManagementTable() {
                                                 )}
 
                                                 <button
-                                                    onClick={async () => {
-                                                        if (confirm('PERMANENTLY DELETE this user? This cannot be undone.')) {
-                                                            await deleteUser(user.id);
-                                                        }
-                                                    }}
+                                                    onClick={() => setPendingAction({ type: 'delete', userId: user.id, userName: user.name })}
                                                     className="text-red-500 hover:text-red-700 font-bold transition-colors text-sm"
                                                 >
                                                     Delete
@@ -181,6 +191,75 @@ export default function UserManagementTable() {
             {/* Modals - Rendered outside the main container to avoid clipping */}
             {showAddModal && <AddUserModal onClose={() => setShowAddModal(false)} />}
             {editingUser && <EditUserModal user={editingUser} onClose={() => setEditingUser(null)} />}
+
+            {/* Inline Confirmation Modal (replaces native confirm()) */}
+            {pendingAction && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setPendingAction(null)}>
+                    <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md mx-4 animate-in fade-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-3 mb-4">
+                            {pendingAction.type === 'delete' ? (
+                                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                                    <span className="text-red-600 text-lg">🗑️</span>
+                                </div>
+                            ) : pendingAction.type === 'deactivate' ? (
+                                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                                    <span className="text-amber-600 text-lg">⚠️</span>
+                                </div>
+                            ) : (
+                                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                    <span className="text-green-600 text-lg">✅</span>
+                                </div>
+                            )}
+                            <h3 className="text-lg font-bold text-navy-primary">
+                                {pendingAction.type === 'delete' ? 'Delete User' :
+                                    pendingAction.type === 'deactivate' ? 'Deactivate User' : 'Activate User'}
+                            </h3>
+                        </div>
+
+                        <p className="text-sm text-gray-600 mb-2">
+                            {pendingAction.type === 'delete' && (
+                                <>Are you sure you want to <strong className="text-red-600">permanently delete</strong> <strong>{pendingAction.userName}</strong>? This action cannot be undone.</>
+                            )}
+                            {pendingAction.type === 'deactivate' && (
+                                <>Are you sure you want to <strong className="text-amber-600">deactivate</strong> <strong>{pendingAction.userName}</strong>? They will immediately lose access to the system.</>
+                            )}
+                            {pendingAction.type === 'activate' && (
+                                <>Are you sure you want to <strong className="text-green-600">reactivate</strong> <strong>{pendingAction.userName}</strong>? They will regain access to the system.</>
+                            )}
+                        </p>
+
+                        {pendingAction.type === 'delete' && (
+                            <p className="text-xs text-gray-400 mb-4 bg-gray-50 p-2 rounded-lg">
+                                Note: Users who own Deals, Tasks, or Audit Logs cannot be deleted. Use Deactivate instead.
+                            </p>
+                        )}
+
+                        <div className="flex justify-end gap-3 mt-4">
+                            <button
+                                onClick={() => setPendingAction(null)}
+                                disabled={actionLoading}
+                                className="px-4 py-2 text-sm font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmAction}
+                                disabled={actionLoading}
+                                className={`px-4 py-2 text-sm font-bold text-white rounded-xl transition-colors ${pendingAction.type === 'delete'
+                                        ? 'bg-red-500 hover:bg-red-600'
+                                        : pendingAction.type === 'deactivate'
+                                            ? 'bg-amber-500 hover:bg-amber-600'
+                                            : 'bg-green-500 hover:bg-green-600'
+                                    }`}
+                            >
+                                {actionLoading ? 'Processing...' :
+                                    pendingAction.type === 'delete' ? 'Yes, Delete' :
+                                        pendingAction.type === 'deactivate' ? 'Yes, Deactivate' : 'Yes, Activate'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

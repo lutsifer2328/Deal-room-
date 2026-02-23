@@ -86,11 +86,11 @@ export default function SearchAllDocumentsTab() {
     if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         filteredDocuments = filteredDocuments.filter(item =>
-            item.doc.title_en.toLowerCase().includes(query) ||
-            item.taskTitle.toLowerCase().includes(query) ||
-            item.dealTitle.toLowerCase().includes(query) ||
-            item.dealAddress.toLowerCase().includes(query) ||
-            item.participantName.toLowerCase().includes(query)
+            (item.doc.title_en || '').toLowerCase().includes(query) ||
+            (item.taskTitle || '').toLowerCase().includes(query) ||
+            (item.dealTitle || '').toLowerCase().includes(query) ||
+            (item.dealAddress || '').toLowerCase().includes(query) ||
+            (item.participantName || '').toLowerCase().includes(query)
         );
     }
 

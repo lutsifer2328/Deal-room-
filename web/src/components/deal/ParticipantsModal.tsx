@@ -1,18 +1,21 @@
 'use client';
 
 import { Deal, Participant, Role, GlobalParticipant } from '@/lib/types';
-import { X, UserPlus, Trash2, Mail, Phone, User, Edit2, Check, XCircle, Eye, Download, Send } from 'lucide-react';
+import { UserPlus, Trash2, Mail, Phone, User, Edit2, Check, XCircle, Eye, Download, Send, Copy, CheckCheck } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal, ModalHeader, ModalContent, ModalFooter } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useData } from '@/lib/store';
-import { generateInviteToken } from '@/lib/invitations';
+
 import DuplicateDetectionModal from '@/components/participants/DuplicateDetectionModal';
+import { useTranslation } from '@/lib/useTranslation';
+import { TranslationKey } from '@/lib/translations';
 
 export default function ParticipantsModal({ deal, onClose, isOpen = true }: { deal: Deal, onClose: () => void, isOpen?: boolean }) {
-    const { addParticipant, removeParticipant, updateParticipant, deals, checkDuplicateEmail, getParticipantDeals, users, inviteParticipant, refreshData } = useData();
+    const { removeParticipant, updateParticipant, deals, getParticipantDeals, users, inviteParticipant, refreshData } = useData();
+    const { t } = useTranslation();
 
     // Get fresh deal data from store to see newly added participants
     const freshDeal = (deal && deals) ? (deals.find(d => d && d.id === deal.id) || deal) : deal;
@@ -66,18 +69,30 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
             .map(p => p.role)
     ));
 
-    const [sendingInvite, setSendingInvite] = useState(false);
+    const [, setSendingInvite] = useState(false);
     const [inviteSuccess, setInviteSuccess] = useState('');
+    const [inviteLink, setInviteLink] = useState<string | null>(null);
+    const [linkCopied, setLinkCopied] = useState(false);
 
     // Duplicate detection state
     const [duplicateParticipant, setDuplicateParticipant] = useState<GlobalParticipant | null>(null);
     const [showDuplicateModal, setShowDuplicateModal] = useState(false);
-    const [pendingParticipantData, setPendingParticipantData] = useState<any>(null);
+    const [pendingParticipantData, setPendingParticipantData] = useState<{
+        email: string;
+        fullName: string;
+        phone: string;
+        agency: string;
+        role: Role;
+        userId: string | undefined;
+        canViewDocuments: boolean;
+        canDownload: boolean;
+        documentPermissions: { canViewRoles: Role[] };
+    } | null>(null);
 
-    const [confirmedDuplicateEmail, setConfirmedDuplicateEmail] = useState<string | null>(null);
+    const [, setConfirmedDuplicateEmail] = useState<string | null>(null);
 
-    const [smartUser, setSmartUser] = useState<any>(null);
-    const [isCheckingUser, setIsCheckingUser] = useState(false);
+    const [smartUser, setSmartUser] = useState<{ id: string; email: string; name?: string; phone?: string; role?: string } | null>(null);
+    const [, setIsCheckingUser] = useState(false);
 
     const handleEmailBlur = async () => {
         const emailToCheck = newParticipant.email.trim();
@@ -144,14 +159,14 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
 
         if (isExistingUser) {
             console.log('✅ Linking existing user:', smartUser.email);
-            await proceedWithAddingParticipant(newParticipant, true);
+            await proceedWithAddingParticipant(newParticipant);
         } else {
             console.log('✅ Inviting new user:', newParticipant.email);
-            await proceedWithAddingParticipant(newParticipant, false);
+            await proceedWithAddingParticipant(newParticipant);
         }
     };
 
-    const proceedWithAddingParticipant = async (participantData: any, isExisting: boolean) => {
+    const proceedWithAddingParticipant = async (participantData: typeof defaultParticipantState) => {
         if (!deal?.id) return;
 
         setSendingInvite(true);
@@ -187,7 +202,13 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                 ? `✅ ${participantData.fullName} re-linked to deal (invite sent)`
                 : `✅ ${participantData.fullName} invited to deal`;
             setInviteSuccess(successMsg);
-            setTimeout(() => setInviteSuccess(''), 5000);
+
+            // Surface invite link for manual copy (DNS/email fallback)
+            if (result.inviteLink) {
+                setInviteLink(result.inviteLink);
+                setLinkCopied(false);
+            }
+            setTimeout(() => { setInviteSuccess(''); setInviteLink(null); }, 30000);
 
             // Close the add form and reset
             setIsAddingNew(false);
@@ -210,9 +231,10 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
             await new Promise(resolve => setTimeout(resolve, 500));
             console.log('🔄 Data refreshed after adding participant');
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Add participant error:', error);
-            alert(error.message);
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            alert(message);
         } finally {
             setSendingInvite(false);
         }
@@ -244,7 +266,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
 
         setShowDuplicateModal(false);
         // Force create new (isExisting = false)
-        await proceedWithAddingParticipant(pendingParticipantData, false);
+        await proceedWithAddingParticipant(pendingParticipantData);
         setDuplicateParticipant(null);
         setPendingParticipantData(null);
     };
@@ -367,10 +389,29 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                         initial={{ opacity: 0, height: 0, marginTop: 0 }}
                         animate={{ opacity: 1, height: 'auto', marginTop: 16 }}
                         exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                        className="mx-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2 flex-shrink-0 overflow-hidden"
+                        className="mx-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm flex-shrink-0 overflow-hidden"
                     >
-                        <Send className="w-4 h-4" />
-                        {inviteSuccess}
+                        <div className="flex items-center gap-2">
+                            <Send className="w-4 h-4" />
+                            {inviteSuccess}
+                        </div>
+                        {inviteLink && (
+                            <div className="mt-2 flex items-center gap-2">
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            await navigator.clipboard.writeText(inviteLink);
+                                            setLinkCopied(true);
+                                            setTimeout(() => setLinkCopied(false), 3000);
+                                        } catch { alert(inviteLink); }
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal/10 text-teal text-xs font-bold rounded-lg hover:bg-teal/20 transition-colors border border-teal/20"
+                                >
+                                    {linkCopied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                                </button>
+                                <span className="text-xs text-text-light">{t('modal.inviteParticipant.help' as TranslationKey)}</span>
+                            </div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -386,7 +427,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                             className="p-4 bg-teal/5 rounded-lg border-2 border-teal/20"
                         >
                             <h3 className="text-sm font-bold text-teal uppercase mb-3 flex items-center gap-2">
-                                <UserPlus className="w-4 h-4" /> Add New Participant
+                                <UserPlus className="w-4 h-4" /> {t('wizard.section.add')}
                             </h3>
 
                             {/* Toggle: Internal vs External */}
@@ -461,11 +502,11 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                         onChange={(e) => setNewParticipant({ ...newParticipant, role: e.target.value as Role })}
                                                         className="flex-1 bg-transparent text-sm font-bold text-navy-primary outline-none"
                                                     >
-                                                        <option value="agent">Broker (Agent)</option>
-                                                        <option value="staff">Staff Support</option>
-                                                        <option value="lawyer">Lawyer</option>
-                                                        <option value="admin">Admin</option>
-                                                        <option value="viewer">Viewer</option>
+                                                        <option value="agent">{t('role.agent')}</option>
+                                                        <option value="staff">{t('role.staff')}</option>
+                                                        <option value="lawyer">{t('role.attorney')}</option>
+                                                        <option value="admin">{t('role.admin')}</option>
+                                                        <option value="viewer">{t('role.viewer')}</option>
                                                     </select>
                                                 </div>
                                                 <p className="text-xs text-gray-500 mt-1">
@@ -519,12 +560,12 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                 onChange={(e) => setNewParticipant({ ...newParticipant, role: e.target.value as Role })}
                                                 className="w-full px-3 py-2 rounded border border-gray-300 text-sm bg-white outline-none"
                                             >
-                                                <option value="buyer">Buyer</option>
-                                                <option value="seller">Seller</option>
-                                                <option value="agent">Broker (Agent)</option>
-                                                <option value="attorney">Attorney</option>
-                                                <option value="notary">Notary</option>
-                                                <option value="bank_representative">Bank Representative</option>
+                                                <option value="buyer">{t('role.buyer')}</option>
+                                                <option value="seller">{t('role.seller')}</option>
+                                                <option value="agent">{t('role.agent')}</option>
+                                                <option value="attorney">{t('role.attorney')}</option>
+                                                <option value="notary">{t('role.notary')}</option>
+                                                <option value="bank_representative">{t('role.bank_representative')}</option>
                                             </select>
                                         </div>
                                         {/* Agency Field for Brokers */}
@@ -574,7 +615,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
 
                             {!newParticipant.canViewDocuments && availableRoles.length > 0 && (
                                 <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-3">
-                                    <p className="text-xs font-medium text-blue-800 mb-2">Select which roles' documents this person CAN view:</p>
+                                    <p className="text-xs font-medium text-blue-800 mb-2">Select which roles&apos; documents this person CAN view:</p>
                                     <div className="space-y-1">
                                         {availableRoles.map(role => (
                                             <label key={role} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-blue-100 p-2 rounded">
@@ -602,13 +643,13 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                     }}
                                     variant="ghost"
                                 >
-                                    Cancel
+                                    {t('wizard.btn.back')}
                                 </Button>
                                 <Button
                                     onClick={handleAddParticipant}
                                     variant="primary"
                                 >
-                                    Add Participant
+                                    {t('modal.addParticipant.submit')}
                                 </Button>
                             </div>
                         </motion.div>
@@ -618,7 +659,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                             variant="outline"
                             className="w-full py-3 border-dashed border-2 hover:bg-teal/5 flex gap-2"
                         >
-                            <UserPlus className="w-5 h-5" /> Add New Participant
+                            <UserPlus className="w-5 h-5" /> {t('wizard.section.add')}
                         </Button>
                     )}
 
@@ -667,12 +708,12 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                 onChange={(e) => setEditForm({ ...editForm, role: e.target.value as Role })}
                                                 className="w-full px-3 py-2 rounded border border-gray-300 text-sm bg-white outline-none"
                                             >
-                                                <option value="buyer">Buyer</option>
-                                                <option value="seller">Seller</option>
-                                                <option value="broker">Broker (Agent)</option>
-                                                <option value="attorney">Attorney</option>
-                                                <option value="notary">Notary</option>
-                                                <option value="bank_representative">Bank Representative</option>
+                                                <option value="buyer">{t('role.buyer')}</option>
+                                                <option value="seller">{t('role.seller')}</option>
+                                                <option value="broker">{t('role.agent')}</option>
+                                                <option value="attorney">{t('role.attorney')}</option>
+                                                <option value="notary">{t('role.notary')}</option>
+                                                <option value="bank_representative">{t('role.bank_representative')}</option>
                                             </select>
                                         </div>
                                     </div>
@@ -691,7 +732,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                     onChange={(e) => setEditForm({ ...editForm, canViewDocuments: e.target.checked })}
                                                     className="w-4 h-4"
                                                 />
-                                                <span className="font-medium">Can view ALL documents</span>
+                                                <span className="font-medium">{t('modal.inviteParticipant.canViewAll')}</span>
                                             </label>
 
                                             <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
@@ -702,13 +743,13 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                     className="w-4 h-4"
                                                 />
                                                 <Download className="w-4 h-4" />
-                                                <span className="font-medium">Can download documents</span>
+                                                <span className="font-medium">{t('modal.inviteParticipant.canDownload')}</span>
                                             </label>
                                         </div>
 
                                         {!editForm.canViewDocuments && availableRoles.length > 0 && (
                                             <div className="bg-blue-50 border border-blue-200 rounded p-3">
-                                                <p className="text-xs font-medium text-blue-800 mb-2">Select which roles&apos; documents this person CAN view:</p>
+                                                <p className="text-xs font-medium text-blue-800 mb-2">{t('modal.inviteParticipant.selectRoles')}</p>
                                                 <div className="space-y-1">
                                                     {availableRoles.map(role => (
                                                         <label key={role} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-blue-100 p-2 rounded">
@@ -719,9 +760,9 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                                 className="w-4 h-4"
                                                             />
                                                             <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase ${getRoleColor(role)}`}>
-                                                                {role.replace('_', ' ')}
+                                                                {t(`role.${role}` as TranslationKey) || role.replace('_', ' ')}
                                                             </span>
-                                                            documents
+                                                            {t('modal.inviteParticipant.documents')}
                                                         </label>
                                                     ))}
                                                 </div>
@@ -736,7 +777,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                             size="sm"
                                             className="flex gap-1"
                                         >
-                                            <XCircle className="w-4 h-4" /> Cancel
+                                            <XCircle className="w-4 h-4" /> {t('common.cancel')}
                                         </Button>
                                         <Button
                                             onClick={saveEdit}
@@ -744,7 +785,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                             size="sm"
                                             className="flex gap-1"
                                         >
-                                            <Check className="w-4 h-4" /> Save Changes
+                                            <Check className="w-4 h-4" /> {t('modal.inviteParticipant.saveChanges')}
                                         </Button>
                                     </div>
                                 </motion.div>

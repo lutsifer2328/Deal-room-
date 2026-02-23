@@ -2,7 +2,7 @@
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { createClient } from '@supabase/supabase-js';
+
 import { rateLimit } from '@/lib/limiter';
 
 export async function getDocumentSignedUrl(documentId: string, isDownload: boolean = false): Promise<{ url: string; error?: string }> {
@@ -60,18 +60,7 @@ export async function getDocumentSignedUrl(documentId: string, isDownload: boole
             return { url: '', error: 'Access denied or document not found' };
         }
 
-        // 3. Create a Service Role client for signing
-        // (Regular users cannot sign URLs for private buckets mostly)
-        const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY!,
-            {
-                auth: {
-                    autoRefreshToken: false,
-                    persistSession: false
-                }
-            }
-        );
+        // Removed supabaseAdmin creation as we now use supabaseUser with Storage RLS
 
         // 4. Generate the signed URL
         let downloadConfig: string | boolean | undefined = undefined;
@@ -90,7 +79,7 @@ export async function getDocumentSignedUrl(documentId: string, isDownload: boole
             downloadConfig = finalName;
         }
 
-        const { data: signedData, error: signError } = await supabaseAdmin
+        const { data: signedData, error: signError } = await supabaseUser
             .storage
             .from('documents')
             .createSignedUrl(doc.url, 60); // 60 seconds expiry

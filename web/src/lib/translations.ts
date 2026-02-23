@@ -4,10 +4,11 @@ export const translations = {
     en: {
         // Sidebar & Layout
         "nav.dealRoom": "Deal Room",
-        "nav.archive": "Archive",
+        "nav.archive": "Approvals",
         "nav.participants": "Participants",
         "nav.finances": "Finances",
         "nav.settings": "Settings",
+        "nav.auditLog": "Audit Log",
         "nav.loggedInAs": "Logged in as",
 
         // Dashboard
@@ -36,6 +37,23 @@ export const translations = {
         "dashboard.phase.preliminary_contract": "Preliminary Contract",
         "dashboard.phase.final_review": "Final Review",
         "dashboard.phase.closing": "Closing",
+
+        // Dashboard Pro
+        "dashboardPro.operationsLabel": "Operations Command Center",
+        "dashboardPro.pulseTitle": "Executive Pulse",
+        "dashboardPro.pulseSubtitle": "Live portfolio summary",
+        "dashboardPro.totalVolume": "Total Portfolio Volume",
+        "dashboardPro.totalVolumeSub": "Sum of all active deal values",
+        "dashboardPro.activePipeline": "Active Pipeline",
+        "dashboardPro.activePipelineSub": "Deals currently in progress",
+        "dashboardPro.dealsOnHold": "Deals on Hold",
+        "dashboardPro.closingSoon": "Closing Soon",
+        "dashboardPro.closingSoonSub": "Deals closing in ≤ 30 days",
+        "dashboardPro.urgentActions": "Urgent Actions",
+        "dashboardPro.urgentActionsSub": "Pending tasks and approvals",
+        "dashboardPro.viewRegistry": "View Registry",
+
+        "deals.newDeal": "New Deal",
 
         // Participants
         "participants.title": "Participants",
@@ -135,6 +153,16 @@ export const translations = {
         "modal.addParticipant.submit": "Add Participant",
         "modal.addParticipant.errorRequired": "Name and email are required",
 
+        "modal.inviteParticipant.title": "Manage Participants & Permissions",
+        "modal.inviteParticipant.copyLink": "📋 Copy Invite Link",
+        "modal.inviteParticipant.copied": "Copied!",
+        "modal.inviteParticipant.permissions": "Permissions:",
+        "modal.inviteParticipant.canViewAll": "Can view ALL documents",
+        "modal.inviteParticipant.canDownload": "Can download documents",
+        "modal.inviteParticipant.selectRoles": "Select which roles' documents this person CAN view:",
+        "modal.inviteParticipant.documents": "documents",
+        "modal.inviteParticipant.saveChanges": "Save Changes",
+
         "modal.createTask.title": "Add Document Requirement",
         "modal.createTask.docTitle": "Document Title *",
         "modal.createTask.placeholderTitle": "e.g. Proof of Identity, Bank Statement, Tax Return",
@@ -214,8 +242,12 @@ export const translations = {
         "participant.deleteConfirm": "Are you sure you want to permanently delete this participant?",
         "participant.back": "Back to Participants",
 
-        // Settings
         "settings.title": "Settings",
+        "settings.health.title": "System Health & Recovery",
+        "settings.health.desc": "Tools to manage system consistency and data integrity.",
+        "settings.health.forceSync": "Force Profile Synchronization",
+        "settings.health.forceSyncDesc": "Re-fetches your user profile and updates local session metadata. Use this if you see \"Access Denied\" or incorrect roles.",
+        "settings.health.relaunch": "Relaunch Application",
 
         // Common
         "common.saving": "Saving...",
@@ -236,6 +268,28 @@ export const translations = {
         "settings.perm.exportData": "Export data",
         "settings.perm.readOnly": "Read-only access",
         "settings.general.comingSoon": "General settings coming soon...",
+
+        // Audit Log Actions
+        "audit.action.CREATED_DEAL": "Created Deal",
+        "audit.action.ADDED_TASK": "Added Task",
+        "audit.action.VERIFIED_DOC": "Verified Document",
+        "audit.action.RELEASED_DOC": "Released Document",
+        "audit.action.REJECTED_DOC": "Rejected Document",
+        "audit.action.UPLOADED_DOC": "Uploaded Document",
+        "audit.action.DELETED_DOC": "Deleted Document",
+        "audit.action.INVITED_USER": "Invited User",
+
+        "audit.filter.all": "All Actions",
+        "audit.filter.auth": "Authentication",
+        "audit.filter.deals": "Deals",
+        "audit.filter.users": "Users",
+        "audit.filter.participants": "Participants",
+        "audit.filter.documents": "Documents",
+        "audit.filter.timeline": "Timeline",
+        "audit.header.timestamp": "Timestamp",
+        "audit.header.actor": "Actor",
+        "audit.header.action": "Action",
+        "audit.header.details": "Details",
 
         // Statuses
         "status.pending": "Pending",
@@ -275,10 +329,11 @@ export const translations = {
     bg: {
         // Sidebar & Layout
         "nav.dealRoom": "Сделки",
-        "nav.archive": "Архив",
+        "nav.archive": "Одобрения",
         "nav.participants": "Участници",
         "nav.finances": "Финанси",
         "nav.settings": "Настройки",
+        "nav.auditLog": "Одитен журнал",
         "nav.loggedInAs": "Влезли сте като",
 
         // Dashboard
@@ -307,6 +362,22 @@ export const translations = {
         "dashboard.phase.preliminary_contract": "Предварителен Договор",
         "dashboard.phase.final_review": "Финален Преглед",
         "dashboard.phase.closing": "Приключване",
+
+        // Dashboard Pro
+        "dashboardPro.operationsLabel": "Оперативен команден център",
+        "dashboardPro.pulseTitle": "Общ преглед",
+        "dashboardPro.pulseSubtitle": "Обобщение на портфолиото в реално време",
+        "dashboardPro.totalVolume": "Общ обем на портфолиото",
+        "dashboardPro.totalVolumeSub": "Сума от стойностите на всички активни сделки",
+        "dashboardPro.activePipeline": "Активни сделки",
+        "dashboardPro.activePipelineSub": "Сделки в процес на изпълнение",
+        "dashboardPro.dealsOnHold": "Спрени сделки",
+        "dashboardPro.closingSoon": "Приключващи скоро",
+        "dashboardPro.closingSoonSub": "Сделки приключващи след ≤ 30 дни",
+        "dashboardPro.urgentActions": "Спешни действия",
+        "dashboardPro.urgentActionsSub": "Чакащи задачи и одобрения",
+
+        "deals.newDeal": "Нова сделка",
 
         // Participants
         "participants.title": "Участници",
@@ -407,6 +478,16 @@ export const translations = {
         "modal.addParticipant.submit": "Добави Участник",
         "modal.addParticipant.errorRequired": "Името и имейлът са задължителни",
 
+        "modal.inviteParticipant.title": "Управление на участници и права",
+        "modal.inviteParticipant.copyLink": "📋 Копирай линк за покана",
+        "modal.inviteParticipant.copied": "Копирано!",
+        "modal.inviteParticipant.permissions": "Права:",
+        "modal.inviteParticipant.canViewAll": "Може да преглежда ВСИЧКИ документи",
+        "modal.inviteParticipant.canDownload": "Може да изтегля документи",
+        "modal.inviteParticipant.selectRoles": "Изберете кои документи на роли това лице МОЖЕ да преглежда:",
+        "modal.inviteParticipant.documents": "документи",
+        "modal.inviteParticipant.saveChanges": "Запазване на промените",
+
         "modal.createTask.title": "Добави изискване за документ",
         "modal.createTask.docTitle": "Заглавие на документа *",
         "modal.createTask.placeholderTitle": "напр. Лична карта, Банково извлечение, Данъчна декларация",
@@ -486,8 +567,12 @@ export const translations = {
         "participant.deleteConfirm": "Сигурни ли сте, че искате да изтриете този участник?",
         "participant.back": "Назад към Участници",
 
-        // Settings
         "settings.title": "Настройки",
+        "settings.health.title": "Системно състояние и възстановяване",
+        "settings.health.desc": "Инструменти за управление на системната консистентност и целостта на данните.",
+        "settings.health.forceSync": "Синхронизиране на профилите",
+        "settings.health.forceSyncDesc": "Обновява вашия потребителски профил и актуализира локалните метаданни на сесията. Използвайте това, ако виждате \"Достъп отказан\" или неправилни роли.",
+        "settings.health.relaunch": "Рестартиране на приложението",
 
         // Common
         "common.saving": "Запазване...",
@@ -508,6 +593,32 @@ export const translations = {
         "settings.perm.exportData": "Експорт на данни",
         "settings.perm.readOnly": "Достъп само за четене",
         "settings.general.comingSoon": "Общите настройки скоро...",
+
+        // Audit Log Actions
+        "audit.action.CREATED_DEAL": "Създадена сделка",
+        "audit.action.ADDED_TASK": "Добавена задача",
+        "audit.action.VERIFIED_DOC": "Потвърден документ",
+        "audit.action.RELEASED_DOC": "Освободен документ",
+        "audit.action.REJECTED_DOC": "Отхвърлен документ",
+        "audit.action.UPLOADED_DOC": "Качен документ",
+        "audit.action.DELETED_DOC": "Изтрит документ",
+        "audit.action.INVITED_USER": "Поканен потребител",
+        "audit.action.ROLE_CHANGE": "Променена роля",
+        "audit.action.ALL_ACTIONS": "Всички действия",
+        "audit.title": "Одитен журнал на системата",
+        "audit.filter.search": "Търсене по автор, детайли...",
+
+        "audit.filter.all": "Всички действия",
+        "audit.filter.auth": "Удостоверяване",
+        "audit.filter.deals": "Сделки",
+        "audit.filter.users": "Потребители",
+        "audit.filter.participants": "Участници",
+        "audit.filter.documents": "Документи",
+        "audit.filter.timeline": "История",
+        "audit.header.timestamp": "Време",
+        "audit.header.actor": "Потребител",
+        "audit.header.action": "Действие",
+        "audit.header.details": "Детайли",
 
         // Statuses
         "status.pending": "Изчакващ",

@@ -44,7 +44,7 @@ export default function DocumentPreviewModal({ doc, onClose }: {
                 } else {
                     setSignedUrl(url);
                 }
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error('Exception fetching signed URL:', err);
                 if (!isRetry && retryCount < 1) {
                     console.log('Retrying fetch...');
@@ -108,11 +108,12 @@ export default function DocumentPreviewModal({ doc, onClose }: {
                                 }}
                             />
                         ) : doc.title_en.toLowerCase().endsWith('.pdf') ? (
-                            <iframe src={signedUrl} className="w-full h-[600px] border-none rounded shadow-sm" />
+                            <iframe src={signedUrl} className="w-full h-[600px] border-none rounded shadow-sm" title={`PDF preview: ${doc.title_en}`} />
                         ) : doc.title_en.toLowerCase().match(/\.(doc|docx|xls|xlsx|ppt|pptx)$/) ? (
                             <iframe
                                 src={`https://docs.google.com/viewer?url=${encodeURIComponent(signedUrl)}&embedded=true`}
                                 className="w-full h-[600px] border-none rounded shadow-sm"
+                                title={`Document preview: ${doc.title_en}`}
                             />
                         ) : (
                             <div className="text-center py-20">

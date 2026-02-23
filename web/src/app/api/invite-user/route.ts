@@ -106,6 +106,7 @@ export async function POST(request: Request) {
             // A. Create in Auth (without auto-invite)
             const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
                 email,
+                password: 'password123', // <-- ADDED: Default password for new organizational users
                 user_metadata: {
                     name: fullName,
                     role: isInternal ? (['admin', 'lawyer', 'staff'].includes(role) ? role : 'staff') : 'user',

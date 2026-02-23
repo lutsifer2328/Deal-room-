@@ -25,8 +25,10 @@ export default function Home() {
       return;
     }
 
-    // Redirect lawyers/admins to dashboard
-    if (user.role === 'lawyer' || user.role === 'admin') {
+    // Redirect based on role
+    if (user.role === 'admin') {
+      router.push('/dashboard-pro');
+    } else if (user.role === 'lawyer' || user.role === 'staff') {
       router.push('/dashboard');
     } else if (activeDeal) {
       // Redirect other users to their active deal

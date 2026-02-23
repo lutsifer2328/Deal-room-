@@ -16,13 +16,16 @@ export async function DELETE(
         }
 
         // Setup Admin Client
-        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SERVICE_ROLE_KEY) {
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY;
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qolozennlzllvrqmibls.supabase.co';
+
+        if (!supabaseUrl || !serviceRoleKey) {
             return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
         }
 
         const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.SERVICE_ROLE_KEY,
+            supabaseUrl,
+            serviceRoleKey,
             {
                 auth: {
                     autoRefreshToken: false,
@@ -41,6 +44,19 @@ export async function DELETE(
             return NextResponse.json({ error: 'Too many deletions. Please wait a moment.' }, { status: 429 });
         }
 
+        // 0. Disconnect the global participant record to prevent ON DELETE CASCADE
+        // Because participants.user_id = users.id ON DELETE CASCADE,
+        // deleting the user drops the participant, which breaks agency_contracts foreign keys.
+        const { error: disconnectError } = await supabaseAdmin
+            .from('participants')
+            .update({ user_id: null })
+            .eq('user_id', userId);
+
+        if (disconnectError) {
+            console.warn(`⚠️ Warning: Failed to disconnect participant from user ${userId}:`, disconnectError);
+            // We proceed anyway, but log it.
+        }
+
         // 1. Delete from Auth (This usually cascades to public.users if set up, but let's be explicit)
         const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
@@ -57,6 +73,12 @@ export async function DELETE(
 
         if (dbError) {
             console.error('❌ DB Delete Error:', dbError);
+            if (dbError.code === '23503') {
+                return NextResponse.json(
+                    { error: 'Cannot delete user because they are associated with existing Deals, Tasks, or Audit Logs. Please Deactivate them instead.' },
+                    { status: 400 }
+                );
+            }
             // Verify if it's already gone
             if (!dbError.message?.includes('does not exist')) {
                 throw dbError;
@@ -65,8 +87,9 @@ export async function DELETE(
 
         return NextResponse.json({ success: true });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to delete user';
         console.error('❌ Delete User API Error:', error);
-        return NextResponse.json({ error: error.message || 'Failed to delete user' }, { status: 500 });
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

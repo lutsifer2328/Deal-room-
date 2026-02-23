@@ -2,10 +2,10 @@
 
 import { useAuth } from '@/lib/authContext';
 import { useData } from '@/lib/store';
-import { Bell, Search, X, Clock, Check, Info, AlertTriangle, Menu } from 'lucide-react';
+import { Bell, Search, X, Check, Info, AlertTriangle, Menu } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Notification } from '@/lib/types';
+import { User } from '@/lib/types';
 import Link from 'next/link';
 
 interface NavbarProps {
@@ -156,7 +156,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                             ) : (
                                 <div className="px-4 py-12 text-center text-text-light">
                                     <Search className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                                    <p className="font-medium text-text-secondary">No deals found for "{searchQuery}"</p>
+                                    <p className="font-medium text-text-secondary">No deals found for &quot;{searchQuery}&quot;</p>
                                     <p className="text-sm mt-1">Try searching by deal name, client, phone, or email</p>
                                 </div>
                             )}
@@ -282,7 +282,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
     );
 }
 
-function UserMenu({ user }: { user: any }) {
+function UserMenu({ user }: { user: User }) {
     const { logout } = useAuth();
     const router = useRouter();
     const [showMenu, setShowMenu] = useState(false);

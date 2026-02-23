@@ -292,6 +292,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 };
             });
 
+            const timeline = d.timeline_json || createDefaultTimeline();
+            const currentStepId = d.current_step_id || 'step_1';
+            const currentStepObj = timeline.find((t: any) => t.id === currentStepId) || timeline[0] || { label: 'Onboarding' };
+            const currentStepVal = currentStepObj.label.toLowerCase().replace(/ /g, '_');
+
             return {
                 id: d.id,
                 title: d.title,
@@ -300,9 +305,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 closedAt: d.closed_at,
                 closedBy: d.closed_by,
                 closureNotes: d.closure_notes,
-                timeline: d.timeline_json || createDefaultTimeline(),
-                currentStepId: d.current_step_id || 'step_onboarding',
-                currentStep: 'onboarding', // Legacy, derived strictly from ID in real app
+                timeline: timeline,
+                currentStepId: currentStepId,
+                currentStep: currentStepVal as any, // Dynamically computed from timeline
                 participants,
                 buyerIds: participants.filter(p => p.role === 'buyer' && p.userId).map(p => p.userId!),
                 sellerIds: participants.filter(p => p.role === 'seller' && p.userId).map(p => p.userId!),
@@ -494,6 +499,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             if (!token) throw new Error("No session token available! Please sign in again.");
 
             // 1. Create Deal Payload
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const dealPayload: any = {
                 id: dealId,
                 title,
@@ -570,8 +576,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
                             updated_at: new Date().toISOString()
                         };
 
-                        // Optimistic
-                        setRawGlobalParticipants(prev => [...prev, newGP as any]);
+                        // Optimistic (Map to camelCase for the UI store array)
+                        const optimisticGP = {
+                            id: newGP.id,
+                            userId: newGP.user_id,
+                            email: newGP.email,
+                            name: newGP.name,
+                            phone: newGP.phone,
+                            agency: newGP.agency,
+                            internalNotes: newGP.internal_notes,
+                            invitationStatus: newGP.invitation_status,
+                            invitationSentAt: undefined,
+                            createdAt: newGP.created_at,
+                            updatedAt: newGP.updated_at
+                        };
+                        setRawGlobalParticipants(prev => [...prev, optimisticGP as any]);
 
                         const { error: gpError } = await supabase.from('participants').insert(newGP);
                         if (gpError) {
@@ -612,8 +631,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         joined_at: new Date().toISOString()
                     };
 
-                    // Optimistic
-                    setRawDealParticipants(prev => [...prev, dpPayload as any]);
+                    // Optimistic (Map to camelCase for the UI store array)
+                    const optimisticDP = {
+                        id: dpPayload.id,
+                        dealId: dpPayload.deal_id,
+                        participantId: dpPayload.participant_id,
+                        role: dpPayload.role,
+                        agency: p.agency, // Use from input
+                        permissions: dpPayload.permissions,
+                        isActive: true, // Required for UI filters
+                        joinedAt: dpPayload.joined_at,
+                        createdAt: dpPayload.joined_at,
+                        updatedAt: dpPayload.joined_at
+                    };
+                    setRawDealParticipants(prev => [...prev, optimisticDP as any]);
 
                     const { error: dpError } = await supabase.from('deal_participants').insert(dpPayload);
                     if (dpError) {
@@ -664,6 +695,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         // We need to construct the "Raw" task (DB shape) for the optimistic update
         // because the main useEffect maps rawTasks (DB shape) to Task (Client shape)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const newRawTask: any = {
             id: taskId,
             deal_id: dealId,
@@ -807,6 +839,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 ...(updates.price !== undefined && { price: updates.price })
             } : d));
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const dbUpdates: any = {};
             if (updates.title !== undefined) dbUpdates.title = updates.title;
             if (updates.propertyAddress !== undefined) dbUpdates.property_address = updates.propertyAddress;
@@ -1098,6 +1131,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             }
 
             // 1. Update Deal-Specific Data (Role, Permissions)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const dealUpdates: any = {};
             if (updates.role) dealUpdates.role = updates.role;
 
@@ -1141,6 +1175,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             }
 
             // 2. Update Global Data (Name, Email, Phone) - if changed
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const globalUpdates: any = {};
             if (updates.fullName) globalUpdates.name = updates.fullName;
             if (updates.email) globalUpdates.email = updates.email;

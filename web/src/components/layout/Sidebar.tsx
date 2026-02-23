@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutDashboard, Archive, Users, CreditCard, Settings, Globe, ChevronUp, User as UserIcon } from 'lucide-react';
+import { LayoutDashboard, ClipboardCheck, Users, CreditCard, Settings, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/authContext';
@@ -24,8 +24,8 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     if (!user) return null;
 
     const navItems = [
-        { icon: LayoutDashboard, label: t('nav.dealRoom'), href: '/dashboard', roles: ['admin', 'lawyer', 'staff', 'broker', 'agent', 'buyer', 'seller', 'notary', 'bank_representative', 'viewer', 'attorney'] },
-        { icon: Archive, label: t('nav.archive'), href: '/archive', roles: ['admin', 'lawyer', 'staff', 'broker', 'agent'] },
+        { icon: LayoutDashboard, label: t('nav.dealRoom'), href: user.role === 'admin' ? '/dashboard-pro' : '/dashboard', roles: ['admin', 'lawyer', 'staff', 'broker', 'agent', 'buyer', 'seller', 'notary', 'bank_representative', 'viewer', 'attorney'] },
+        { icon: ClipboardCheck, label: t('nav.archive'), href: '/archive', roles: ['admin', 'lawyer', 'staff', 'broker', 'agent'] },
         { icon: Users, label: t('nav.participants'), href: '/participants', roles: ['admin', 'lawyer', 'staff', 'broker'] },
         { icon: CreditCard, label: t('nav.finances'), href: '/finances', roles: ['admin', 'lawyer'] },
         { icon: Settings, label: t('nav.settings'), href: '/settings', roles: ['admin'] },
@@ -74,7 +74,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                     <div className="space-y-1">
                         {visibleItems.map((item) => {
                             const Icon = item.icon;
-                            const isActive = pathname === item.href || pathname?.startsWith(item.href);
+                            const isActive = pathname === item.href || (item.href === '/dashboard' && pathname === '/dashboard-pro') || pathname?.startsWith(item.href);
 
                             return (
                                 <Link

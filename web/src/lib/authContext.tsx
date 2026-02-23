@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
     user: User | null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     login: (email: string, password: string) => Promise<{ error: any }>;
     logout: () => Promise<void>;
     isLoading: boolean;
@@ -108,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const lastFetchRef = React.useRef<number>(0);
     const isFetchingRef = React.useRef<boolean>(false);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fetchUserProfile = async (userId: string, email: string, existingSession: any = null) => {
         const now = Date.now();
         // Prevent redundant fetches within 2 seconds or if already fetching

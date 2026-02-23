@@ -325,6 +325,7 @@ function TaskItem({ task, userRole, onDelete, currentDealParticipantRecord, task
                                     taskId={task.id}
                                     currentDealParticipantRecord={currentDealParticipantRecord}
                                     taskOwnerRole={taskOwnerRole}
+                                    isTaskAssignee={isAssignedParticipant}
                                 />
                             </div>
                         ))}
@@ -364,12 +365,13 @@ function TaskItem({ task, userRole, onDelete, currentDealParticipantRecord, task
     );
 }
 
-function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, taskOwnerRole }: {
+function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, taskOwnerRole, isTaskAssignee }: {
     doc: DealDocument,
     userRole: string,
     taskId: string,
     currentDealParticipantRecord?: DealParticipant,
-    taskOwnerRole?: string
+    taskOwnerRole?: string,
+    isTaskAssignee?: boolean
 }) {
     const { verifyDocument, releaseDocument, rejectDocument } = useData();
     const { user } = useAuth();
@@ -394,13 +396,12 @@ function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, task
     const isFullViewer = currentDealParticipantRecord?.permissions?.canViewDocuments === true;
 
     // 1. Can Download?
-    // - Lawyers/Admins/Owners/FullViewers always can
-    // - Standard users: Must be 'released' AND they must have download permission enabled
-    // Note: permission flags are mapped into currentDealParticipantRecord.permissions
-    const hasDownloadPermission = isLawyer || isAdmin || isOwner || isFullViewer || (
-        currentDealParticipantRecord?.permissions?.canDownloadDocuments !== false // Default to true if undefined
-    );
-    const canDownload = isFullViewer || isLawyer || isAdmin || isOwner || (doc.status === 'released' && hasDownloadPermission);
+    // ONLY render if:
+    // - User is Admin/Staff
+    // - OR User is Assignee/Owner of that specific task
+    // - OR permissions.canDownloadDocuments === true
+    const hasExplicitDownloadPermission = currentDealParticipantRecord?.permissions?.canDownloadDocuments === true;
+    const canDownload = isStaffOrAbove || isTaskAssignee || isOwner || hasExplicitDownloadPermission;
 
     // 2. Can View Content? (Metadata is usually visible if they have access to the deal)
     // - Lawyers/Admins/Owners/FullViewers always can
@@ -434,10 +435,12 @@ function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, task
                 return;
             }
 
-            // Phase 3 Hardening: Proxy Downloads via same-origin API route
-            // The /api/download route streams the file with Content-Disposition: attachment
-            // so the browser triggers a native download without leaving this page
-            window.location.href = `/api/download?id=${doc.id}`;
+            // Phase 5 Option B: Signed URLs via Server Action
+            const { url, error } = await getDocumentSignedUrl(doc.id, true);
+            if (error || !url) {
+                throw new Error(error || 'Failed to generate signed URL');
+            }
+            window.location.href = url;
         } catch (error: any) {
             console.error('Download failed:', error);
             alert(`Download failed: ${error.message || 'Unknown error'}`);
@@ -468,7 +471,7 @@ function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, task
 
                 <div className="flex items-center gap-2 flex-shrink-0 ml-4">
                     {/* View Button */}
-                    {(hasViewPermission && canDownload) && (
+                    {hasViewPermission && (
                         <button
                             onClick={() => {
                                 setIsPreviewOpen(true);

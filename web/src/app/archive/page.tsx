@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useAuth } from '@/lib/authContext';
+import { useSearchParams } from 'next/navigation';
 import StandardDocumentsTab from '@/components/archive/StandardDocumentsTab';
 import PendingReviewTab from '@/components/archive/PendingReviewTab';
 import ExpiringSoonTab from '@/components/archive/ExpiringSoonTab';
@@ -11,10 +12,34 @@ import { useTranslation } from '@/lib/useTranslation';
 
 type TabType = 'standard' | 'search' | 'pending' | 'expiring' | 'closed';
 
+// Map URL ?tab= slugs to internal tab IDs
+const TAB_SLUG_MAP: Record<string, TabType> = {
+    standard: 'standard',
+    search: 'search',
+    pending: 'pending',
+    expiring: 'expiring',
+    closed: 'closed',
+};
+
 export default function ArchivePage() {
+    return (
+        <Suspense fallback={<div className="p-10 text-center">Loading...</div>}>
+            <ArchiveContent />
+        </Suspense>
+    );
+}
+
+function ArchiveContent() {
     const { user } = useAuth();
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState<TabType>('standard');
+    const searchParams = useSearchParams();
+
+    // Read ?tab= from URL, fall back to 'standard'
+    const tabFromUrl = searchParams.get('tab');
+    const initialTab: TabType = (tabFromUrl && TAB_SLUG_MAP[tabFromUrl]) ? TAB_SLUG_MAP[tabFromUrl] : 'standard';
+
+    const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
 
     if (!user) return <div className="p-10 text-center">Loading...</div>;
 
@@ -67,15 +92,6 @@ export default function ArchivePage() {
                     {activeTab === 'closed' && <ClosedDealsTab />}
                 </div>
             </div>
-        </div>
-    );
-}
-
-function ComingSoonPlaceholder({ title }: { title: string }) {
-    return (
-        <div className="text-center py-16">
-            <h2 className="text-xl font-bold text-midnight mb-2">{title}</h2>
-            <p className="text-gray-500">This feature is coming in Phase 2-4 of the implementation.</p>
         </div>
     );
 }

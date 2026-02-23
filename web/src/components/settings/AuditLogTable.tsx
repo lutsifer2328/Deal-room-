@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getAuditLogs, AuditLogEntry } from '@/app/actions/getAuditLogs';
 import { History, Search, Filter, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { useTranslation } from '@/lib/useTranslation';
+import { TranslationKey } from '@/lib/translations';
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
     'CREATED_DEAL': { label: 'Created Deal', color: 'bg-emerald-100 text-emerald-800' },
@@ -17,23 +19,24 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 const FILTER_OPTIONS = [
-    { value: '', label: 'All Actions' },
-    { value: 'CREATED_DEAL', label: 'Created Deal' },
-    { value: 'ADDED_TASK', label: 'Added Task' },
-    { value: 'VERIFIED_DOC', label: 'Verified Document' },
-    { value: 'RELEASED_DOC', label: 'Released Document' },
-    { value: 'REJECTED_DOC', label: 'Rejected Document' },
-    { value: 'UPLOADED_DOC', label: 'Uploaded Document' },
-    { value: 'DELETED_DOC', label: 'Deleted Document' },
-    { value: 'INVITED_USER', label: 'Invited User' },
-    { value: 'ROLE_CHANGE', label: 'Role Changed' },
+    { value: '', labelKey: 'audit.filter.all' },
+    { value: 'CREATED_DEAL', labelKey: 'audit.filter.deals' },
+    { value: 'ADDED_TASK', labelKey: 'audit.filter.documents' },
+    { value: 'VERIFIED_DOC', labelKey: 'audit.filter.documents' },
+    { value: 'RELEASED_DOC', labelKey: 'audit.filter.documents' },
+    { value: 'REJECTED_DOC', labelKey: 'audit.filter.documents' },
+    { value: 'UPLOADED_DOC', labelKey: 'audit.filter.documents' },
+    { value: 'DELETED_DOC', labelKey: 'audit.filter.documents' },
+    { value: 'INVITED_USER', labelKey: 'audit.filter.users' },
+    { value: 'ROLE_CHANGE', labelKey: 'audit.filter.users' },
 ];
+
 
 const PAGE_SIZE = 20;
 
 export default function AuditLogTable() {
+    const { t } = useTranslation();
     const [logs, setLogs] = useState<AuditLogEntry[]>([]);
-    const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -51,9 +54,8 @@ export default function AuditLogTable() {
                 return;
             }
             setLogs(result.logs);
-            setTotal(result.total);
-        } catch (err: any) {
-            setError(err.message || 'Failed to load audit logs');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Failed to load audit logs');
         } finally {
             setLoading(false);
         }
@@ -69,7 +71,7 @@ export default function AuditLogTable() {
         const query = searchQuery.toLowerCase();
         const matchesSearch = !query ||
             log.actor_name?.toLowerCase().includes(query) ||
-            (typeof log.details === 'string' && log.details.toLowerCase().includes(query)) ||
+            JSON.stringify(log.details).toLowerCase().includes(query) ||
             log.action?.toLowerCase().includes(query);
         return matchesAction && matchesSearch;
     });
@@ -85,9 +87,12 @@ export default function AuditLogTable() {
 
     const getActionBadge = (action: string) => {
         const info = ACTION_LABELS[action] || { label: action, color: 'bg-gray-100 text-gray-700' };
+        const labelKey = `audit.action.${action}` as TranslationKey;
+        const translated = t(labelKey);
+
         return (
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${info.color}`}>
-                {info.label}
+                {translated !== labelKey ? translated : info.label}
             </span>
         );
     };
@@ -113,7 +118,7 @@ export default function AuditLogTable() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <h2 className="text-lg font-bold text-navy-primary flex items-center gap-2">
                     <History className="w-5 h-5 text-teal" />
-                    System Audit Log
+                    {t('nav.auditLog')}
                     <span className="text-sm font-normal text-text-light ml-2">
                         ({filteredLogs.length} {filteredLogs.length === 1 ? 'entry' : 'entries'})
                     </span>
@@ -134,7 +139,7 @@ export default function AuditLogTable() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                         type="text"
-                        placeholder="Search by actor, details..."
+                        placeholder={t('participants.searchPlaceholder')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal"
@@ -143,12 +148,13 @@ export default function AuditLogTable() {
                 <div className="relative">
                     <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <select
+                        title="Filter Actions"
                         value={actionFilter}
                         onChange={(e) => setActionFilter(e.target.value)}
                         className="pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal appearance-none bg-white cursor-pointer"
                     >
                         {FILTER_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            <option key={opt.value} value={opt.value}>{t(opt.labelKey as TranslationKey)}</option>
                         ))}
                     </select>
                 </div>
@@ -167,10 +173,10 @@ export default function AuditLogTable() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-gray-50 border-b border-gray-200">
-                                <th className="text-left px-4 py-3 font-bold text-navy-primary">Timestamp</th>
-                                <th className="text-left px-4 py-3 font-bold text-navy-primary">Actor</th>
-                                <th className="text-left px-4 py-3 font-bold text-navy-primary">Action</th>
-                                <th className="text-left px-4 py-3 font-bold text-navy-primary">Details</th>
+                                <th className="text-left px-4 py-3 font-bold text-navy-primary">{t('audit.header.timestamp' as TranslationKey)}</th>
+                                <th className="text-left px-4 py-3 font-bold text-navy-primary">{t('audit.header.actor' as TranslationKey)}</th>
+                                <th className="text-left px-4 py-3 font-bold text-navy-primary">{t('audit.header.action' as TranslationKey)}</th>
+                                <th className="text-left px-4 py-3 font-bold text-navy-primary">{t('audit.header.details' as TranslationKey)}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -221,6 +227,7 @@ export default function AuditLogTable() {
                         </span>
                         <div className="flex items-center gap-2">
                             <button
+                                title="Previous Page"
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                                 disabled={page <= 1}
                                 className="p-1.5 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -231,6 +238,7 @@ export default function AuditLogTable() {
                                 Page {page} of {totalPages}
                             </span>
                             <button
+                                title="Next Page"
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                 disabled={page >= totalPages}
                                 className="p-1.5 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"

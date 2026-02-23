@@ -1,0 +1,68 @@
+﻿
+C:\Users\lutsi\OneDrive\Desktop\Agenzia Deal Room\web\src\app\login\page.tsx
+   6:34  warning  'Building' is defined but never used                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+  45:25  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\lutsi\OneDrive\Desktop\Agenzia Deal Room\web\src\components\deal\CreateDealWizard.tsx
+   39:74  error    Unexpected any. Specify a different type                      @typescript-eslint/no-explicit-any
+   44:11  warning  'handleEmailBlur' is assigned a value but never used          @typescript-eslint/no-unused-vars
+   78:60  error    Unexpected any. Specify a different type                      @typescript-eslint/no-explicit-any
+  140:13  error    'finalParticipants' is never reassigned. Use 'const' instead  prefer-const
+
+C:\Users\lutsi\OneDrive\Desktop\Agenzia Deal Room\web\src\components\layout\Sidebar.tsx
+   59:29  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  142:63  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+
+C:\Users\lutsi\OneDrive\Desktop\Agenzia Deal Room\web\src\lib\store.tsx
+    91:46  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+    92:46  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+    98:54  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   102:31  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   229:79  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   297:54  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   310:48  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   341:45  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   497:13  error    'token' is never reassigned. Use 'const' instead     prefer-const
+   543:19  warning  'dealError' is assigned a value but never used       @typescript-eslint/no-unused-vars
+   593:84  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   647:78  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   665:31  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   678:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   765:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   784:29  warning  'dealId' is defined but never used                   @typescript-eslint/no-unused-vars
+   784:45  warning  'step' is defined but never used                     @typescript-eslint/no-unused-vars
+   784:61  warning  'actorId' is defined but never used                  @typescript-eslint/no-unused-vars
+   804:90  warning  'notes' is defined but never used                    @typescript-eslint/no-unused-vars
+   824:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   852:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   875:38  warning  'taskId' is defined but never used                   @typescript-eslint/no-unused-vars
+   875:54  warning  'commentId' is defined but never used                @typescript-eslint/no-unused-vars
+   921:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   946:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   962:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+   979:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1047:19  warning  'newParticipant' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  1095:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1119:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1200:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1232:19  warning  'newDoc' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  1283:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1289:56  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1301:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1317:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1335:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1378:27  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1452:19  warning  'msg' is assigned a value but never used             @typescript-eslint/no-unused-vars
+  1492:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1499:95  warning  'isInternal' is assigned a value but never used      @typescript-eslint/no-unused-vars
+  1539:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1545:65  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1548:45  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1564:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1583:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1642:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  1655:25  error    Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+
+Γ£û 56 problems (41 errors, 15 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+

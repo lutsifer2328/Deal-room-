@@ -77,7 +77,7 @@ export async function POST(request: Request) {
         // ── 1.5 Rate Limiting ────────────────────────────────────
         // Limit: 5 invites to the same email by the same user per 10 minutes
         const rateKey = `invite:${caller.id}:${email}`;
-        const { ok, remaining, reset } = await rateLimit(rateKey, 5, 600);
+        const { ok, reset } = await rateLimit(rateKey, 5, 600);
 
         if (!ok) {
             console.warn(`Rate limit exceeded for invites: ${rateKey}`);
@@ -280,6 +280,7 @@ export async function POST(request: Request) {
         // ── 8. Send invite/recovery email ────────────────────────
         // For NEW users: send welcome + set-password link
         // For EXISTING users: send "you have new deal access" + login link
+        let directLink: string | null = null;
         if (!invited || isResend) {
             try {
                 // Get deal title for email
@@ -310,7 +311,7 @@ export async function POST(request: Request) {
 
                     // Build DIRECT callback URL (bypasses Supabase's server-side redirect + PKCE)
                     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-                    const directLink = `${siteUrl}/auth/callback?token_hash=${tokenHash}&type=${linkType}`;
+                    directLink = `${siteUrl}/auth/callback?token_hash=${tokenHash}&type=${linkType}`;
 
                     // Log for immediate terminal testing
                     console.log('\n══════════════════════════════════════════════════════');
@@ -328,8 +329,8 @@ export async function POST(request: Request) {
                 } else if (linkError) {
                     console.warn('⚠️ generateLink failed:', linkError.message);
                 }
-            } catch (emailErr: any) {
-                console.warn('⚠️ Email send failed (non-critical):', emailErr.message);
+            } catch (emailErr: unknown) {
+                console.warn('⚠️ Email send failed (non-critical):', emailErr instanceof Error ? emailErr.message : emailErr);
                 // Don't fail the request — participant is still linked
             }
         }
@@ -354,13 +355,15 @@ export async function POST(request: Request) {
             authUserId,
             linked,
             invited,
-            message
+            message,
+            inviteLink: directLink // Always include so client can show "Copy Link" fallback
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : 'Internal server error';
         console.error('❌ Participant invite error:', error);
         return NextResponse.json(
-            { error: error.message || 'Internal server error' },
+            { error: errMsg },
             { status: 500 }
         );
     }

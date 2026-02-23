@@ -7,11 +7,12 @@ import { cookies } from 'next/headers';
 export interface AuditLogEntry {
     id: string;
     timestamp: string;
+    created_at: string;
     action: string;
     actor_id: string;
     actor_name: string;
     deal_id?: string;
-    details: any;
+    details: Record<string, unknown>;
 }
 
 export async function getAuditLogs(page: number = 1, limit: number = 20): Promise<{ logs: AuditLogEntry[], total: number, error?: string }> {
@@ -89,7 +90,7 @@ export async function getAuditLogs(page: number = 1, limit: number = 20): Promis
             total: count || 0
         };
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error('Unexpected error in getAuditLogs:', err);
         return { logs: [], total: 0, error: 'Internal server error' };
     }
