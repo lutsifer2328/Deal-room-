@@ -278,6 +278,8 @@ export const translations = {
         "audit.action.UPLOADED_DOC": "Uploaded Document",
         "audit.action.DELETED_DOC": "Deleted Document",
         "audit.action.INVITED_USER": "Invited User",
+        "audit.action.UPDATED_PARTICIPANT": "Updated Participant",
+        "audit.action.UPDATED_DEAL_STEP": "Updated Deal Step",
 
         "audit.filter.all": "All Actions",
         "audit.filter.auth": "Authentication",
@@ -603,6 +605,8 @@ export const translations = {
         "audit.action.UPLOADED_DOC": "Качен документ",
         "audit.action.DELETED_DOC": "Изтрит документ",
         "audit.action.INVITED_USER": "Поканен потребител",
+        "audit.action.UPDATED_PARTICIPANT": "Обновен участник",
+        "audit.action.UPDATED_DEAL_STEP": "Обновен етап на сделка",
         "audit.action.ROLE_CHANGE": "Променена роля",
         "audit.action.ALL_ACTIONS": "Всички действия",
         "audit.title": "Одитен журнал на системата",

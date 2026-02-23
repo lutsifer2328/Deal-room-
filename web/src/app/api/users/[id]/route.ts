@@ -62,6 +62,15 @@ export async function DELETE(
 
         if (authError) {
             console.error('❌ Auth Delete Error:', authError);
+
+            // If it's a foreign key cascade failure, Auth returns "Database error deleting user"
+            if (authError.message?.includes('Database error deleting user')) {
+                return NextResponse.json(
+                    { error: 'Cannot delete user because they are associated with existing Deals, Tasks, or Audit Logs. Please Deactivate them instead.' },
+                    { status: 400 }
+                );
+            }
+
             // If user not found in auth, maybe they are only in public? Continue...
             if (!authError.message?.includes('not found')) {
                 throw authError;
