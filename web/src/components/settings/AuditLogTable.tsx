@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getAuditLogs, AuditLogEntry } from '@/app/actions/getAuditLogs';
-import { History, Search, Filter, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { History, Search, Filter, ChevronLeft, ChevronRight, RefreshCw, Copy } from 'lucide-react';
 import { useTranslation } from '@/lib/useTranslation';
 import { TranslationKey } from '@/lib/translations';
+import toast from 'react-hot-toast';
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
     'CREATED_DEAL': { label: 'Created Deal', color: 'bg-emerald-100 text-emerald-800' },
@@ -170,7 +171,7 @@ export default function AuditLogTable() {
             {/* Table */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm hidden sm:table">
                         <thead>
                             <tr className="bg-gray-50 border-b border-gray-200">
                                 <th className="text-left px-4 py-3 font-bold text-navy-primary">{t('audit.header.timestamp' as TranslationKey)}</th>
@@ -217,6 +218,57 @@ export default function AuditLogTable() {
                             )}
                         </tbody>
                     </table>
+
+                    {/* Mobile Card View */}
+                    <div className="sm:hidden divide-y divide-gray-100">
+                        {loading ? (
+                            <div className="px-4 py-12 text-center text-gray-400">
+                                <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />
+                                Loading audit logs...
+                            </div>
+                        ) : paginatedLogs.length === 0 ? (
+                            <div className="px-4 py-12 text-center text-gray-400 italic">
+                                {searchQuery || actionFilter
+                                    ? 'No logs match your filters.'
+                                    : 'No audit log entries found.'}
+                            </div>
+                        ) : (
+                            paginatedLogs.map((log) => (
+                                <div key={log.id} className="p-4 hover:bg-gray-50/50 transition-colors">
+                                    <div className="flex justify-between items-start mb-2 gap-2">
+                                        <div className="font-bold text-navy-primary truncate flex-1 leading-tight">
+                                            {log.actor_name || 'System'}
+                                        </div>
+                                        <div className="text-[10px] text-gray-400 whitespace-nowrap pt-0.5">
+                                            {formatTimestamp(log.timestamp)}
+                                        </div>
+                                    </div>
+                                    <div className="mb-2">
+                                        {getActionBadge(log.action)}
+                                    </div>
+                                    <div className="text-xs text-gray-600 line-clamp-2">
+                                        {typeof log.details === 'string'
+                                            ? log.details
+                                            : JSON.stringify(log.details)}
+                                    </div>
+                                    <div className="mt-3">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const detailsText = typeof log.details === 'string' ? log.details : JSON.stringify(log.details);
+                                                navigator.clipboard.writeText(detailsText);
+                                                toast.success('Копирано!');
+                                            }}
+                                            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-teal/10 hover:bg-teal/20 text-teal font-bold rounded-lg transition-colors min-h-[44px]"
+                                        >
+                                            <Copy className="w-4 h-4" />
+                                            Копирай детайли
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
 
                 {/* Pagination */}

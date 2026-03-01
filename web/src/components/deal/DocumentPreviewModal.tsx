@@ -80,7 +80,7 @@ export default function DocumentPreviewModal({ doc, onClose }: {
                         <h2 className="text-lg font-bold">{doc.title_en}</h2>
                         <p className="text-xs text-white/70">Uploaded {new Date(doc.uploadedAt).toLocaleString()}</p>
                     </div>
-                    <button onClick={onClose} className="text-white/80 hover:text-white transition-colors">
+                    <button onClick={onClose} className="text-white/80 hover:text-white transition-colors" title="Close Preview">
                         <X className="w-5 h-5" />
                     </button>
                 </div>

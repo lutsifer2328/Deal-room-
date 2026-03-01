@@ -78,6 +78,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                 <button
                     onClick={onMenuClick}
                     className="md:hidden p-2 -ml-2 text-navy-primary hover:bg-gray-100 rounded-lg transition-colors"
+                    title="Menu"
                 >
                     <Menu className="w-6 h-6" />
                 </button>
@@ -104,6 +105,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                                     setShowMobileSearch(false);
                                 }}
                                 className="absolute right-4 top-1/2 -translate-y-1/2 text-text-light hover:text-text-secondary"
+                                title="Clear Search"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -168,6 +170,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                 <button
                     onClick={() => setShowMobileSearch(true)}
                     className={`md:hidden p-2 mr-2 text-navy-primary hover:bg-gray-100 rounded-lg ${showMobileSearch ? 'hidden' : ''}`}
+                    title="Search Deals"
                 >
                     <Search className="w-6 h-6" />
                 </button>
@@ -184,6 +187,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                                 ? 'bg-teal text-white border-teal shadow-md'
                                 : 'bg-white border-border-light text-text-secondary hover:text-teal hover:border-teal hover:shadow-md'
                                 }`}
+                            title="Notifications"
                         >
                             <Bell className="w-5 h-5" />
                             {unreadCount > 0 && (

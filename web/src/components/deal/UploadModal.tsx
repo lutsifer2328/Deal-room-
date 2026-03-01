@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Upload as UploadIcon, FileText } from 'lucide-react';
 import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
@@ -16,12 +16,7 @@ export default function UploadModal({ taskId, taskTitle, onClose, isOpen = true 
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
 
-    useEffect(() => {
-        if (!isOpen) {
-            setSelectedFile(null);
-            setIsUploading(false);
-        }
-    }, [isOpen]);
+    // Reset state when modal is closed (handled by parent or by calling onClose where needed)
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -75,7 +70,8 @@ export default function UploadModal({ taskId, taskTitle, onClose, isOpen = true 
                                 className="hidden"
                                 id="file-upload"
                                 accept="image/*,application/pdf,.doc,.docx"
-                                capture="environment"
+                                title="File Upload"
+                                aria-label="Select a file to upload"
                             />
                             <label htmlFor="file-upload" className="cursor-pointer block w-full h-full">
                                 {selectedFile ? (

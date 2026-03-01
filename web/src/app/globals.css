@@ -85,3 +85,11 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Pull-to-refresh overrides to prevent breaking sticky positioning */
+.ptr,
+.ptr__children {
+  overflow: unset !important;
+  overflow-y: unset !important;
+  overflow-x: clip !important;
+}

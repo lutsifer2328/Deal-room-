@@ -20,10 +20,6 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
     const [isSubmitting, setIsSubmitting] = useState(false);
     const isSubmittingRef = useRef(false);
 
-    if (!user || (user.role !== 'lawyer' && user.role !== 'admin')) return null;
-
-    const activeParticipants = deal.participants.filter(p => p.isActive);
-
     // Build autocomplete suggestions
     const suggestions = useMemo(() => {
         const standardSuggestions = standardDocuments
@@ -49,6 +45,10 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
 
         return [...standardSuggestions, ...historySuggestions];
     }, [standardDocuments, tasks]);
+
+    if (!user || (user.role !== 'lawyer' && user.role !== 'admin')) return null;
+
+    const activeParticipants = deal.participants.filter(p => p.isActive);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -116,7 +116,7 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-midnight text-white">
                     <h2 className="text-lg font-bold">{t('modal.createTask.title')}</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white">
+                    <button onClick={onClose} className="text-gray-400 hover:text-white" title="Close">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -178,15 +178,18 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="expirationDateInput" className="block text-sm font-medium text-gray-700 mb-1">
                             {t('modal.createTask.expiration')}
                         </label>
                         <input
+                            id="expirationDateInput"
                             type="date"
                             value={expirationDate}
+                            placeholder="YYYY-MM-DD"
                             onChange={(e) => setExpirationDate(e.target.value)}
                             min={new Date().toISOString().split('T')[0]}
                             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none transition-all"
+                            title={t('modal.createTask.expiration') || 'Expiration Date'}
                         />
                         <p className="text-xs text-gray-500 mt-1">
                             {t('modal.createTask.expirationHelp')}

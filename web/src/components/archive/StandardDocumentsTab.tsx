@@ -77,6 +77,7 @@ export default function StandardDocumentsTab() {
                     onClick={handleAddNew}
                     disabled={isLoading}
                     className="flex items-center gap-2 px-5 py-2.5 bg-teal text-white font-bold rounded-xl hover:bg-teal/90 shadow-lg shadow-teal/20 transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+                    title="Add Name"
                 >
                     <Plus className="w-5 h-5" />
                     Add Name
@@ -91,6 +92,7 @@ export default function StandardDocumentsTab() {
                         <button
                             onClick={handleAddNew}
                             className="text-teal font-bold hover:underline hover:text-teal/80 transition-colors"
+                            title="Add your first standard document"
                         >
                             Add your first standard document
                         </button>
@@ -103,6 +105,7 @@ export default function StandardDocumentsTab() {
                             }}
                             disabled={isLoading}
                             className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
+                            title={isLoading ? 'Restoring...' : 'Restore Default Documents'}
                         >
                             {isLoading ? 'Restoring...' : 'Restore Default Documents'}
                         </button>

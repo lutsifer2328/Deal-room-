@@ -406,6 +406,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                         } catch { alert(inviteLink); }
                                     }}
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal/10 text-teal text-xs font-bold rounded-lg hover:bg-teal/20 transition-colors border border-teal/20"
+                                    title={t('common.copyLink' as TranslationKey) || "Copy Link"}
                                 >
                                     {linkCopied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                                 </button>
@@ -462,8 +463,9 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                     // INTERNAL USER SELECTION
                                     <div className="col-span-2 space-y-3">
                                         <div>
-                                            <label className="block text-xs font-medium text-gray-700 mb-1">Select Team Member</label>
+                                            <label htmlFor="teamMemberSelect" className="block text-xs font-medium text-gray-700 mb-1">Select Team Member</label>
                                             <select
+                                                id="teamMemberSelect"
                                                 onChange={(e) => {
                                                     const selectedUser = users[e.target.value];
                                                     if (selectedUser) {
@@ -479,6 +481,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                     }
                                                 }}
                                                 className="w-full px-3 py-2 rounded border border-gray-300 text-sm bg-white outline-none focus:ring-2 focus:ring-teal"
+                                                title="Select internal team member"
                                             >
                                                 <option value="">Select a user...</option>
                                                 {internalStaff.map(u => (
@@ -495,12 +498,14 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                 initial={{ opacity: 0, height: 0 }}
                                                 animate={{ opacity: 1, height: 'auto' }}
                                             >
-                                                <label className="block text-xs font-medium text-gray-700 mb-1">Role in this Deal</label>
+                                                <label htmlFor="dealRoleSelect" className="block text-xs font-medium text-gray-700 mb-1">Role in this Deal</label>
                                                 <div className="flex gap-2 p-2 bg-gray-50 rounded border border-gray-200">
                                                     <select
+                                                        id="dealRoleSelect"
                                                         value={newParticipant.role}
                                                         onChange={(e) => setNewParticipant({ ...newParticipant, role: e.target.value as Role })}
                                                         className="flex-1 bg-transparent text-sm font-bold text-navy-primary outline-none"
+                                                        title="Select role in deal"
                                                     >
                                                         <option value="agent">{t('role.agent')}</option>
                                                         <option value="staff">{t('role.staff')}</option>
@@ -554,11 +559,13 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-medium text-gray-700 mb-1">Role *</label>
+                                            <label htmlFor="externalRoleSelect" className="block text-xs font-medium text-gray-700 mb-1">Role *</label>
                                             <select
+                                                id="externalRoleSelect"
                                                 value={newParticipant.role}
                                                 onChange={(e) => setNewParticipant({ ...newParticipant, role: e.target.value as Role })}
                                                 className="w-full px-3 py-2 rounded border border-gray-300 text-sm bg-white outline-none"
+                                                title="Select role"
                                             >
                                                 <option value="buyer">{t('role.buyer')}</option>
                                                 <option value="seller">{t('role.seller')}</option>
@@ -702,11 +709,13 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-medium text-gray-700 mb-1">Role *</label>
+                                            <label htmlFor={`editRoleSelect-${participant.id}`} className="block text-xs font-medium text-gray-700 mb-1">Role *</label>
                                             <select
+                                                id={`editRoleSelect-${participant.id}`}
                                                 value={editForm.role || 'buyer'}
                                                 onChange={(e) => setEditForm({ ...editForm, role: e.target.value as Role })}
                                                 className="w-full px-3 py-2 rounded border border-gray-300 text-sm bg-white outline-none"
+                                                title="Edit role"
                                             >
                                                 <option value="buyer">{t('role.buyer')}</option>
                                                 <option value="seller">{t('role.seller')}</option>

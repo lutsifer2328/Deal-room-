@@ -64,7 +64,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                         </div>
                     </div>
                     {/* Mobile Close Button */}
-                    <button onClick={onClose} className="md:hidden text-white/50 hover:text-white">
+                    <button onClick={onClose} className="md:hidden text-white/50 hover:text-white" title="Close Menu">
                         <ChevronUp className="w-6 h-6 rotate-[-90deg]" />
                     </button>
                 </div>
@@ -101,12 +101,14 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                         <button
                             onClick={() => setLanguage('en')}
                             className={`flex-1 py-1 text-xs font-bold rounded ${language === 'en' ? 'bg-teal text-white shadow-sm' : 'text-white/50 hover:text-white'}`}
+                            title="English"
                         >
                             EN
                         </button>
                         <button
                             onClick={() => setLanguage('bg')}
                             className={`flex-1 py-1 text-xs font-bold rounded ${language === 'bg' ? 'bg-teal text-white shadow-sm' : 'text-white/50 hover:text-white'}`}
+                            title="Bulgarian"
                         >
                             BG
                         </button>
@@ -119,6 +121,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                                 <button
                                     onClick={() => logout()}
                                     className="w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 text-red-600 hover:bg-red-50 font-bold transition-colors"
+                                    title="Sign Out"
                                 >
                                     <span>Sign Out</span>
                                 </button>
@@ -131,6 +134,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                                 ? 'bg-white text-navy-primary border-white shadow-lg transform -translate-y-1'
                                 : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
                                 }`}
+                            title="Toggle User Menu"
                         >
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg transition-colors ${showUserMenu ? 'bg-teal text-white' : 'bg-gradient-to-br from-teal to-gold text-navy-primary'
                                 }`}>

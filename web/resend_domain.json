@@ -1,0 +1,39 @@
+{
+  "object": "domain",
+  "id": "5f71318f-28dd-4b46-abc7-01b3bd99b054",
+  "name": "agenzia.bg",
+  "status": "failed",
+  "created_at": "2026-02-02 16:02:26.912397+00",
+  "region": "eu-west-1",
+  "capabilities": {
+    "sending": "enabled",
+    "receiving": "disabled"
+  },
+  "records": [
+    {
+      "record": "DKIM",
+      "name": "resend._domainkey",
+      "value": "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDMVhN2PCuHdlKdEfQiOYCozizQQdhWYXC9pBkfwtCLnT+2ASBiG5QDyHm4U2AemEsIdl2Cmm+HHICATSDBbBTuNmbx9OYSJLv3T9OVrSVuEj8PGRhFbGAV4hnJLOCAjV4u8YrLoWxr+TxlrfzEQhujeB/CAfpS4mc3Ng6ITMaY0QIDAQAB",
+      "type": "TXT",
+      "status": "failed",
+      "ttl": "Auto"
+    },
+    {
+      "record": "SPF",
+      "name": "send",
+      "type": "MX",
+      "ttl": "Auto",
+      "status": "failed",
+      "value": "feedback-smtp.eu-west-1.amazonses.com",
+      "priority": 10
+    },
+    {
+      "record": "SPF",
+      "name": "send",
+      "value": "v=spf1 include:amazonses.com ~all",
+      "type": "TXT",
+      "ttl": "Auto",
+      "status": "failed"
+    }
+  ]
+}

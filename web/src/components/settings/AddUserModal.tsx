@@ -70,6 +70,7 @@ export default function AddUserModal({ onClose }: AddUserModalProps) {
                                     value={role}
                                     onChange={(e) => setRole(e.target.value as Role)}
                                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal/20 focus:border-teal transition-all bg-white"
+                                    title="Role"
                                 >
                                     {organizationalRoles.map((r) => (
                                         <option key={r} value={r}>

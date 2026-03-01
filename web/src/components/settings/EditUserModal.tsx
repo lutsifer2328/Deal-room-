@@ -72,6 +72,7 @@ export default function EditUserModal({ user, onClose }: EditUserModalProps) {
                                 value={role}
                                 onChange={(e) => setRole(e.target.value as Role)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                title="Role"
                             >
                                 {organizationalRoles.map((r) => (
                                     <option key={r} value={r}>
@@ -83,7 +84,7 @@ export default function EditUserModal({ user, onClose }: EditUserModalProps) {
 
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                             <p className="text-sm text-blue-800">
-                                <strong>Note:</strong> Changing the role will automatically update the user's permissions.
+                                <strong>Note:</strong> Changing the role will automatically update the user&apos;s permissions.
                             </p>
                         </div>
                     </div>

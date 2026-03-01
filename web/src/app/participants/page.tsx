@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
-import { Users, Search, X, UserPlus, Clock } from 'lucide-react';
+import { Plus, Search, Filter, Mail, UserPlus, Building, Trash2, X, AlertCircle, Copy, Clock, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { GlobalParticipant } from '@/lib/types';
 import AddParticipantModal from '@/components/participants/AddParticipantModal';
 import { useTranslation, TranslationKey } from '@/lib/useTranslation';
+
+import toast from 'react-hot-toast';
 
 export default function ParticipantsPage() {
     const { globalParticipants, dealParticipants, deals, getRecentParticipants } = useData();
@@ -15,18 +17,6 @@ export default function ParticipantsPage() {
     const router = useRouter();
     const { t } = useTranslation();
 
-    // Access control - check BEFORE using hooks
-    if (!user || !['lawyer', 'admin', 'staff'].includes(user.role)) {
-        return (
-            <div className="flex items-center justify-center h-screen">
-                <div className="text-center">
-                    <h1 className="text-2xl font-bold text-gray-800 mb-2">{t('dashboard.accessDenied')}</h1>
-                </div>
-            </div>
-        );
-    }
-
-    // All hooks MUST be called unconditionally after access check
     const [searchQuery, setSearchQuery] = useState('');
     const [filterMode, setFilterMode] = useState<'all' | 'active' | 'closed'>('all');
     const [currentPage, setCurrentPage] = useState(1);
@@ -84,7 +74,7 @@ export default function ParticipantsPage() {
         }
 
         // Apply sorting
-        filtered.sort((a, b) => {
+        filtered.sort((a: GlobalParticipant, b: GlobalParticipant) => {
             let compareA: any = a[sortBy];
             let compareB: any = b[sortBy];
 
@@ -140,6 +130,16 @@ export default function ParticipantsPage() {
         return t(key).startsWith('role.') ? role : t(key);
     };
 
+    if (!user || !['lawyer', 'admin', 'staff', 'broker'].includes(user.role)) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold text-gray-800 mb-2">{t('dashboard.accessDenied')}</h1>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="flex-1 overflow-y-auto bg-gray-50/50 p-12">
             <div className="max-w-7xl mx-auto space-y-8">
@@ -155,10 +155,10 @@ export default function ParticipantsPage() {
                     </div>
                     <button
                         onClick={() => setIsAddModalOpen(true)}
-                        className="px-6 py-3 bg-teal text-white rounded-xl font-bold hover:bg-teal/90 flex items-center gap-2 shadow-lg shadow-teal/20 transition-all hover:scale-105"
+                        className="px-6 py-3 min-h-[44px] min-w-[44px] bg-teal text-white rounded-xl font-bold hover:bg-teal/90 flex items-center justify-center gap-2 shadow-lg shadow-teal/20 transition-all hover:scale-105"
                     >
-                        <UserPlus className="w-5 h-5" />
-                        {t('participants.addNew')}
+                        <UserPlus className="w-5 h-5 mx-auto md:mx-0" />
+                        <span className="hidden md:inline">{t('participants.addNew')}</span>
                     </button>
                 </div>
 
@@ -180,6 +180,7 @@ export default function ParticipantsPage() {
                             <button
                                 onClick={() => setSearchQuery('')}
                                 className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                title="Clear Search"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -279,7 +280,7 @@ export default function ParticipantsPage() {
                     ) : (
                         <>
                             <div className="overflow-x-auto">
-                                <table className="w-full">
+                                <table className="w-full hidden md:table">
                                     <thead className="bg-gray-50/50 border-b border-gray-100">
                                         <tr>
                                             <th
@@ -335,10 +336,10 @@ export default function ParticipantsPage() {
                                                 >
                                                     <td className="px-8 py-5 whitespace-nowrap">
                                                         <div className="flex items-center gap-4">
-                                                            <div className="w-10 h-10 rounded-full bg-navy-primary text-white flex items-center justify-center font-bold text-sm shadow-md group-hover:bg-teal transition-colors">
+                                                            <div className="w-10 h-10 rounded-full bg-navy-primary text-white flex items-center justify-center font-bold text-sm shadow-md group-hover:bg-teal transition-colors flex-shrink-0">
                                                                 {participant.name.charAt(0)}
                                                             </div>
-                                                            <div className="font-bold text-navy-primary text-base group-hover:text-teal transition-colors">{participant.name}</div>
+                                                            <div className="font-bold text-navy-primary text-base group-hover:text-teal transition-colors truncate">{participant.name}</div>
                                                         </div>
                                                     </td>
                                                     <td className="px-8 py-5 whitespace-nowrap text-sm text-text-light font-medium">
@@ -357,13 +358,70 @@ export default function ParticipantsPage() {
                                         })}
                                     </tbody>
                                 </table>
+
+                                {/* Mobile Card View for Participants */}
+                                <div className="md:hidden divide-y divide-gray-50">
+                                    {paginatedParticipants.map(participant => {
+                                        const stats = getParticipantStats(participant);
+                                        const dealsText = stats.activeDealsCount > 0 && stats.closedDealsCount > 0
+                                            ? `${stats.activeDealsCount} Активни, ${stats.closedDealsCount} Затворени`
+                                            : stats.activeDealsCount > 0
+                                                ? `${stats.activeDealsCount} Активни`
+                                                : stats.closedDealsCount > 0
+                                                    ? `0 (${stats.closedDealsCount} Затворени)`
+                                                    : '0';
+
+                                        return (
+                                            <div
+                                                key={participant.id}
+                                                onClick={() => handleRowClick(participant.id)}
+                                                className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
+                                            >
+                                                <div className="flex justify-between items-start gap-3">
+                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                        <div className="w-10 h-10 rounded-full bg-navy-primary text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:bg-teal transition-colors flex-shrink-0">
+                                                            {participant.name.charAt(0)}
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <h3 className="font-bold text-navy-primary truncate text-base">{participant.name}</h3>
+                                                            <div className="text-sm text-text-light truncate mt-0.5">{participant.email}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="pl-[52px] mt-3 flex items-center justify-between">
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase border ${getRoleBadgeColor(stats.mostRecentRole)}`}>
+                                                        {getTranslatedRole(stats.mostRecentRole)}
+                                                    </span>
+                                                    <span className="text-xs text-text-light font-medium bg-gray-50 px-2 py-1 rounded">
+                                                        {dealsText}
+                                                    </span>
+                                                </div>
+
+                                                <div className="mt-3 pl-[52px]">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigator.clipboard.writeText(participant.email);
+                                                            toast.success('Копирано!');
+                                                        }}
+                                                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-teal/10 hover:bg-teal/20 text-teal font-bold rounded-lg transition-colors min-h-[44px]"
+                                                    >
+                                                        <Copy className="w-4 h-4" />
+                                                        Копирай имейл
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
 
                             {/* Pagination */}
                             {totalPages > 1 && (
-                                <div className="px-8 py-6 border-t border-gray-100 flex items-center justify-between bg-gray-50/30">
-                                    <div className="text-sm text-text-light font-medium">
-                                        {t('participants.pagination.showing')} <span className="font-bold text-navy-primary">{((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredParticipants.length)}</span> {t('participants.pagination.of')} <span className="font-bold text-navy-primary">{filteredParticipants.length}</span>
+                                <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
+                                    <div className="text-sm text-text-light">
+                                        Показване {((currentPage - 1) * itemsPerPage) + 1} до {Math.min(currentPage * itemsPerPage, filteredParticipants.length)} от {filteredParticipants.length}
                                     </div>
                                     <div className="flex gap-2">
                                         <button

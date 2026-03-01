@@ -183,6 +183,7 @@ export default function SearchAllDocumentsTab() {
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value as any)}
                                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all appearance-none bg-white text-navy-primary font-medium"
+                                title="Filter by Status"
                             >
                                 <option value="all">All Statuses</option>
                                 <option value="private">Private</option>
@@ -205,6 +206,7 @@ export default function SearchAllDocumentsTab() {
                                 value={dealFilter}
                                 onChange={(e) => setDealFilter(e.target.value)}
                                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all appearance-none bg-white text-navy-primary font-medium"
+                                title="Filter by Deal"
                             >
                                 <option value="all">All Deals</option>
                                 {deals.map(deal => (

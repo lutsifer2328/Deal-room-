@@ -41,6 +41,7 @@ export default function SettingsPage() {
                             ? 'border-teal text-teal'
                             : 'border-transparent text-text-light hover:text-navy-primary hover:border-gray-300'
                             }`}
+                        title={t('settings.tab.users')}
                     >
                         {t('settings.tab.users')}
                     </button>
@@ -50,6 +51,7 @@ export default function SettingsPage() {
                             ? 'border-teal text-teal'
                             : 'border-transparent text-text-light hover:text-navy-primary hover:border-gray-300'
                             }`}
+                        title={t('settings.tab.general')}
                     >
                         {t('settings.tab.general')}
                     </button>
@@ -59,6 +61,7 @@ export default function SettingsPage() {
                             ? 'border-teal text-teal'
                             : 'border-transparent text-text-light hover:text-navy-primary hover:border-gray-300'
                             }`}
+                        title={t('nav.auditLog')}
                     >
                         <History className="w-4 h-4" />
                         {t('nav.auditLog')}
@@ -199,6 +202,7 @@ export default function SettingsPage() {
                                 <button
                                     onClick={() => window.location.reload()}
                                     className="px-4 py-2 bg-navy-primary text-white rounded hover:bg-navy-secondary font-bold text-sm transition-colors"
+                                    title={t('settings.health.relaunch')}
                                 >
                                     {t('settings.health.relaunch')}
                                 </button>

@@ -5,8 +5,8 @@ import { GlobalParticipant, AgencyContract } from '@/lib/types';
 import { getAgencyContractSignedUrl } from '@/app/actions/agency-contracts';
 import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
-import { supabase } from '@/lib/supabase';
-import { FileText, Plus, Trash2, Upload, Calendar, Download, CheckCircle, Eye, X, AlertTriangle } from 'lucide-react';
+
+import { FileText, Plus, Trash2, Upload, Calendar, Download, CheckCircle, Eye, AlertTriangle } from 'lucide-react';
 import { Modal, ModalContent, ModalHeader, ModalFooter } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 
@@ -237,6 +237,9 @@ export default function AgencyContractsSection({ participant }: { participant: G
                                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                                 onChange={handleFileSelect}
                                 className="hidden"
+                                id="agency-contract-upload"
+                                title="File Upload"
+                                aria-label="Select a file to upload"
                             />
                             {selectedFile ? (
                                 <div className="space-y-3">

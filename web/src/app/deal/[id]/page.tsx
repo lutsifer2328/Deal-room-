@@ -90,6 +90,7 @@ export default function DealDetailPage() {
             <button
                 onClick={() => router.push('/dashboard')}
                 className="flex items-center gap-2 text-navy-primary hover:text-teal transition-colors mb-4 font-medium group"
+                title="Back to Dashboard"
             >
                 <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                 <span>Back to Dashboard</span>

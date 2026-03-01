@@ -77,6 +77,7 @@ function ArchiveContent() {
                                 ? 'bg-teal text-white shadow-lg shadow-teal/20 scale-105'
                                 : 'bg-white text-text-secondary hover:bg-gray-50 hover:text-navy-primary border border-gray-100'
                                 }`}
+                            title={tab.label}
                         >
                             {tab.label}
                         </button>
