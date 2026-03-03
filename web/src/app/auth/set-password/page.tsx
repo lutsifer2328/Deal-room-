@@ -12,6 +12,7 @@ export default function SetPassword() {
     const [error, setError] = useState('');
     const [userEmail, setUserEmail] = useState('');
     const [isCheckingSession, setIsCheckingSession] = useState(true);
+    const [termsAccepted, setTermsAccepted] = useState(false);
 
     useEffect(() => {
         // Get the current user from the session (set by callback page)
@@ -56,6 +57,11 @@ export default function SetPassword() {
             return;
         }
 
+        if (!termsAccepted) {
+            setError('Моля, съгласете се с Общите условия и Политиката за поверителност преди да продължите.');
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -70,6 +76,17 @@ export default function SetPassword() {
                 if (updateError.message?.toLowerCase().includes('same') ||
                     updateError.message?.toLowerCase().includes('different')) {
                     console.log('✅ Password already set to this value — redirecting to dashboard');
+
+                    // Also update terms_accepted_at since they just clicked through the form
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (session?.user) {
+                        await supabase
+                            .from('users')
+                            .update({ terms_accepted_at: new Date().toISOString() })
+                            .eq('id', session.user.id)
+                            .is('terms_accepted_at', null);
+                    }
+
                     router.push('/');
                     return;
                 }
@@ -78,6 +95,16 @@ export default function SetPassword() {
             }
 
             console.log('✅ Password updated successfully!');
+
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                await supabase
+                    .from('users')
+                    .update({ terms_accepted_at: new Date().toISOString() })
+                    .eq('id', session.user.id)
+                    .is('terms_accepted_at', null);
+            }
+
             router.push('/');
         } catch (err: any) {
             console.error('❌ Password update failed:', err);
@@ -138,6 +165,24 @@ export default function SetPassword() {
                             placeholder="Confirm your password"
                             required
                         />
+                    </div>
+
+                    {/* Terms Checkbox */}
+                    <div className="flex items-start gap-2 pt-2">
+                        <input
+                            type="checkbox"
+                            id="terms"
+                            checked={termsAccepted}
+                            onChange={(e) => setTermsAccepted(e.target.checked)}
+                            className="mt-1 w-4 h-4 rounded border-white/30 bg-white/10 text-teal-500 focus:ring-teal-500/20"
+                            required
+                        />
+                        <label htmlFor="terms" className="text-xs text-gray-300 leading-tight">
+                            Съгласен съм с{' '}
+                            <a href="#" className="text-teal-400 hover:underline">Общите условия</a>
+                            {' '}и{' '}
+                            <a href="#" className="text-teal-400 hover:underline">Политиката за поверителност</a>.
+                        </label>
                     </div>
 
                     <button

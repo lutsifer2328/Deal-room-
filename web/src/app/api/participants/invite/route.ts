@@ -362,6 +362,8 @@ export async function POST(request: Request) {
     } catch (error: unknown) {
         const errMsg = error instanceof Error ? error.message : 'Internal server error';
         console.error('❌ Participant invite error:', error);
+        console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
+        console.error('Full Error Object:', JSON.stringify(error, null, 2));
         return NextResponse.json(
             { error: errMsg },
             { status: 500 }

@@ -12,11 +12,18 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [termsAccepted, setTermsAccepted] = useState(false);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setLoading(true);
+
+        if (!termsAccepted) {
+            setError('Моля, съгласете се с Общите условия и Политиката за поверителност преди да продължите.');
+            setLoading(false);
+            return;
+        }
 
         const { error: loginError } = await login(email, password);
 
@@ -93,10 +100,28 @@ export default function LoginPage() {
                         {/* Error Message */}
                         {error && (
                             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                                <div className="w-1.5 h-1.5 rounded-full bg-red-500 min-w-[6px]"></div>
                                 {error}
                             </div>
                         )}
+
+                        {/* Terms Checkbox */}
+                        <div className="flex items-start gap-2 pt-2">
+                            <input
+                                type="checkbox"
+                                id="terms"
+                                checked={termsAccepted}
+                                onChange={(e) => setTermsAccepted(e.target.checked)}
+                                className="mt-1 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500/20"
+                                required
+                            />
+                            <label htmlFor="terms" className="text-xs text-slate-500 leading-tight">
+                                Съгласен съм с{' '}
+                                <a href="#" className="text-teal-600 hover:underline">Общите условия</a>
+                                {' '}и{' '}
+                                <a href="#" className="text-teal-600 hover:underline">Политиката за поверителност</a>.
+                            </label>
+                        </div>
 
                         {/* Submit Button */}
                         <button

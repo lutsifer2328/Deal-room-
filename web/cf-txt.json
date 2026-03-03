@@ -1,0 +1,18 @@
+﻿[
+    {
+        "name":  "agenzia.bg",
+        "content":  "\"v=spf1 include:_spf.google.com include:amazonses.com include:resend.com ~all\""
+    },
+    {
+        "name":  "_dmarc.agenzia.bg",
+        "content":  "\"v=DMARC1; p=none\""
+    },
+    {
+        "name":  "resend._domainkey.agenzia.bg",
+        "content":  "\"p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDMVhN2PCuHdlKdEfQiOYCozizQQdhWYXC9pBkfwtCLnT+2ASBiG5QDyHm4U2AemEsIdl2Cmm+HHICATSDBbBTuNmbx9OYSJLv3T9OVrSVuEj8PGRhFbGAV4hnJLOCAjV4u8YrLoWxr+TxlrfzEQhujeB/CAfpS4mc3Ng6ITMaY0QIDAQAB\""
+    },
+    {
+        "name":  "send.agenzia.bg",
+        "content":  "\"v=spf1 include:amazonses.com ~all\""
+    }
+]

@@ -5,14 +5,16 @@ import { useAuth } from '@/lib/authContext';
 import { useRouter } from 'next/navigation';
 import UserManagementTable from '@/components/settings/UserManagementTable';
 import AuditLogTable from '@/components/settings/AuditLogTable';
-import { Check, X, Shield, Briefcase, Users as UsersIcon, History } from 'lucide-react';
+import AdminUserList from '@/components/settings/AdminUserList';
+import CommunicationsPreview from '@/components/settings/CommunicationsPreview';
+import { Check, X, Shield, Briefcase, Users as UsersIcon, History, Mail } from 'lucide-react';
 import { useTranslation } from '@/lib/useTranslation';
 
 export default function SettingsPage() {
     const { user } = useAuth();
     const router = useRouter();
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState<'users' | 'general' | 'audit'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'general' | 'audit' | 'admin' | 'communications'>('users');
 
     // Redirect if not admin
     useEffect(() => {
@@ -66,6 +68,32 @@ export default function SettingsPage() {
                         <History className="w-4 h-4" />
                         {t('nav.auditLog')}
                     </button>
+                    {user?.role === 'admin' && (
+                        <>
+                            <button
+                                onClick={() => setActiveTab('admin')}
+                                className={`py-4 px-1 border-b-2 font-bold text-sm transition-colors flex items-center gap-1.5 ${activeTab === 'admin'
+                                    ? 'border-teal text-teal'
+                                    : 'border-transparent text-text-light hover:text-navy-primary hover:border-gray-300'
+                                    }`}
+                                title="Администрация"
+                            >
+                                <Shield className="w-4 h-4" />
+                                Администрация
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('communications')}
+                                className={`py-4 px-1 border-b-2 font-bold text-sm transition-colors flex items-center gap-1.5 ${activeTab === 'communications'
+                                    ? 'border-teal text-teal'
+                                    : 'border-transparent text-text-light hover:text-navy-primary hover:border-gray-300'
+                                    }`}
+                                title="Communications"
+                            >
+                                <Mail className="w-4 h-4" />
+                                Communications
+                            </button>
+                        </>
+                    )}
                 </nav>
             </div>
 
@@ -213,6 +241,14 @@ export default function SettingsPage() {
             )}
             {activeTab === 'audit' && (
                 <AuditLogTable />
+            )}
+            {activeTab === 'admin' && (
+                <AdminUserList />
+            )}
+            {activeTab === 'communications' && (
+                <div className="h-full min-h-[600px] mb-8">
+                    <CommunicationsPreview />
+                </div>
             )}
         </div>
     );

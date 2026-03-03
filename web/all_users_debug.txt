@@ -7,6 +7,12 @@ ALL USERS:
     "role": "user"
   },
   {
+    "id": "42c4e276-ebc8-412b-aeb5-91e9f5933e61",
+    "name": "test_admin_2",
+    "email": "test_admin_2@agenzia.com",
+    "role": "user"
+  },
+  {
     "id": "cc2db1a0-4b88-4bc5-8477-8aef877c5dd1",
     "name": null,
     "email": "stranger_1771426002628@test.com",
@@ -19,22 +25,40 @@ ALL USERS:
     "role": "viewer"
   },
   {
-    "id": "8f775751-b01d-4faf-87cb-1e62e9ce4dd0",
-    "name": null,
-    "email": "lawyer@agency.com",
-    "role": "admin"
+    "id": "ab518ee0-11dd-4b63-9526-c280af8a5414",
+    "name": "fk_test",
+    "email": "fk_test@agenzia.com",
+    "role": "user"
   },
   {
-    "id": "bd04d1b9-8119-4db4-b866-d7190864802e",
-    "name": "Kalin Kalinov",
-    "email": "kalin@yahoo.com",
-    "role": "staff"
+    "id": "f1c8da34-2718-4d6d-aa29-f9c13cd6e1f5",
+    "name": "Maria Georgieva",
+    "email": "mgeorgieva@agenzia.bg",
+    "role": "user"
+  },
+  {
+    "id": "19757a91-8afa-49b2-bef4-a16ee9101314",
+    "name": "Tommy vaskov",
+    "email": "tommyignatov@yahoo.com",
+    "role": "admin"
   },
   {
     "id": "f2c89a44-e833-458b-8738-622306c69be2",
     "name": null,
     "email": "staff@agency.com",
     "role": "staff"
+  },
+  {
+    "id": "8f775751-b01d-4faf-87cb-1e62e9ce4dd0",
+    "name": null,
+    "email": "lawyer@agency.com",
+    "role": "admin"
+  },
+  {
+    "id": "f18b2cdc-4e11-4800-b51a-b22374cf3dc1",
+    "name": "Test Lawyer 1",
+    "email": "test.lawyer1@example.com",
+    "role": "lawyer"
   },
   {
     "id": "a8d6e314-4f52-46ca-bcd5-c884e91af89d",
@@ -163,12 +187,6 @@ ALL USERS:
     "role": "viewer"
   },
   {
-    "id": "19757a91-8afa-49b2-bef4-a16ee9101314",
-    "name": "Tommy vaskov",
-    "email": "tommyignatov@yahoo.com",
-    "role": "admin"
-  },
-  {
     "id": "8f51b0ca-17ca-4b17-b40b-b19a9c28f756",
     "name": "Tommy Ignatov",
     "email": "lutsifer@gmail.com",
@@ -217,16 +235,34 @@ ALL USERS:
     "role": "viewer"
   },
   {
+    "id": "9162ac4b-777e-496d-a8fd-97b04240241e",
+    "name": "Test Seller",
+    "email": "seller@test.com",
+    "role": "user"
+  },
+  {
     "id": "68499e9f-e232-4cb5-89cd-aa34932258bb",
     "name": null,
     "email": "test-viewer-1@agency.com",
     "role": "viewer"
   },
   {
+    "id": "96482cb2-5e14-4449-a84d-82e172cd1053",
+    "name": "Test Buyer",
+    "email": "buyer@test.com",
+    "role": "user"
+  },
+  {
     "id": "aa10ec56-b0ee-416a-90f7-9fa3fa0f6cf3",
     "name": null,
     "email": "test-viewer-2@agency.com",
     "role": "viewer"
+  },
+  {
+    "id": "ccb26948-eeaa-48c0-a8db-1206f723756a",
+    "name": "Test External Broker",
+    "email": "broker_ext@test.com",
+    "role": "user"
   },
   {
     "id": "2e7a27fc-43a2-436b-b806-126a893e8cf1",
@@ -259,24 +295,6 @@ ALL USERS:
     "role": "user"
   },
   {
-    "id": "3acbacb3-ea87-40b2-9b8d-08e2364c4c82",
-    "name": "Test Trigger User",
-    "email": "fake-insert-staff@agency.com",
-    "role": "staff"
-  },
-  {
-    "id": "5a4c731c-bbb2-4d26-8e83-d51c5c846397",
-    "name": "API Test User",
-    "email": "test-api-1771577675653@agency.com",
-    "role": "admin"
-  },
-  {
-    "id": "76fdb90d-c7da-4432-8770-165a02d5e2d9",
-    "name": "Final Test Staff",
-    "email": "test-staff-final@agency.com",
-    "role": "staff"
-  },
-  {
     "id": "576d2054-586c-404e-9adf-52f72c66367b",
     "name": "stranger_1771665332801",
     "email": "stranger_1771665332801@test.com",
@@ -287,6 +305,24 @@ ALL USERS:
     "name": "stranger_1771665362631",
     "email": "stranger_1771665362631@test.com",
     "role": "user"
+  },
+  {
+    "id": "fd0bcc91-e214-4a50-b08b-384fc9af271f",
+    "name": "paola ",
+    "email": "paola@aol.com",
+    "role": "user"
+  },
+  {
+    "id": "c8b63c7d-5636-45c0-b882-798c534bb4c3",
+    "name": "Vasko Ignatov",
+    "email": "vas@yahoo.com",
+    "role": "user"
+  },
+  {
+    "id": "2bec4dd4-4f69-4eec-9626-cebd2b2cfd9f",
+    "name": "Sara Domat",
+    "email": "sdomat@agenzia.bg",
+    "role": "staff"
   }
 ]
 

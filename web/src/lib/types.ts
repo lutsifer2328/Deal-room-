@@ -47,7 +47,7 @@ export interface GlobalParticipant {
   contracts?: AgencyContract[];
 
   // Invitation tracking
-  invitationStatus: 'pending' | 'accepted' | 'declined';
+  invitationStatus: 'pending' | 'invited' | 'resent' | 'accepted' | 'declined';
   invitationSentAt?: string;
   invitationAcceptedAt?: string;
 

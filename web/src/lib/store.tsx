@@ -1535,6 +1535,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     ? `${email} is already linked — invite resent`
                     : `Invitation sent to ${email}`;
             addNotification('success', 'Invitation Sent', toastMsg);
+
+            // Optimistically update the UI to show the 'Resend' state internally
+            setRawGlobalParticipants(prev => prev.map(p => {
+                if (p.email.toLowerCase() === email.toLowerCase()) {
+                    return {
+                        ...p,
+                        invitationSentAt: new Date().toISOString(),
+                        invitationStatus: (resend ? 'resent' : 'invited') as "invited" | "resent" | "pending" | "accepted" | "declined"
+                    };
+                }
+                return p;
+            }));
+
+            // Then asynchronously fetch true data from server to guarantee sync
+            fetchData();
+
             return true;
         } catch (error: any) {
             console.error('❌ Invite Error:', error);

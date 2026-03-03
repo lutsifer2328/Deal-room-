@@ -39,20 +39,55 @@ export async function POST(request: Request) {
             }
         );
 
-        // Send password recovery email (works for invited users too)
-        const { data, error } = await supabaseAdmin.auth.resetPasswordForEmail(
+        // 1. Ensure user exists and get their name
+        const { data: userProfile } = await supabaseAdmin
+            .from('users')
+            .select('name, id, role')
+            .eq('email', email)
+            .maybeSingle();
+
+        const name = userProfile?.name || email.split('@')[0];
+
+        // 2. Generate raw recovery link
+        const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'recovery',
             email,
-            {
+            options: {
                 redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`
             }
-        );
+        });
 
-        if (error) {
-            console.error('Error resending invitation:', error);
-            throw error;
+        if (linkError || !linkData?.properties?.action_link) {
+            console.error('Error generating recovery link:', linkError);
+            throw linkError || new Error('Failed to generate recovery link');
         }
 
-        console.log('✅ Invitation resent successfully');
+        // 3. Extract the token_hash to build a robust directLink to /auth/callback
+        const supabaseActionLink = linkData.properties.action_link;
+        const actionUrl = new URL(supabaseActionLink);
+        const tokenHash = actionUrl.searchParams.get('token');
+        const linkType = actionUrl.searchParams.get('type') || 'recovery';
+
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+        const directLink = `${siteUrl}/auth/callback?token_hash=${tokenHash}&type=${linkType}`;
+
+        // 4. Send the new Elite HTML email via Resend
+        const { sendInviteEmail } = await import('@/lib/emailService');
+        const emailResult = await sendInviteEmail(
+            email,
+            name,
+            directLink,
+            userProfile?.role || 'user',
+            undefined, // no deal title for a generic password reset
+            false      // explicitly mark as generic invite/reset flow
+        );
+
+        if (!emailResult.success) {
+            console.error('Error sending Resend email:', emailResult.error);
+            throw new Error(emailResult.error || 'Failed to dispatch email');
+        }
+
+        console.log('✅ Password reset email resent successfully via Resend');
 
         return NextResponse.json({
             success: true,

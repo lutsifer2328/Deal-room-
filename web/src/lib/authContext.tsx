@@ -27,7 +27,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         // 1. Check active session
-        // 1. Check active session
         const checkSession = async (retries = 3) => {
             try {
                 console.log(`🔐 Checking session... (Attempts left: ${retries})`);
@@ -234,6 +233,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         console.log('🔐 Login SUCCESS:', data.user?.id);
+
+        // Update terms_accepted_at if it's null
+        if (data.user) {
+            await supabase
+                .from('users')
+                .update({ terms_accepted_at: new Date().toISOString() })
+                .eq('id', data.user.id)
+                .is('terms_accepted_at', null);
+        }
+
         return { error: null };
     };
 

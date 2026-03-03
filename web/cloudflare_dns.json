@@ -1,0 +1,746 @@
+﻿[
+    {
+        "id":  "144880c97847272fe3dddd36665ec7ce",
+        "name":  "agenzia.bg",
+        "type":  "A",
+        "content":  "172.67.171.51",
+        "proxiable":  true,
+        "proxied":  true,
+        "ttl":  1,
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.290863Z",
+        "modified_on":  "2026-02-09T10:25:26.290863Z"
+    },
+    {
+        "id":  "cde4d3e783722634022ef0512ce5fe85",
+        "name":  "agenzia.bg",
+        "type":  "A",
+        "content":  "104.21.28.254",
+        "proxiable":  true,
+        "proxied":  true,
+        "ttl":  1,
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.279457Z",
+        "modified_on":  "2026-02-09T10:25:26.279457Z"
+    },
+    {
+        "id":  "0655217fa20f9de4f7441257e786c031",
+        "name":  "www.agenzia.bg",
+        "type":  "A",
+        "content":  "172.67.171.51",
+        "proxiable":  true,
+        "proxied":  true,
+        "ttl":  1,
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.142184Z",
+        "modified_on":  "2026-02-09T10:25:26.142184Z"
+    },
+    {
+        "id":  "c070c8db3a21ce072448a8b746be911c",
+        "name":  "www.agenzia.bg",
+        "type":  "A",
+        "content":  "104.21.28.254",
+        "proxiable":  true,
+        "proxied":  true,
+        "ttl":  1,
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.13051Z",
+        "modified_on":  "2026-02-09T10:25:26.13051Z"
+    },
+    {
+        "id":  "f29cd18ff0bd2b20ab4755463d35191a",
+        "name":  "agenzia.bg",
+        "type":  "AAAA",
+        "content":  "2606:4700:3030::ac43:ab33",
+        "proxiable":  true,
+        "proxied":  true,
+        "ttl":  1,
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.084061Z",
+        "modified_on":  "2026-02-09T10:25:26.084061Z"
+    },
+    {
+        "id":  "44225cc90a3cb6e062ab7ca70aab2aeb",
+        "name":  "agenzia.bg",
+        "type":  "AAAA",
+        "content":  "2606:4700:3034::6815:1cfe",
+        "proxiable":  true,
+        "proxied":  true,
+        "ttl":  1,
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.071683Z",
+        "modified_on":  "2026-02-09T10:25:26.071683Z"
+    },
+    {
+        "id":  "6035a5f6718b4b9a85bb939a5a65ad8b",
+        "name":  "www.agenzia.bg",
+        "type":  "AAAA",
+        "content":  "2606:4700:3034::6815:1cfe",
+        "proxiable":  true,
+        "proxied":  true,
+        "ttl":  1,
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.315027Z",
+        "modified_on":  "2026-02-09T10:25:26.315027Z"
+    },
+    {
+        "id":  "fa209b27fc9d918a8a8fa270d90f1e3f",
+        "name":  "www.agenzia.bg",
+        "type":  "AAAA",
+        "content":  "2606:4700:3030::ac43:ab33",
+        "proxiable":  true,
+        "proxied":  true,
+        "ttl":  1,
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.30379Z",
+        "modified_on":  "2026-02-09T10:25:26.30379Z"
+    },
+    {
+        "id":  "edbba71910a3391a8526d129d3cfaac6",
+        "name":  "agenzia.bg",
+        "type":  "CAA",
+        "content":  "0 issuewild \"ssl.com\"",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "data":  {
+                     "flags":  0,
+                     "tag":  "issuewild",
+                     "value":  "ssl.com"
+                 },
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.261775Z",
+        "modified_on":  "2026-02-09T10:25:26.261775Z"
+    },
+    {
+        "id":  "5d64c279788b790478d6f3c35246946f",
+        "name":  "agenzia.bg",
+        "type":  "CAA",
+        "content":  "0 issuewild \"sectigo.com\"",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "data":  {
+                     "flags":  0,
+                     "tag":  "issuewild",
+                     "value":  "sectigo.com"
+                 },
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.253621Z",
+        "modified_on":  "2026-02-09T10:25:26.253621Z"
+    },
+    {
+        "id":  "c95e4912b9faf844a5190ad3d867c821",
+        "name":  "agenzia.bg",
+        "type":  "CAA",
+        "content":  "0 issuewild \"pki.goog; cansignhttpexchanges=yes\"",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "data":  {
+                     "flags":  0,
+                     "tag":  "issuewild",
+                     "value":  "pki.goog; cansignhttpexchanges=yes"
+                 },
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.245708Z",
+        "modified_on":  "2026-02-09T10:25:26.245708Z"
+    },
+    {
+        "id":  "b25d1e143bc87c2ebe649b211d44f24a",
+        "name":  "agenzia.bg",
+        "type":  "CAA",
+        "content":  "0 issuewild \"letsencrypt.org\"",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "data":  {
+                     "flags":  0,
+                     "tag":  "issuewild",
+                     "value":  "letsencrypt.org"
+                 },
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.236137Z",
+        "modified_on":  "2026-02-09T10:25:26.236137Z"
+    },
+    {
+        "id":  "fc9b11d2051c00de8f63f2ff5adb651e",
+        "name":  "agenzia.bg",
+        "type":  "CAA",
+        "content":  "0 issuewild \"globalsign.com\"",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "data":  {
+                     "flags":  0,
+                     "tag":  "issuewild",
+                     "value":  "globalsign.com"
+                 },
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.228434Z",
+        "modified_on":  "2026-02-09T10:25:26.228434Z"
+    },
+    {
+        "id":  "bd8d06baa6ad20fea146722d99469c4a",
+        "name":  "agenzia.bg",
+        "type":  "CAA",
+        "content":  "0 issuewild \"digicert.com; cansignhttpexchanges=yes\"",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "data":  {
+                     "flags":  0,
+                     "tag":  "issuewild",
+                     "value":  "digicert.com; cansignhttpexchanges=yes"
+                 },
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.220737Z",
+        "modified_on":  "2026-02-09T10:25:26.220737Z"
+    },
+    {
+        "id":  "d89a5d6b3e4a9913f95774e3c26962a3",
+        "name":  "agenzia.bg",
+        "type":  "CAA",
+        "content":  "0 issuewild \"comodoca.com\"",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "data":  {
+                     "flags":  0,
+                     "tag":  "issuewild",
+                     "value":  "comodoca.com"
+                 },
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.212725Z",
+        "modified_on":  "2026-02-09T10:25:26.212725Z"
+    },
+    {
+        "id":  "0b52ef94bc37dba6820cb4b7a0132817",
+        "name":  "agenzia.bg",
+        "type":  "CAA",
+        "content":  "0 issue \"ssl.com\"",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "data":  {
+                     "flags":  0,
+                     "tag":  "issue",
+                     "value":  "ssl.com"
+                 },
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.204503Z",
+        "modified_on":  "2026-02-09T10:25:26.204503Z"
+    },
+    {
+        "id":  "c76bcd949fb414158dae47ad1fa0fe36",
+        "name":  "agenzia.bg",
+        "type":  "CAA",
+        "content":  "0 issue \"sectigo.com\"",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "data":  {
+                     "flags":  0,
+                     "tag":  "issue",
+                     "value":  "sectigo.com"
+                 },
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.196299Z",
+        "modified_on":  "2026-02-09T10:25:26.196299Z"
+    },
+    {
+        "id":  "7b92c78ac32556e8d95eaf35f97f4f5d",
+        "name":  "agenzia.bg",
+        "type":  "CAA",
+        "content":  "0 issue \"pki.goog; cansignhttpexchanges=yes\"",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "data":  {
+                     "flags":  0,
+                     "tag":  "issue",
+                     "value":  "pki.goog; cansignhttpexchanges=yes"
+                 },
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.18724Z",
+        "modified_on":  "2026-02-09T10:25:26.18724Z"
+    },
+    {
+        "id":  "3170c3d9ca09584e9baaa44bf1a26b37",
+        "name":  "agenzia.bg",
+        "type":  "CAA",
+        "content":  "0 issue \"letsencrypt.org\"",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "data":  {
+                     "flags":  0,
+                     "tag":  "issue",
+                     "value":  "letsencrypt.org"
+                 },
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.179007Z",
+        "modified_on":  "2026-02-09T10:25:26.179007Z"
+    },
+    {
+        "id":  "0f0e9aa147651a7d27cf2d0066b48a22",
+        "name":  "agenzia.bg",
+        "type":  "CAA",
+        "content":  "0 issue \"globalsign.com\"",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "data":  {
+                     "flags":  0,
+                     "tag":  "issue",
+                     "value":  "globalsign.com"
+                 },
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.170815Z",
+        "modified_on":  "2026-02-09T10:25:26.170815Z"
+    },
+    {
+        "id":  "a8a3291ae5cf0336d8657d450b9c6259",
+        "name":  "agenzia.bg",
+        "type":  "CAA",
+        "content":  "0 issue \"digicert.com; cansignhttpexchanges=yes\"",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "data":  {
+                     "flags":  0,
+                     "tag":  "issue",
+                     "value":  "digicert.com; cansignhttpexchanges=yes"
+                 },
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.161878Z",
+        "modified_on":  "2026-02-09T10:25:26.161878Z"
+    },
+    {
+        "id":  "afa34388f11c8c1f8d0a3dd46a81e94b",
+        "name":  "agenzia.bg",
+        "type":  "CAA",
+        "content":  "0 issue \"comodoca.com\"",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "data":  {
+                     "flags":  0,
+                     "tag":  "issue",
+                     "value":  "comodoca.com"
+                 },
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.153761Z",
+        "modified_on":  "2026-02-09T10:25:26.153761Z"
+    },
+    {
+        "id":  "652c7177bcca6d6efbcdf608b9257f34",
+        "name":  "autoconfig.agenzia.bg",
+        "type":  "CNAME",
+        "content":  "autoconfig.mail.hostinger.com",
+        "proxiable":  true,
+        "proxied":  true,
+        "ttl":  1,
+        "settings":  {
+                         "flatten_cname":  false
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.096355Z",
+        "modified_on":  "2026-02-09T10:25:26.096355Z"
+    },
+    {
+        "id":  "62edd421f1543d22fbdd6fe2eb4077a3",
+        "name":  "autodiscover.agenzia.bg",
+        "type":  "CNAME",
+        "content":  "autodiscover.mail.hostinger.com",
+        "proxiable":  true,
+        "proxied":  true,
+        "ttl":  1,
+        "settings":  {
+                         "flatten_cname":  false
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.117881Z",
+        "modified_on":  "2026-02-09T10:25:26.117881Z"
+    },
+    {
+        "id":  "c87e47aeed8eab571c262f586d421d37",
+        "name":  "hostingermail-a._domainkey.agenzia.bg",
+        "type":  "CNAME",
+        "content":  "hostingermail-a.dkim.mail.hostinger.com",
+        "proxiable":  true,
+        "proxied":  true,
+        "ttl":  1,
+        "settings":  {
+                         "flatten_cname":  false
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.359247Z",
+        "modified_on":  "2026-02-09T10:25:26.359247Z"
+    },
+    {
+        "id":  "4dc7c99ea6f198956669e69be56d70c5",
+        "name":  "hostingermail-b._domainkey.agenzia.bg",
+        "type":  "CNAME",
+        "content":  "hostingermail-b.dkim.mail.hostinger.com",
+        "proxiable":  true,
+        "proxied":  true,
+        "ttl":  1,
+        "settings":  {
+                         "flatten_cname":  false
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.331261Z",
+        "modified_on":  "2026-02-09T10:25:26.331261Z"
+    },
+    {
+        "id":  "d78bd2aeae39de60cea2a7fd07388d8a",
+        "name":  "hostingermail-c._domainkey.agenzia.bg",
+        "type":  "CNAME",
+        "content":  "hostingermail-c.dkim.mail.hostinger.com",
+        "proxiable":  true,
+        "proxied":  true,
+        "ttl":  1,
+        "settings":  {
+                         "flatten_cname":  false
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.342898Z",
+        "modified_on":  "2026-02-09T10:25:26.342898Z"
+    },
+    {
+        "id":  "8d6901b5f7995de79e4afbd62e7d9177",
+        "name":  "agenzia.bg",
+        "type":  "MX",
+        "content":  "smtp.google.com",
+        "priority":  1,
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.269633Z",
+        "modified_on":  "2026-02-09T10:25:26.269633Z"
+    },
+    {
+        "id":  "f1f1652cdfec0de23242223de326d1ec",
+        "name":  "send.agenzia.bg",
+        "type":  "MX",
+        "content":  "feedback-smtp.eu-west-1.amazonses.com",
+        "priority":  10,
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  3600,
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-10T14:07:57.7134Z",
+        "modified_on":  "2026-02-10T14:07:57.7134Z"
+    },
+    {
+        "id":  "bbfbb46d2218774861782a3b21dc932e",
+        "name":  "agenzia.bg",
+        "type":  "TXT",
+        "content":  "v=spf1 include:_spf.google.com include:amazonses.com ~all",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.062455Z",
+        "modified_on":  "2026-03-01T09:09:24.82232Z"
+    },
+    {
+        "id":  "bda4da40d2ae73d3f529dae8407d1a73",
+        "name":  "_dmarc.agenzia.bg",
+        "type":  "TXT",
+        "content":  "\"v=DMARC1; p=none\"",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-09T10:25:26.107797Z",
+        "modified_on":  "2026-02-09T10:25:26.107797Z"
+    },
+    {
+        "id":  "faa3277314e3ac6f82a68e6a254dc19e",
+        "name":  "resend._domainkey.agenzia.bg",
+        "type":  "TXT",
+        "content":  "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDMVhN2PCuHdlKdEfQiOYCozizQQdhWYXC9pBkfwtCLnT+2ASBiG5QDyHm4U2AemEsIdl2Cmm+HHICATSDBbBTuNmbx9OYSJLv3T9OVrSVuEj8PGRhFbGAV4hnJLOCAjV4u8YrLoWxr+TxlrfzEQhujeB/CAfpS4mc3Ng6ITMaY0QIDAQAB",
+        "proxiable":  false,
+        "proxied":  false,
+        "ttl":  1,
+        "settings":  {
+
+                     },
+        "meta":  {
+
+                 },
+        "comment":  null,
+        "tags":  [
+
+                 ],
+        "created_on":  "2026-02-10T14:07:57.637606Z",
+        "modified_on":  "2026-03-01T09:11:47.223859Z"
+    }
+]
