@@ -6,6 +6,7 @@ import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, D
 import { createDefaultTimeline } from './defaultTimeline';
 import { MOCK_STANDARD_DOCUMENTS } from './mockStandardDocuments';
 import { getPermissionsForRole } from './permissions';
+import toast from 'react-hot-toast';
 import {
     workflowVerifyDocument,
     workflowRejectDocument,
@@ -109,6 +110,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // Fetch Data
     const fetchData = async () => {
         try {
+            // ONLY fetch data if the user is authenticated, to prevent 400 error loops on the login page
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (!sessionData.session) {
+                console.log('[DEBUG] No active session found. Skipping data fetch structure.');
+                setIsInitialized(true); // Let the app load (which will redirect to login)
+                return;
+            }
+
             const [
                 { data: fetchedUsers },
                 { data: fetchedDeals },
@@ -916,6 +925,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             await fetchData();
 
             addNotification('success', 'User Invited', `${newUser.name} has been invited as a ${newUser.role}.`);
+            toast.success(`${newUser.name} has been invited as ${newUser.role}`);
             return data.userId || tempId;
 
         } catch (error: any) {
@@ -925,6 +935,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
             const errorMsg = error.message || 'Unknown error';
             addNotification('error', 'Failed to invite user', errorMsg);
+            toast.error(`Failed to invite user: ${errorMsg}`);
             return null;
         }
     };
@@ -942,11 +953,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
             if (error) throw error;
             addNotification('success', 'User Updated', 'User details saved successfully.');
+            toast.success('User details saved');
 
         } catch (error: any) {
             console.error('Error updating user:', error);
             // Revert would be complex here without deep clone, but for now we just notify
             addNotification('error', 'Update Failed', error.message);
+            toast.error(`Update failed: ${error.message}`);
         }
     };
     const deactivateUser = async (userId: string, actorId: string) => {
@@ -958,11 +971,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
             if (error) throw error;
 
             addNotification('success', 'User Deactivated', 'Access revoked.');
+            toast.success('User deactivated — access revoked');
             logAction(activeDealId, actorId, 'UPDATED_PARTICIPANT', 'Deactivated user');
         } catch (error: any) {
             console.error('Deactivate error:', error);
             setRawUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: true } : u)); // Revert
-            addNotification('error', 'Failed', error.message);
+            addNotification('error', 'Deactivation Failed', error.message);
+            toast.error(`Deactivation failed: ${error.message}`);
         }
     };
 
@@ -973,12 +988,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
             if (!response.ok) throw new Error(data.error);
 
-            setRawUsers(prev => prev.filter(u => u.id !== userId));
-            addNotification('success', 'User Deleted', 'Permanently removed.');
+            if (data.deactivated) {
+                // User was auto-deactivated instead of deleted (has deal associations)
+                await fetchData(); // Refresh to show updated status
+                addNotification('info', 'User Deactivated', data.message);
+                toast.success('User deactivated — they appear as "FORMER STAFF" in their deals');
+            } else {
+                setRawUsers(prev => prev.filter(u => u.id !== userId));
+                addNotification('success', 'User Deleted', 'Permanently removed.');
+                toast.success('User permanently deleted');
+            }
             return true;
         } catch (error: any) {
             console.error('Delete error:', error);
             addNotification('error', 'Failed to delete', error.message);
+            toast.error(`Delete failed: ${error.message}`);
             return false;
         }
     };

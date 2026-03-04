@@ -72,33 +72,45 @@ export async function POST(request: Request) {
                     .eq('id', userId);
             }
 
-            // B. Send Notification for New Deal Access
+            // B. Promote role if this is an internal/staff addition
+            if (isInternal && role && ['admin', 'lawyer', 'staff'].includes(role)) {
+                await supabaseAdmin
+                    .from('users')
+                    .update({ role, name: cleanName || existingUser.name })
+                    .eq('id', userId);
+                console.log(`✅ Promoted existing user ${email} to role: ${role}`);
+            }
+
+            // C. Send Notification for New Deal Access or General Access
+            let dealTitle = 'Agenzia Deal Room';
+            let redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/dashboard`;
+
             if (dealId) {
-                // Fetch deal title for email
                 const { data: deal } = await supabaseAdmin.from('deals').select('title').eq('id', dealId).single();
-                const dealTitle = deal?.title || 'New Deal';
+                if (deal) dealTitle = deal.title;
+                redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/deal/${dealId}`;
+            }
 
-                // Generate a magic link for easy access
-                const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
-                    type: 'magiclink',
-                    email: email,
-                    options: {
-                        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/deal/${dealId}`
-                    }
-                });
-
-                const actionLink = linkData?.properties?.action_link;
-
-                if (actionLink) {
-                    await sendInviteEmail(
-                        email,
-                        existingUser.name || fullName || 'User',
-                        actionLink,
-                        role,
-                        dealTitle,
-                        true // isExistingUser = true
-                    );
+            // Generate a magic link for easy access
+            const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+                type: 'magiclink',
+                email: email,
+                options: {
+                    redirectTo: redirectTo
                 }
+            });
+
+            const actionLink = linkData?.properties?.action_link;
+
+            if (actionLink) {
+                await sendInviteEmail(
+                    email,
+                    existingUser.name || fullName || 'User',
+                    actionLink,
+                    role,
+                    dealTitle,
+                    true // isExistingUser = true
+                );
             }
         } else {
             // --- NEW USER ---
@@ -196,6 +208,56 @@ export async function POST(request: Request) {
                         dealTitle,
                         false // isExistingUser = false
                     );
+                }
+            }
+        }
+        // 2.5 Promote user in existing deals if they were granted an internal role
+        if (isInternal && userId && role) {
+            // Find global participant
+            const { data: globalParticipants } = await supabaseAdmin
+                .from('participants')
+                .select('id, user_id')
+                .eq('email', email);
+
+            const globalParticipant = globalParticipants && globalParticipants.length > 0 ? globalParticipants[0] : null;
+
+            if (globalParticipant) {
+                // Link userId if missing
+                if (!globalParticipant.user_id) {
+                    await supabaseAdmin.from('participants').update({ user_id: userId }).eq('id', globalParticipant.id);
+                }
+
+                // Get their existing deal participations
+                const { data: existingDealLinks } = await supabaseAdmin
+                    .from('deal_participants')
+                    .select('id, role')
+                    .eq('participant_id', globalParticipant.id);
+
+                if (existingDealLinks && existingDealLinks.length > 0) {
+                    // Define role weights to ensure we only promote
+                    const roleWeight: Record<string, number> = {
+                        admin: 100,
+                        lawyer: 90,
+                        staff: 80,
+                        broker: 70,
+                        agent: 50,
+                        buyer: 10,
+                        seller: 10,
+                        viewer: 0
+                    };
+
+                    const targetWeight = roleWeight[role] || 0;
+
+                    for (const link of existingDealLinks) {
+                        const currentWeight = roleWeight[link.role] || 0;
+                        if (targetWeight > currentWeight) {
+                            await supabaseAdmin
+                                .from('deal_participants')
+                                .update({ role: role })
+                                .eq('id', link.id);
+                            console.log(`Promoted user ${email} in deal_participant ${link.id} from ${link.role} to ${role}`);
+                        }
+                    }
                 }
             }
         }
