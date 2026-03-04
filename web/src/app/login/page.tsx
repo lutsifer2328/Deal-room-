@@ -51,21 +51,21 @@ export default function LoginPage() {
             return;
         }
 
-        // We need to import supabase inside the component or via auth context, 
-        // since useAuth doesn't expose resetPassword directly, we'll import supabase client
         try {
-            const { supabase } = await import('@/lib/supabase');
-            const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/auth/update-password`,
+            const res = await fetch('/api/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
             });
 
-            if (resetError) {
-                setError(resetError.message);
+            const data = await res.json();
+
+            if (!res.ok) {
+                setError(data.error || 'Възникна грешка. Моля, опитайте отново.');
             } else {
                 setSuccessMessage('Връзката за нулиране на паролата е изпратена! Моля, проверете имейла си.');
-                // Don't auto-switch back so they can read the message, or provide a button to go back.
             }
-        } catch (err: any) {
+        } catch {
             setError('Възникна грешка. Моля, опитайте отново.');
         } finally {
             setLoading(false);
