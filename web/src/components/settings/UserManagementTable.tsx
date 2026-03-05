@@ -218,7 +218,7 @@ export default function UserManagementTable() {
 
                         <p className="text-sm text-gray-600 mb-2">
                             {pendingAction.type === 'delete' && (
-                                <>Are you sure you want to <strong className="text-red-600">permanently delete</strong> <strong>{pendingAction.userName}</strong>? This action cannot be undone.</>
+                                <>Are you sure you want to remove <strong>{pendingAction.userName}</strong>? If they have existing deal associations, they will be <strong className="text-amber-600">deactivated</strong> instead and appear as &quot;Former Staff&quot;.</>
                             )}
                             {pendingAction.type === 'deactivate' && (
                                 <>Are you sure you want to <strong className="text-amber-600">deactivate</strong> <strong>{pendingAction.userName}</strong>? They will immediately lose access to the system.</>
@@ -228,11 +228,6 @@ export default function UserManagementTable() {
                             )}
                         </p>
 
-                        {pendingAction.type === 'delete' && (
-                            <p className="text-xs text-gray-400 mb-4 bg-gray-50 p-2 rounded-lg">
-                                Note: Users who own Deals, Tasks, or Audit Logs cannot be deleted. Use Deactivate instead.
-                            </p>
-                        )}
 
                         <div className="flex justify-end gap-3 mt-4">
                             <button
@@ -246,10 +241,10 @@ export default function UserManagementTable() {
                                 onClick={handleConfirmAction}
                                 disabled={actionLoading}
                                 className={`px-4 py-2 text-sm font-bold text-white rounded-xl transition-colors ${pendingAction.type === 'delete'
-                                        ? 'bg-red-500 hover:bg-red-600'
-                                        : pendingAction.type === 'deactivate'
-                                            ? 'bg-amber-500 hover:bg-amber-600'
-                                            : 'bg-green-500 hover:bg-green-600'
+                                    ? 'bg-red-500 hover:bg-red-600'
+                                    : pendingAction.type === 'deactivate'
+                                        ? 'bg-amber-500 hover:bg-amber-600'
+                                        : 'bg-green-500 hover:bg-green-600'
                                     }`}
                             >
                                 {actionLoading ? 'Processing...' :

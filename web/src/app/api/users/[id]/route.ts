@@ -63,12 +63,26 @@ export async function DELETE(
         if (authError) {
             console.error('❌ Auth Delete Error:', authError);
 
-            // If it's a foreign key cascade failure, Auth returns "Database error deleting user"
+            // If it's a foreign key cascade failure, auto-deactivate instead
             if (authError.message?.includes('Database error deleting user')) {
-                return NextResponse.json(
-                    { error: 'Cannot delete user because they are associated with existing Deals, Tasks, or Audit Logs. Please Deactivate them instead.' },
-                    { status: 400 }
-                );
+                // Re-connect participant records we disconnected above
+                await supabaseAdmin
+                    .from('participants')
+                    .update({ user_id: userId })
+                    .is('user_id', null);
+
+                // Auto-deactivate instead of hard-failing
+                await supabaseAdmin
+                    .from('users')
+                    .update({ is_active: false })
+                    .eq('id', userId);
+
+                console.log(`⚠️ User ${userId} has deal associations — auto-deactivated instead of deleted`);
+                return NextResponse.json({
+                    success: true,
+                    deactivated: true,
+                    message: 'User has deal associations and was deactivated instead. They appear as "FORMER STAFF" in their deals.'
+                });
             }
 
             // If user not found in auth, maybe they are only in public? Continue...
@@ -83,10 +97,18 @@ export async function DELETE(
         if (dbError) {
             console.error('❌ DB Delete Error:', dbError);
             if (dbError.code === '23503') {
-                return NextResponse.json(
-                    { error: 'Cannot delete user because they are associated with existing Deals, Tasks, or Audit Logs. Please Deactivate them instead.' },
-                    { status: 400 }
-                );
+                // Auto-deactivate instead of hard-failing
+                await supabaseAdmin
+                    .from('users')
+                    .update({ is_active: false })
+                    .eq('id', userId);
+
+                console.log(`⚠️ User ${userId} has DB associations — auto-deactivated instead of deleted`);
+                return NextResponse.json({
+                    success: true,
+                    deactivated: true,
+                    message: 'User has deal associations and was deactivated instead. They appear as "FORMER STAFF" in their deals.'
+                });
             }
             // Verify if it's already gone
             if (!dbError.message?.includes('does not exist')) {
