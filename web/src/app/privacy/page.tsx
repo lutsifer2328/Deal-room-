@@ -1,20 +1,18 @@
 'use client';
 
 import { ArrowLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function PrivacyPage() {
-    const router = useRouter();
-
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 p-8 pt-12 max-w-4xl mx-auto">
-            <button
-                onClick={() => router.back()}
+            <Link
+                href="/login"
                 className="flex items-center text-teal-600 hover:text-teal-700 transition-colors mb-8 font-medium"
             >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Назад
-            </button>
+                Назад към Вход
+            </Link>
             <h1 className="text-4xl font-serif font-bold text-slate-900 mb-8 border-b border-slate-200 pb-4">Политика за поверителност</h1>
             <div className="prose prose-slate prose-teal max-w-none">
                 <p className="text-lg text-slate-600 mb-6 border-l-4 border-teal-500 pl-4 italic">
