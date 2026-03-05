@@ -161,9 +161,9 @@ export default function LoginPage() {
                                 />
                                 <label htmlFor="terms" className="text-xs text-slate-500 leading-tight">
                                     Съгласен съм с{' '}
-                                    <a href="#" className="text-teal-600 hover:underline">Общите условия</a>
+                                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">Общите условия</a>
                                     {' '}и{' '}
-                                    <a href="#" className="text-teal-600 hover:underline">Политиката за поверителност</a>.
+                                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">Политиката за поверителност</a>.
                                 </label>
                             </div>
 

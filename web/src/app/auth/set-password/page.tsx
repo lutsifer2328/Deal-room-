@@ -179,9 +179,9 @@ export default function SetPassword() {
                         />
                         <label htmlFor="terms" className="text-xs text-gray-300 leading-tight">
                             Съгласен съм с{' '}
-                            <a href="#" className="text-teal-400 hover:underline">Общите условия</a>
+                            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-teal-400 hover:underline">Общите условия</a>
                             {' '}и{' '}
-                            <a href="#" className="text-teal-400 hover:underline">Политиката за поверителност</a>.
+                            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-teal-400 hover:underline">Политиката за поверителност</a>.
                         </label>
                     </div>
 
