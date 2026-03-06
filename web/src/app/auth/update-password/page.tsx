@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Eye, EyeOff, Lock, Check } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Eye, EyeOff, Lock, ArrowRight } from 'lucide-react';
 
 export default function UpdatePasswordPage() {
     const [password, setPassword] = useState('');
@@ -12,7 +11,7 @@ export default function UpdatePasswordPage() {
     const [loading, setLoading] = useState(false);
     const [msg, setMsg] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const router = useRouter();
+    const [termsAccepted, setTermsAccepted] = useState(false);
     // const supabase = createClient(); // Removed, using singleton
 
     useEffect(() => {
@@ -58,6 +57,12 @@ export default function UpdatePasswordPage() {
         e.preventDefault();
         setLoading(true);
         setMsg('');
+
+        if (!termsAccepted) {
+            setMsg('❌ Моля, съгласете се с Общите условия и Политиката за поверителност преди да продължите.');
+            setLoading(false);
+            return;
+        }
 
         if (password !== confirmPassword) {
             setMsg('❌ Passwords do not match');
@@ -113,72 +118,127 @@ export default function UpdatePasswordPage() {
                 window.location.href = '/dashboard';
             }, 1000);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Update Error:', error);
-            setMsg('❌ Error: ' + (error.message || 'Failed to update'));
+            const err = error as Error;
+            setMsg('❌ Error: ' + (err.message || 'Failed to update'));
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-900">
-            <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-2xl">
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+            {/* Background Effects */}
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 z-0"></div>
+            <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-teal-500/10 rounded-full blur-[100px] animate-pulse"></div>
+            <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[80px]"></div>
+
+            <div className="w-full max-w-md relative z-10">
+                {/* Logo/Header */}
                 <div className="text-center mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Set New Password</h1>
-                    <p className="text-sm text-gray-500 mt-2">
-                        Welcome! Please set a secure password to access your account.
-                    </p>
-                </div>
-
-                <form onSubmit={handleUpdate} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                        <div className="relative">
-                            <input
-                                type={showPassword ? 'text' : 'password'}
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 outline-none"
-                                placeholder="••••••••"
-                                required
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                            >
-                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                            </button>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-                        <input
-                            type="password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 outline-none"
-                            placeholder="••••••••"
-                            required
+                    <div className="font-serif text-[2.5rem] font-bold text-white tracking-tight mb-2 drop-shadow-lg">Deal Room</div>
+                    <div className="flex flex-col gap-1 items-center justify-center opacity-90">
+                        <div className="text-[10px] text-teal-400 font-bold uppercase tracking-[3px]">Powered by</div>
+                        <img
+                            src="/logo.png"
+                            alt="Agenzia"
+                            className="h-24 w-auto object-contain brightness-0 invert opacity-100"
                         />
                     </div>
+                </div>
 
-                    {msg && (
-                        <div className={`p-3 rounded-lg text-sm ${msg.includes('Error') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
-                            {msg}
+                {/* Main Card */}
+                <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/20 transition-all duration-300">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-2 text-center">Set New Password</h2>
+                    <p className="text-center text-slate-500 text-sm mb-8">
+                        Welcome to your Deal Room. Please establish a secure password to access your sensitive documents and deal progress.
+                    </p>
+
+                    <form onSubmit={handleUpdate} className="space-y-5">
+                        {/* New Password */}
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-1">New Password</label>
+                            <div className="relative group">
+                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-teal-500 transition-colors" />
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full pl-11 pr-10 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all placeholder:text-slate-400 text-slate-800"
+                                    placeholder="••••••••"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-teal-500 transition-colors outline-none"
+                                >
+                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
+                            </div>
                         </div>
-                    )}
 
-                    <Button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full py-3 bg-teal hover:bg-teal/90 text-white font-bold rounded-lg transition-all"
-                    >
-                        {loading ? 'Updating...' : 'Set Password & Login'}
-                    </Button>
-                </form>
+                        {/* Confirm Password */}
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-1">Confirm Password</label>
+                            <div className="relative group">
+                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-teal-500 transition-colors" />
+                                <input
+                                    type="password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all placeholder:text-slate-400 text-slate-800"
+                                    placeholder="••••••••"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        {/* Messages */}
+                        {msg && (
+                            <div className={`border px-4 py-3 rounded-lg text-sm flex items-center gap-2 ${msg.includes('Error') || msg.includes('❌') ? 'bg-red-50 border-red-200 text-red-600' : 'bg-teal-50 border-teal-200 text-teal-700'}`}>
+                                <div className={`w-1.5 h-1.5 rounded-full min-w-[6px] ${msg.includes('Error') || msg.includes('❌') ? 'bg-red-500' : 'bg-teal-500'}`}></div>
+                                {msg.replace(/✅ |❌ /g, '')}
+                            </div>
+                        )}
+
+                        {/* Terms Checkbox */}
+                        <div className="flex items-start gap-2 pt-2">
+                            <input
+                                type="checkbox"
+                                id="terms"
+                                checked={termsAccepted}
+                                onChange={(e) => setTermsAccepted(e.target.checked)}
+                                className="mt-1 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500/20"
+                                required
+                            />
+                            <label htmlFor="terms" className="text-xs text-slate-500 leading-tight">
+                                Съгласен съм с{' '}
+                                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">Общите условия</a>
+                                {' '}и{' '}
+                                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">Политиката за поверителност</a>.
+                            </label>
+                        </div>
+
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            disabled={loading || msg.includes('Redirecting')}
+                            className="w-full bg-teal-500 text-white font-bold py-3.5 rounded-xl hover:bg-teal-600 active:scale-[0.98] transition-all shadow-lg shadow-teal-500/30 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group mt-2"
+                        >
+                            {loading ? 'Updating...' : msg.includes('Redirecting') ? 'Success!' : 'Set Password & Login'}
+                            {!loading && !msg.includes('Redirecting') && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
+                        </button>
+                    </form>
+                </div>
+
+                {/* Footer Security Note */}
+                <div className="mt-8 text-center">
+                    <p className="text-xs text-slate-500 flex items-center justify-center gap-1 opacity-70">
+                        <Lock className="w-3 h-3" /> Secure Deal Room Environment
+                    </p>
+                </div>
             </div>
         </div>
     );

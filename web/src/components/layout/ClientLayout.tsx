@@ -12,9 +12,10 @@ import BottomNav from './BottomNav';
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const isLoginPage = pathname === '/login';
+    const isAuthPage = pathname.startsWith('/auth/');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-    if (isLoginPage) {
+    if (isLoginPage || isAuthPage) {
         return <>{children}</>;
     }
 
