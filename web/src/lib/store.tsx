@@ -441,18 +441,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     // --- Focus Re-sync ---
     useEffect(() => {
+        let focusTimeout: NodeJS.Timeout | null = null;
+
         const handleFocus = () => {
-            const now = Date.now();
-            if (now - lastFetchRef.current > 60000) {
-                console.log('Window focus: refreshing data...');
-                fetchData();
-                lastFetchRef.current = now;
-            }
+            if (focusTimeout) clearTimeout(focusTimeout);
+
+            // Debounce the focus event by 500ms to prevent rapid-fire getSession calls
+            // that cause Supabase GoTrue to deadlock in localStorage locks.
+            focusTimeout = setTimeout(() => {
+                const now = Date.now();
+                if (now - lastFetchRef.current > 60000) {
+                    console.log('Window focus: refreshing data...');
+                    fetchData();
+                    lastFetchRef.current = now;
+                }
+            }, 500);
         };
 
         window.addEventListener('focus', handleFocus);
-        return () => window.removeEventListener('focus', handleFocus);
-    }, []); // Empty deps as fetchData is stable? Or add it if needed. safely empty for now or disable lint.
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            if (focusTimeout) clearTimeout(focusTimeout);
+        };
+    }, []); // Safely empty, fetchData is stable
 
     // --- ACTIONS ---
 
@@ -776,27 +787,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 const participantName = matchedParticipant?.name || normalizedAssignedTo.split('@')[0];
 
                 // Trigger task notification email
-                try {
-                    const session = await supabase.auth.getSession();
-                    const token = session.data.session?.access_token;
-
-                    if (token) {
-                        fetch('/api/notify/task', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                                dealId,
-                                participantEmail: normalizedAssignedTo,
-                                participantName: participantName
-                            })
-                        }).catch(err => console.error('Failed to trigger task notification:', err));
-                    }
-                } catch (e) {
-                    console.error('Error fetching session for notification:', e);
-                }
+                fetch('/api/notify/task', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        dealId,
+                        participantEmail: normalizedAssignedTo,
+                        participantName: participantName
+                    })
+                }).catch(err => console.error('Failed to trigger task notification:', err));
             }
         } catch (error: any) {
             console.error('Failed to add task (FULL ERROR):', JSON.stringify(error, null, 2));
@@ -1594,15 +1595,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
             if (!dealId) throw new Error('Deal ID is required to invite user');
 
-            // Get current session token for auth
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.access_token) throw new Error('Not authenticated');
-
             const response = await fetch('/api/participants/invite', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     dealId,

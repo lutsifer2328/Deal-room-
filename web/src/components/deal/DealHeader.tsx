@@ -196,13 +196,15 @@ export default function DealHeader({ deal }: { deal: Deal }) {
                         </button>
                     )}
 
-                    <button
-                        onClick={() => setIsParticipantsModalOpen(true)}
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-navy-primary font-bold bg-white border border-border-light rounded-xl hover:bg-gray-50 hover:border-teal/30 shadow-sm transition-all"
-                    >
-                        <Users className="w-4 h-4" />
-                        {t('deal.header.manageParticipants')}
-                    </button>
+                    {canEdit && (
+                        <button
+                            onClick={() => setIsParticipantsModalOpen(true)}
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-navy-primary font-bold bg-white border border-border-light rounded-xl hover:bg-gray-50 hover:border-teal/30 shadow-sm transition-all"
+                        >
+                            <Users className="w-4 h-4" />
+                            {t('deal.header.manageParticipants')}
+                        </button>
+                    )}
                 </div>
             </div>
 

@@ -1,27 +1,53 @@
 import { NextResponse } from 'next/server';
 import { sendTaskNotificationEmail } from '@/lib/emailService';
 import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
 
 export async function POST(request: Request) {
     try {
+        const cookieStore = await cookies();
+        let userClient;
+
+        // Try getting token from Auth Header first (for backward compatibility during rollout)
         const authHeader = request.headers.get('Authorization');
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.replace('Bearer ', '');
+            userClient = createClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+                {
+                    global: { headers: { Authorization: `Bearer ${token}` } }
+                }
+            );
+        } else {
+            // Otherwise default to the modern SSR cookie approach
+            userClient = createServerClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+                {
+                    cookies: {
+                        getAll() {
+                            return cookieStore.getAll();
+                        },
+                        setAll(cookiesToSet) {
+                            try {
+                                cookiesToSet.forEach(({ name, value, options }) => {
+                                    cookieStore.set(name, value, options);
+                                });
+                            } catch (error) {
+                                // The `set` method was called from a Server Component.
+                                // This can be ignored if you have middleware refreshing user sessions.
+                            }
+                        },
+                    },
+                }
+            );
         }
-        const token = authHeader.replace('Bearer ', '');
-
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-        // Verify caller
-        const userClient = createClient(supabaseUrl, anonKey, {
-            auth: { autoRefreshToken: false, persistSession: false },
-            global: { headers: { Authorization: `Bearer ${token}` } }
-        });
 
         const { data: { user: caller }, error: authError } = await userClient.auth.getUser();
         if (authError || !caller) {
-            return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+            return NextResponse.json({ error: 'Invalid authentication token or cookie' }, { status: 401 });
         }
 
         const body = await request.json();

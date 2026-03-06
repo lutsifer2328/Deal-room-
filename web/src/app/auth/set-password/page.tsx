@@ -67,9 +67,13 @@ export default function SetPassword() {
         try {
             console.log('🔐 Updating password for:', userEmail);
 
-            const { error: updateError } = await supabase.auth.updateUser({
-                password: password
-            });
+            // Wrap updateUser in a timeout to prevent infinite hangs if an extension blocks the fetch resolution
+            const updateResponse = await Promise.race([
+                supabase.auth.updateUser({ password: password }),
+                new Promise<{ error: Error }>((_, reject) => setTimeout(() => reject(new Error('The request timed out. Please try again or disable password manager extensions.')), 15000))
+            ]);
+
+            const updateError = updateResponse?.error;
 
             if (updateError) {
                 // "Same password" means the user already knows their password — treat as success
@@ -140,6 +144,9 @@ export default function SetPassword() {
                             Password
                         </label>
                         <input
+                            id="new-password"
+                            name="new-password"
+                            autoComplete="new-password"
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
@@ -158,6 +165,9 @@ export default function SetPassword() {
                             Confirm Password
                         </label>
                         <input
+                            id="confirm-password"
+                            name="confirm-password"
+                            autoComplete="new-password"
                             type="password"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
