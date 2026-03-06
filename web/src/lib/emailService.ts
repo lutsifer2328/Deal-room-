@@ -51,7 +51,8 @@ export async function sendInviteEmail(
       html: getEliteEmailHtml({
         name: name,
         actionLink: actionLink,
-      })
+      }),
+      tags: [{ name: 'privacy', value: 'zero-trace' }]
     });
 
     if (error) {
@@ -180,7 +181,8 @@ export async function sendStaffInviteEmail(
       html: getStaffEmailHtml({
         name: name,
         actionLink: actionLink,
-      })
+      }),
+      tags: [{ name: 'privacy', value: 'zero-trace' }]
     });
 
     if (error) {
@@ -307,7 +309,8 @@ export async function sendTaskNotificationEmail(
       html: getTaskNotificationHtml({
         name: name,
         actionLink: actionLink,
-      })
+      }),
+      tags: [{ name: 'privacy', value: 'zero-trace' }]
     });
 
     if (error) {
@@ -422,7 +425,8 @@ export async function sendTimelineNotificationEmail(
       html: getTimelineNotificationHtml({
         name: name,
         actionLink: actionLink,
-      })
+      }),
+      tags: [{ name: 'privacy', value: 'zero-trace' }]
     });
 
     if (error) {
