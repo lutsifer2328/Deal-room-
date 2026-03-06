@@ -1,0 +1,107 @@
+[
+    {
+        "id": "11111111-1111-1111-1111-111111110001",
+        "name": "Данъчна оценка Tax Valuation Certificate",
+        "description": "Издава се от общината за данъчни цели. / Issued by the municipality for tax and fee calculations.",
+        "usage_count": 0,
+        "is_active": true
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111110002",
+        "name": "Декларация за \"Видна политическа личност\" (PEP) / Declaration for Politically Exposed Person",
+        "description": "Попълва се от двете страни като част от мерките срещу изпирането на пари.",
+        "usage_count": 0,
+        "is_active": true
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111110003",
+        "name": "Декларация за гражданство и гражданско състояние (чл. 25 от ЗННД) / Declaration of Citizenship",
+        "description": "В нея описвате съпруг/а и режим на имуществена общност.",
+        "usage_count": 0,
+        "is_active": true
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111110004",
+        "name": "Декларация за произход на средствата / Declaration of Origin of Funds",
+        "description": "Задължителна за купувача при сделки над 30 000 лв. (по закона срещу изпирането на пари). Трябва да посочите дали парите са от заплата, заем, наследство или спестявания.",
+        "usage_count": 0,
+        "is_active": true
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111110005",
+        "name": "Декларация за съгласие по чл. 26 от Семейния кодекс / Declaration of Consent",
+        "description": "Ако имотът е лична собственост на единия съпруг (напр. наследен), но в него живее семейството, другият съпруг трябва да даде писмено съгласие за продажбата.",
+        "usage_count": 0,
+        "is_active": true
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111110006",
+        "name": "Декларация по чл. 264 Declaration under Art. 264",
+        "description": "Удостоверява липсата на държавни дългове. / Certifies that the seller has no unpaid taxes or social security.",
+        "usage_count": 0,
+        "is_active": true
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111110007",
+        "name": "Лична карта / Паспорт ID Card / Passport",
+        "description": "За удостоверяване на самоличността пред нотариуса. / To verify identity before the notary.",
+        "usage_count": 0,
+        "is_active": true
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111110008",
+        "name": "Нотариален акт:/Proof of Ownership (Notary Deed)",
+        "description": "Основният документ, който доказва кой е собственикът на имота. При сделка се съставя нов акт, който ви легитимира като новия притежател.",
+        "usage_count": 0,
+        "is_active": true
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111110009",
+        "name": "Предварителен договор Preliminary Contract",
+        "description": "Урежда условията преди финалната сделка. / Outlines the terms and price before the final transfer. purchase contract",
+        "usage_count": 0,
+        "is_active": true
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111110010",
+        "name": "Пълномощно/Power of Attorney (PoA)",
+        "description": "Ако една от страните не присъства лично. Трябва да е нотариално заверено. / If a party is not present. It must be notarized.",
+        "usage_count": 0,
+        "is_active": true
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111110011",
+        "name": "Скица / Схема (Кадастър)Cadastral Sketch / Schema",
+        "description": "Технически чертеж на имота от АГКК. / Official technical drawing showing boundaries and location.",
+        "usage_count": 0,
+        "is_active": true
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111110012",
+        "name": "Удостоверение за наследници / Certificate of Heirs",
+        "description": "Ако продавачът е получил имота/колата чрез наследство. Този документ описва кои са всички законни собственици след смъртта на наследодателя.",
+        "usage_count": 0,
+        "is_active": true
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111110013",
+        "name": "Удостоверение за семейно положение/Certificate of Marital Status",
+        "description": "Доказва дали продавачът е ерген/мома, женен или разведен. Критично при имоти!",
+        "usage_count": 0,
+        "is_active": true
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111110014",
+        "name": "Удостоверение за сключен граждански брак/Marriage Certificate",
+        "description": "Ако имотът е придобит по време на брака, той е обща собственост. / If the property was bought during marriage, it is joint property.",
+        "usage_count": 0,
+        "is_active": true
+    },
+    {
+        "id": "11111111-1111-1111-1111-111111110015",
+        "name": "Удостоверение за тежести Certificate of Encumbrances",
+        "description": "Показва дали имотът има ипотеки или запори. / Shows if the property has mortgages, liens, or legal claims.",
+        "usage_count": 0,
+        "is_active": true
+    }
+]

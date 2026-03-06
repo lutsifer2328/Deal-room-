@@ -296,7 +296,7 @@ export async function POST(request: Request) {
                     type: 'recovery',
                     email,
                     options: {
-                        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`
+                        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://dealroom.online'}/auth/callback`
                     }
                 });
 
@@ -310,7 +310,7 @@ export async function POST(request: Request) {
                     const linkType = actionUrl.searchParams.get('type') || 'recovery';
 
                     // Build DIRECT callback URL (bypasses Supabase's server-side redirect + PKCE)
-                    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+                    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dealroom.online';
                     directLink = `${siteUrl}/auth/callback?token_hash=${tokenHash}&type=${linkType}`;
 
                     // Log for immediate terminal testing

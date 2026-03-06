@@ -27,7 +27,8 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
             .map(doc => ({
                 name: doc.name,
                 source: 'standard' as const,
-                standardDocumentId: doc.id
+                standardDocumentId: doc.id,
+                searchTerms: [doc.name, doc.description || '']
             }));
 
         // Get previously used document names from tasks

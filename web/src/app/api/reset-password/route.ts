@@ -2,78 +2,78 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-    try {
-        const { email } = await request.json();
+  try {
+    const { email } = await request.json();
 
-        if (!email) {
-            return NextResponse.json({ error: 'Email is required' }, { status: 400 });
-        }
-
-        const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-
-        // Generate a recovery link via Supabase admin API
-        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-        const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-            type: 'recovery',
-            email: email,
-            options: {
-                redirectTo: `${siteUrl}/auth/update-password`
-            }
-        });
-
-        if (linkError) {
-            console.error('Failed to generate recovery link:', linkError.message);
-            // Don't reveal whether the user exists or not for security
-            return NextResponse.json({ success: true });
-        }
-
-        const actionLink = linkData?.properties?.action_link;
-        if (!actionLink) {
-            console.error('No action_link returned');
-            return NextResponse.json({ success: true });
-        }
-
-        // Fetch user name for the email template
-        const { data: user } = await supabaseAdmin.from('users').select('name').eq('email', email).single();
-        const userName = user?.name || 'User';
-
-        // Send via Resend with our branded template
-        const resendApiKey = process.env.RESEND_API_KEY;
-        if (resendApiKey) {
-            const { Resend } = await import('resend');
-            const resend = new Resend(resendApiKey);
-
-            // Build a recovery-specific email using the branded template
-            const { data, error } = await resend.emails.send({
-                from: 'Agenzia Deal Room <notify@dealroom.online>',
-                to: [email],
-                subject: 'Reset Your Password — Agenzia Deal Room',
-                html: getResetPasswordEmailHtml({ name: userName, actionLink })
-            });
-
-            if (error) {
-                console.error('❌ Resend error:', error);
-            } else {
-                console.log(`✅ Reset password email sent via Resend to ${email} (ID: ${data?.id})`);
-            }
-        } else {
-            console.log('📧 [MOCK] Reset password link for', email, ':', actionLink);
-        }
-
-        // Always return success (don't reveal if user exists)
-        return NextResponse.json({ success: true });
-
-    } catch (error: unknown) {
-        console.error('Reset password error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    if (!email) {
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
+
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Generate a recovery link via Supabase admin API
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dealroom.online';
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email: email,
+      options: {
+        redirectTo: `${siteUrl}/auth/update-password`
+      }
+    });
+
+    if (linkError) {
+      console.error('Failed to generate recovery link:', linkError.message);
+      // Don't reveal whether the user exists or not for security
+      return NextResponse.json({ success: true });
+    }
+
+    const actionLink = linkData?.properties?.action_link;
+    if (!actionLink) {
+      console.error('No action_link returned');
+      return NextResponse.json({ success: true });
+    }
+
+    // Fetch user name for the email template
+    const { data: user } = await supabaseAdmin.from('users').select('name').eq('email', email).single();
+    const userName = user?.name || 'User';
+
+    // Send via Resend with our branded template
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (resendApiKey) {
+      const { Resend } = await import('resend');
+      const resend = new Resend(resendApiKey);
+
+      // Build a recovery-specific email using the branded template
+      const { data, error } = await resend.emails.send({
+        from: 'Agenzia Deal Room <notify@dealroom.online>',
+        to: [email],
+        subject: 'Reset Your Password — Agenzia Deal Room',
+        html: getResetPasswordEmailHtml({ name: userName, actionLink })
+      });
+
+      if (error) {
+        console.error('❌ Resend error:', error);
+      } else {
+        console.log(`✅ Reset password email sent via Resend to ${email} (ID: ${data?.id})`);
+      }
+    } else {
+      console.log('📧 [MOCK] Reset password link for', email, ':', actionLink);
+    }
+
+    // Always return success (don't reveal if user exists)
+    return NextResponse.json({ success: true });
+
+  } catch (error: unknown) {
+    console.error('Reset password error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
 
 function getResetPasswordEmailHtml({ name, actionLink }: { name: string; actionLink: string }) {
-    return `
+  return `
 <!DOCTYPE html>
 <html>
 <head>

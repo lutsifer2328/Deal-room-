@@ -765,15 +765,42 @@ export function DataProvider({ children }: { children: ReactNode }) {
             // Success path
             setRawTasks(prev => [newRawTask, ...prev]);
             logAction(dealId, 'u_lawyer', 'ADDED_TASK', `Added task "${title}"`);
-            addNotification('success', 'Task Added', 'Requirement created successfully.');
+            addNotification('success', `Task added: ${title} | Задачката е добавена: ${title}`, '');
 
             if (!finalParticipantId) {
                 console.warn(`Task created but assigned_participant_id is NULL (no participant found for email: ${normalizedAssignedTo}). Participant won't see this task until linked.`);
                 addNotification('warning', 'Assignment Warning', `No participant found for "${normalizedAssignedTo}". The participant won't see this task until they are invited and linked.`);
+            } else {
+                // Determine participant name if possible (best effort lookup from local store)
+                const matchedParticipant = enrichedGlobalParticipants.find((p: any) => p.id === finalParticipantId);
+                const participantName = matchedParticipant?.name || normalizedAssignedTo.split('@')[0];
+
+                // Trigger task notification email
+                try {
+                    const session = await supabase.auth.getSession();
+                    const token = session.data.session?.access_token;
+
+                    if (token) {
+                        fetch('/api/notify/task', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                dealId,
+                                participantEmail: normalizedAssignedTo,
+                                participantName: participantName
+                            })
+                        }).catch(err => console.error('Failed to trigger task notification:', err));
+                    }
+                } catch (e) {
+                    console.error('Error fetching session for notification:', e);
+                }
             }
         } catch (error: any) {
             console.error('Failed to add task (FULL ERROR):', JSON.stringify(error, null, 2));
-            addNotification('error', 'Failed to add task', error.message || 'Database error');
+            addNotification('error', 'Failed to create task | Неуспешно създаване на задача', error.message || 'Database error');
             throw error;
         }
     };
@@ -804,10 +831,51 @@ export function DataProvider({ children }: { children: ReactNode }) {
         logAction(dealId, actorId, 'UPDATED_DEAL_STEP', `Changed step to ${stepId}`);
     };
 
-    const updateDealTimeline = (dealId: string, timeline: TimelineStep[], actorId: string) => {
+    const updateDealTimeline = async (dealId: string, timeline: TimelineStep[], actorId: string) => {
         setRawDeals(prev => prev.map(d => d.id === dealId ? { ...d, timeline_json: timeline } : d));
-        supabase.from('deals').update({ timeline_json: timeline }).eq('id', dealId).then();
+        await supabase.from('deals').update({ timeline_json: timeline }).eq('id', dealId);
         logAction(dealId, actorId, 'UPDATED_TIMELINE', `Updated timeline`);
+
+        // Trigger timeline notification email
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+
+            if (token) {
+                // Find all active participants in this deal to notify
+                const dealParticipants = rawDealParticipants
+                    .filter((dp: any) => dp.deal_id === dealId && dp.is_active);
+
+                // Map to their global participant records to get emails
+                const emailsToNotify: { email: string, name: string }[] = [];
+
+                dealParticipants.forEach((dp: any) => {
+                    const gp = enrichedGlobalParticipants.find((p: any) => p.id === dp.participant_id);
+                    if (gp && gp.email) {
+                        emailsToNotify.push({
+                            email: gp.email,
+                            name: gp.name || gp.email.split('@')[0]
+                        });
+                    }
+                });
+
+                if (emailsToNotify.length > 0) {
+                    fetch('/api/notify/timeline', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            dealId,
+                            participantEmails: emailsToNotify
+                        })
+                    }).catch(err => console.error('Failed to trigger timeline notification:', err));
+                }
+            }
+        } catch (e) {
+            console.error('Error triggering timeline notification:', e);
+        }
     };
 
     const updateDealStatus = async (dealId: string, status: DealStatus, actorId: string, notes?: string) => {
@@ -1300,13 +1368,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
             setRawDocuments(prev => [...prev, dbDoc]);
             setRawTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'pending_review' } : t));
 
-            addNotification('success', 'Document Uploaded', `${file.name} saved.`);
+            addNotification('success', 'Document uploaded to vault | Документът е качен в трезора', '');
             logAction(activeDealId, uploadedBy, 'UPLOADED_DOC', file.name);
             console.log('[DEBUG] Document inserted successfully:', dbDoc);
 
         } catch (error: any) {
             console.error('Upload error:', error);
-            addNotification('error', 'Upload Failed', error.message);
+            addNotification('error', 'Upload failed: File too large | Неуспешно качване: Файлът е твърде голям', error.message);
         }
     };
 
@@ -1558,7 +1626,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 : data.message === 'already-linked'
                     ? `${email} is already linked — invite resent`
                     : `Invitation sent to ${email}`;
-            addNotification('success', 'Invitation Sent', toastMsg);
+            addNotification('success', 'Invite sent successfully | Поканата е изпратена успешно', toastMsg);
 
             // Optimistically update the UI to show the 'Resend' state internally
             setRawGlobalParticipants(prev => prev.map(p => {
@@ -1578,7 +1646,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             return true;
         } catch (error: any) {
             console.error('❌ Invite Error:', error);
-            addNotification('error', 'Invitation Failed', error.message || 'Unknown error');
+            addNotification('error', 'Error sending invite | Грешка при изпращане на поканата', error.message || 'Unknown error');
             return false;
         }
     };

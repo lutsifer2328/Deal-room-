@@ -52,16 +52,13 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             `}>
                 {/* Logo Section */}
                 <div className="px-8 pb-4 border-b border-white/10 mb-4 flex justify-between items-start">
-                    <div>
-                        <div className="font-serif text-[1.75rem] font-bold text-white tracking-[0.5px] mb-4">DEAL ROOM</div>
-                        <div className="flex flex-col gap-1">
-                            <div className="text-xs text-teal font-bold uppercase tracking-[2px]">Powered by</div>
-                            <img
-                                src="/logo.png"
-                                alt="Agenzia"
-                                className="h-44 w-auto object-contain brightness-0 invert opacity-90 -ml-4 -my-4"
-                            />
-                        </div>
+                    <div className="w-full flex justify-center py-2">
+                        <img
+                            src="/sidebar-logo.jpg"
+                            alt="Deal Room Powered by Agenzia"
+                            className="h-48 w-auto object-contain mx-auto"
+                            style={{ clipPath: 'circle(48% at 50% 50%)' }}
+                        />
                     </div>
                     {/* Mobile Close Button */}
                     <button onClick={onClose} className="md:hidden text-white/50 hover:text-white" title="Close Menu">

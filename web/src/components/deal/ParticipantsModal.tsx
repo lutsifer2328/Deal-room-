@@ -69,7 +69,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
             .map(p => p.role)
     ));
 
-    const [, setSendingInvite] = useState(false);
+    const [sendingInvite, setSendingInvite] = useState(false);
     const [inviteSuccess, setInviteSuccess] = useState('');
     const [inviteLink, setInviteLink] = useState<string | null>(null);
     const [linkCopied, setLinkCopied] = useState(false);
@@ -655,8 +655,9 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                 <Button
                                     onClick={handleAddParticipant}
                                     variant="primary"
+                                    disabled={sendingInvite}
                                 >
-                                    {t('modal.addParticipant.submit')}
+                                    {sendingInvite ? 'Adding...' : t('modal.addParticipant.submit')}
                                 </Button>
                             </div>
                         </motion.div>
@@ -847,8 +848,9 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                             size="sm"
                                             className="text-teal border-teal/20 hover:bg-teal/5 h-8 px-2 text-xs flex items-center gap-1"
                                             title={participant.invitedAt ? 'Resend Invitation' : 'Send Invitation Email'}
+                                            disabled={sendingInvite}
                                         >
-                                            <Send className="w-3 h-3" /> {participant.invitedAt ? 'Resend' : 'Invite'}
+                                            <Send className="w-3 h-3" /> {sendingInvite ? 'Sending...' : (participant.invitedAt ? 'Resend' : 'Invite')}
                                         </Button>
                                         <Button
                                             onClick={() => startEdit(participant)}

@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { sendInviteEmail } from '@/lib/emailService';
+import { sendInviteEmail, sendStaffInviteEmail } from '@/lib/emailService';
 import { rateLimit } from '@/lib/limiter';
 
 export async function POST(request: Request) {
@@ -83,12 +83,12 @@ export async function POST(request: Request) {
 
             // C. Send Notification for New Deal Access or General Access
             let dealTitle = 'Agenzia Deal Room';
-            let redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/dashboard`;
+            let redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://dealroom.online'}/dashboard`;
 
             if (dealId) {
                 const { data: deal } = await supabaseAdmin.from('deals').select('title').eq('id', dealId).single();
                 if (deal) dealTitle = deal.title;
-                redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/deal/${dealId}`;
+                redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://dealroom.online'}/deal/${dealId}`;
             }
 
             // Generate a magic link for easy access
@@ -181,7 +181,7 @@ export async function POST(request: Request) {
                 type: 'recovery',
                 email: email,
                 options: {
-                    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/update-password`
+                    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://dealroom.online'}/auth/update-password`
                 }
             });
 
@@ -200,14 +200,23 @@ export async function POST(request: Request) {
                 }
 
                 if (actionLink) {
-                    await sendInviteEmail(
-                        email,
-                        fullName,
-                        actionLink,
-                        role,
-                        dealTitle,
-                        false // isExistingUser = false
-                    );
+                    if (isInternal) {
+                        await sendStaffInviteEmail(
+                            email,
+                            fullName,
+                            actionLink,
+                            role
+                        );
+                    } else {
+                        await sendInviteEmail(
+                            email,
+                            fullName,
+                            actionLink,
+                            role,
+                            dealTitle,
+                            false // isExistingUser = false
+                        );
+                    }
                 }
             }
         }

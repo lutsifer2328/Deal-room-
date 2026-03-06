@@ -48,7 +48,7 @@ function PulseCard({
     return (
         <div
             onClick={href ? () => router.push(href) : undefined}
-            className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-3 hover:shadow-md transition-all duration-200 ${href ? 'cursor-pointer hover:border-teal/30' : ''}`}
+            className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-3 hover:shadow-md transition-all duration-200 h-full ${href ? 'cursor-pointer hover:border-teal/30' : ''}`}
         >
             {/* Icon */}
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${accentColor === 'text-teal' ? 'bg-teal/10' : accentColor === 'text-amber-500' ? 'bg-amber-50' : accentColor === 'text-blue-600' ? 'bg-blue-50' : 'bg-purple-50'}`}>
@@ -56,7 +56,7 @@ function PulseCard({
             </div>
 
             {/* Value */}
-            <div>
+            <div className="flex-1">
                 <div className={`text-3xl font-serif font-bold tracking-tight text-navy-primary`}>
                     {value}
                 </div>
@@ -171,8 +171,8 @@ export default function DashboardProPage() {
                     </div>
 
                     {/* ── Executive Pulse Cards ────────────────────────────────────── */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10 items-start">
-                        <div className="sticky top-20 z-30 md:static drop-shadow-xl md:drop-shadow-none">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10 items-stretch">
+                        <div className="sticky top-20 z-30 md:static drop-shadow-xl md:drop-shadow-none h-full">
                             <PulseCard
                                 icon={TrendingUp}
                                 label={t('dashboardPro.totalVolume')}

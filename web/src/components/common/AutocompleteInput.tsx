@@ -8,6 +8,7 @@ interface AutocompleteSuggestion {
     name: string;
     source: 'standard' | 'history';
     standardDocumentId?: string;
+    searchTerms?: string[];
 }
 
 interface AutocompleteInputProps {
@@ -34,9 +35,12 @@ export default function AutocompleteInput({
 
     // Filter suggestions based on input and deduplicate
     const filteredSuggestions = suggestions
-        .filter(suggestion =>
-            suggestion.name.toLowerCase().includes(value.toLowerCase())
-        )
+        .filter(suggestion => {
+            const searchLower = value.toLowerCase();
+            const matchName = suggestion.name.toLowerCase().includes(searchLower);
+            const matchTerms = suggestion.searchTerms?.some(term => term.toLowerCase().includes(searchLower));
+            return matchName || matchTerms;
+        })
         // Deduplicate by name + source
         .filter((suggestion, index, self) =>
             index === self.findIndex((t) => (
