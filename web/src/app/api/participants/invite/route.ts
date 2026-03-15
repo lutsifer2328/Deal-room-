@@ -325,35 +325,40 @@ export async function POST(request: Request) {
                     }
                 });
 
+                const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dealroom.online';
+                const isExisting = !isNewUser || message === 'already-linked' || !!existingParticipant?.user_id;
+
                 if (!linkError && linkData?.properties?.action_link) {
                     const supabaseActionLink = linkData.properties.action_link;
 
                     // Extract raw token from Supabase's action_link to bypass PKCE redirect
-                    // action_link: https://xxx.supabase.co/auth/v1/verify?token=TOKEN&type=recovery&redirect_to=...
                     const actionUrl = new URL(supabaseActionLink);
                     const tokenHash = actionUrl.searchParams.get('token');
                     const linkType = actionUrl.searchParams.get('type') || 'recovery';
 
                     // Build DIRECT callback URL (bypasses Supabase's server-side redirect + PKCE)
-                    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dealroom.online';
                     directLink = `${siteUrl}/auth/callback?token_hash=${tokenHash}&type=${linkType}`;
 
-                    // Log for immediate terminal testing
                     console.log('\n══════════════════════════════════════════════════════');
                     console.log('🔗 DIRECT LOGIN LINK FOR:', email);
                     console.log('══════════════════════════════════════════════════════');
                     console.log(directLink);
                     console.log('══════════════════════════════════════════════════════\n');
-
-                    const isExisting = !isNewUser || message === 'already-linked' || !!existingParticipant?.user_id;
-
-                    // Send email with the DIRECT link (not Supabase's redirect link)
-                    const emailResult = await sendInviteEmail(email, name || email, directLink, participantRole || 'participant', dealTitle, isExisting);
-                    invited = true;
-                    console.log(`✅ Email dispatch result: success=${emailResult.success}, messageId=${emailResult.messageId || 'N/A'}`);
-                } else if (linkError) {
-                    console.warn('⚠️ generateLink failed:', linkError.message);
+                } else {
+                    // generateLink failed or returned no action_link (rate-limit, confirmed user state, etc.)
+                    // FALLBACK: send a plain login link — the participant can log in normally
+                    if (linkError) {
+                        console.warn('⚠️ generateLink failed:', linkError.message, '— using plain login fallback');
+                    } else {
+                        console.warn('⚠️ generateLink returned no action_link — using plain login fallback. linkData:', JSON.stringify(linkData));
+                    }
+                    directLink = `${siteUrl}/login`;
                 }
+
+                // Always send the email — even if we fell back to a plain login link
+                const emailResult = await sendInviteEmail(email, name || email, directLink, participantRole || 'participant', dealTitle, isExisting);
+                invited = true;
+                console.log(`✅ Email dispatch result: success=${emailResult.success}, messageId=${emailResult.messageId || 'N/A'}`);
             } catch (emailErr: unknown) {
                 console.warn('⚠️ Email send failed (non-critical):', emailErr instanceof Error ? emailErr.message : emailErr);
                 // Don't fail the request — participant is still linked
