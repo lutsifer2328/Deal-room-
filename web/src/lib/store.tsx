@@ -49,6 +49,7 @@ interface DataContextType {
     verifyDocument: (actorId: string, taskId: string, docId: string) => void;
     releaseDocument: (actorId: string, taskId: string, docId: string) => void;
     rejectDocument: (actorId: string, taskId: string, docId: string, reasonEn: string, reasonBg: string) => void;
+    deleteDocument: (taskId: string, docId: string, filePath: string) => Promise<void>;
 
     // Standard Documents Actions
     standardDocuments: StandardDocument[];
@@ -427,6 +428,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
                     console.log(`Realtime connected for deal ${activeDealId}`);
+                } else if (status === 'CHANNEL_ERROR') {
+                    console.error(`Realtime channel error for deal ${activeDealId}`);
+                } else if (status === 'TIMED_OUT') {
+                    console.warn(`Realtime timed out for deal ${activeDealId}`);
+                } else if (status === 'CLOSED') {
+                    console.warn(`Realtime channel closed for deal ${activeDealId}`);
                 }
             });
 
@@ -1256,10 +1263,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
                             ...dp,
                             role: updates.role || dp.role,
                             permissions: {
-                                ...dp.permissions,
-                                canViewDocuments: dealUpdates.permissions?.canViewDocuments ?? dp.permissions.canViewDocuments,
-                                canDownloadDocuments: dealUpdates.permissions?.canDownloadDocuments ?? dp.permissions.canDownloadDocuments,
-                                canViewRoles: dealUpdates.permissions?.canViewRoles ?? dp.permissions.canViewRoles
+                                ...(dp.permissions || {}),
+                                canViewDocuments: dealUpdates.permissions?.canViewDocuments ?? dp.permissions?.canViewDocuments ?? false,
+                                canDownloadDocuments: dealUpdates.permissions?.canDownloadDocuments ?? dp.permissions?.canDownloadDocuments ?? false,
+                                canViewRoles: dealUpdates.permissions?.canViewRoles ?? dp.permissions?.canViewRoles ?? []
                             }
                         };
                     }
@@ -1328,7 +1335,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 title_bg: file.name,
                 url: filePath, // Store path, NOT public URL
                 uploadedBy: uploadedBy,
-                status: 'verified', // Auto-verify for now
+                status: 'private',
                 uploadedAt: now
             };
 
@@ -1340,7 +1347,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 title_en: file.name,
                 title_bg: file.name,
                 uploaded_by: uploadedBy,
-                status: 'verified',
+                status: 'private',
                 uploaded_at: now
             };
 
@@ -1381,6 +1388,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const updateLocalDocRow = (docId: string, updates: any) => {
         setRawDocuments(prev => prev.map(d => d.id === docId ? { ...d, ...updates } : d));
+    };
+
+    const deleteDocument = async (taskId: string, docId: string, filePath: string) => {
+        // Optimistic: remove doc and revert task if no docs remain
+        setRawDocuments(prev => {
+            const remaining = prev.filter(d => d.id !== docId);
+            const taskDocCount = remaining.filter(d => d.task_id === taskId).length;
+            if (taskDocCount === 0) {
+                setRawTasks(t => t.map(task => task.id === taskId ? { ...task, status: 'pending' } : task));
+            }
+            return remaining;
+        });
+
+        try {
+            const { error: storageError } = await supabase.storage
+                .from('documents')
+                .remove([filePath]);
+            if (storageError) throw storageError;
+
+            const { error: dbError } = await supabase
+                .from('documents')
+                .delete()
+                .eq('id', docId);
+            if (dbError) throw dbError;
+
+            addNotification('success', 'Document removed | Документът е премахнат', '');
+        } catch (error: any) {
+            await fetchData();
+            addNotification('error', 'Delete failed | Неуспешно изтриване', error.message);
+        }
     };
 
     const verifyDocument = async (actorId: string, taskId: string, docId: string) => {
@@ -1798,6 +1835,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         verifyDocument,
         releaseDocument,
         rejectDocument,
+        deleteDocument,
         standardDocuments,
         addStandardDocument,
         updateStandardDocument,

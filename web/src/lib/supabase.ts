@@ -24,6 +24,11 @@ export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
             return fn();
         },
     },
+    realtime: {
+        params: {
+            eventsPerSecond: 10,
+        },
+    },
 })
 
 // Debugging

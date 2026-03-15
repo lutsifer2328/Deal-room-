@@ -5,7 +5,7 @@ import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
 import DealHeader from '@/components/deal/DealHeader';
 import SingleProgressBar from '@/components/deal/SingleProgressBar';
-import { FileText, Lock, ShieldCheck, Download, Upload, AlertTriangle, Eye, Mail, ArrowLeft } from 'lucide-react';
+import { FileText, Lock, ShieldCheck, Download, Upload, AlertTriangle, Eye, Mail, ArrowLeft, Trash2 } from 'lucide-react';
 import { Task, DealDocument, Deal, DealParticipant } from '@/lib/types';
 import { useState } from 'react';
 import CreateTaskModal from '@/components/deal/CreateTaskModal';
@@ -13,6 +13,7 @@ import RejectionModal from '@/components/deal/RejectionModal';
 import AuditLogPanel from '@/components/deal/AuditLogPanel';
 import UploadModal from '@/components/deal/UploadModal';
 import DocumentPreviewModal from '@/components/deal/DocumentPreviewModal';
+import DeleteDocumentModal from '@/components/deal/DeleteDocumentModal';
 import TaskComments from '@/components/deal/TaskComments';
 import { useTranslation, TranslationKey } from '@/lib/useTranslation';
 import { supabase } from '@/lib/supabase';
@@ -42,14 +43,27 @@ export default function DealDetailPage() {
 
     const relevantTasks = tasks.filter(t => {
         if (t.dealId !== deal.id) return false;
+        
+        // Admins/Lawyers/Staff see everything
         if (user.permissions.canViewAllDeals) return true;
 
-        // If this participant has been granted "Full View" (canViewDocuments is true), show them all tasks
-        if (currentDealParticipantRecord?.permissions?.canViewDocuments) return true;
+        // Managers (Broker) see everything in this deal
+        if (currentDealParticipantRecord?.role === 'broker') return true;
 
-        // Otherwise, only view tasks assigned to their specific Participant ID OR their Deal Role
+        // If specifically granted "Full View" (and not a standard restricted participant)
+        // Note: For Phase 2, we want strict isolation for Buyer/Seller roles.
+        // If they have canViewDocuments=true, they see all documents content, but not necessarily all tasks.
+        // However, the current grouping logic uses this to show the whole section.
+        // We will stick to assignment-based filtering for restricted roles.
+        const restrictedRoles = ['buyer', 'seller', 'notary', 'bank_representative'];
+        const isRestrictedRole = restrictedRoles.includes(currentDealParticipantRecord?.role || '');
+
+        if (!isRestrictedRole && currentDealParticipantRecord?.permissions?.canViewDocuments) return true;
+
+        // Standard logic: Assigned to me (by ID, by Role, or by Email)
         if (t.assignedTo === currentUserParticipant?.id) return true;
-        return t.assignedTo === currentUserParticipant?.role;
+        if (t.assignedTo === currentUserParticipant?.role) return true;
+        return t.assignedTo?.toLowerCase() === user.email.toLowerCase();
     });
 
     // Group tasks by participant/role
@@ -374,11 +388,12 @@ function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, task
     taskOwnerRole?: string,
     isTaskAssignee?: boolean
 }) {
-    const { verifyDocument, releaseDocument, rejectDocument } = useData();
+    const { verifyDocument, releaseDocument, rejectDocument, deleteDocument } = useData();
     const { user } = useAuth();
     const { t } = useTranslation();
     const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     // Deal participant role takes priority over deprecated global 'viewer' role
     const globalRole = user?.role || userRole;
@@ -390,7 +405,7 @@ function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, task
     const isStaffOrAbove = isLawyer || isAdmin || isStaff;
     // A 'viewer' with a deal participant role (broker/buyer/seller) is NOT read-only
     const isViewer = globalRole === 'viewer' && !currentDealParticipantRecord;
-    const isOwner = userRole === doc.uploadedBy || currentDealParticipantRecord?.participantId === doc.uploadedBy;
+    const isOwner = user?.id === doc.uploadedBy || userRole === doc.uploadedBy || currentDealParticipantRecord?.participantId === doc.uploadedBy;
 
     // --- PERMISSION LOGIC START ---
 
@@ -516,6 +531,16 @@ function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, task
                         </>
                     )}
 
+                    {isOwner && !isStaffOrAbove && doc.status !== 'verified' && doc.status !== 'released' && (
+                        <button
+                            onClick={() => setIsDeleteModalOpen(true)}
+                            className="p-2 text-danger bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                            title="Delete document"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    )}
+
                     {canDownload ? (
                         <button
                             onClick={handleDownload}
@@ -548,6 +573,17 @@ function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, task
                     onConfirm={(en, bg) => {
                         rejectDocument(user.id, taskId, doc.id, en, bg);
                         setIsRejectionModalOpen(false);
+                    }}
+                />
+            )}
+
+            {isDeleteModalOpen && (
+                <DeleteDocumentModal
+                    docTitle={doc.title_en}
+                    onClose={() => setIsDeleteModalOpen(false)}
+                    onConfirm={async () => {
+                        await deleteDocument(taskId, doc.id, doc.url);
+                        setIsDeleteModalOpen(false);
                     }}
                 />
             )}

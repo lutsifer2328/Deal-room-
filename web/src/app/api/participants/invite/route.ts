@@ -1,34 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { sendInviteEmail } from '@/lib/emailService';
+import { rateLimit } from '@/lib/limiter';
 
 /**
  * POST /api/participants/invite
  * 
  * Idempotent participant invite endpoint.
  * Never throws "User already in deal". Always returns 200 on valid input.
- * 
- * Steps:
- * 1. Staff auth check
- * 2. Ensure participants row exists
- * 3. Ensure deal_participants link exists
- * 4. Ensure auth.users account (via inviteUserByEmail or lookup)
- * 5. Link participants.user_id → auth.users.id
- * 6. Ensure public.users row exists
- * 7. Send invite email
- * 8. Update invitation_status
  */
-import { rateLimit } from '@/lib/limiter';
-
 export async function POST(request: Request) {
     try {
         // ── 0. Setup clients ─────────────────────────────────────
-        const authHeader = request.headers.get('Authorization');
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
-        }
-        const token = authHeader.replace('Bearer ', '');
-
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
         const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
         const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY!;
@@ -37,11 +22,26 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Server misconfigured: missing service role key' }, { status: 500 });
         }
 
-        // userClient: validates caller identity via JWT
-        const userClient = createClient(supabaseUrl, anonKey, {
-            auth: { autoRefreshToken: false, persistSession: false },
-            global: { headers: { Authorization: `Bearer ${token}` } }
-        });
+        const cookieStore = await cookies();
+        let userClient;
+
+        const authHeader = request.headers.get('Authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            // Fallback: If Bearer is provided, use it
+            const token = authHeader.replace('Bearer ', '');
+            userClient = createClient(supabaseUrl, anonKey, {
+                auth: { autoRefreshToken: false, persistSession: false },
+                global: { headers: { Authorization: `Bearer ${token}` } }
+            });
+        } else {
+            // Primary: use SSR cookies automatically
+            userClient = createServerClient(supabaseUrl, anonKey, {
+                cookies: {
+                    getAll() { return cookieStore.getAll() },
+                    setAll() { } // Read-only in this route
+                }
+            });
+        }
 
         // serviceClient: bypasses RLS for admin operations
         const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
         // ── 1. Verify caller JWT and staff role ──────────────────
         const { data: { user: caller }, error: authError } = await userClient.auth.getUser();
         if (authError || !caller) {
-            return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+            return NextResponse.json({ error: 'Invalid token or session expired' }, { status: 401 });
         }
 
         // Check caller is active staff via service client (bypasses RLS)
@@ -159,7 +159,13 @@ export async function POST(request: Request) {
                     deal_id: dealId,
                     participant_id: participantId,
                     role: participantRole || 'buyer',
-                    joined_at: new Date().toISOString()
+                    joined_at: new Date().toISOString(),
+                    permissions: {
+                        canViewDocuments: ['broker', 'lawyer', 'staff'].includes(participantRole || ''),
+                        canDownloadDocuments: false,
+                        canUploadDocuments: true,
+                        canViewTimeline: true
+                    }
                 });
 
             if (linkErr && linkErr.code !== '23505') {
@@ -274,6 +280,25 @@ export async function POST(request: Request) {
                     })
                     .eq('id', participantId);
                 console.log(`✅ Linked participant ${participantId} → auth user ${authUserId}`);
+            }
+        }
+
+        // ── 7.5. Back-populate assigned_participant_id on existing tasks ──
+        // Tasks may have been created before this participant was invited, with
+        // assigned_to = email but assigned_participant_id = NULL. Wire them now so
+        // the participant can see their assigned work via the RLS tasks_assignee_read policy.
+        if (participantId && dealId) {
+            const { error: taskWireError } = await serviceClient
+                .from('tasks')
+                .update({ assigned_participant_id: participantId })
+                .eq('deal_id', dealId)
+                .eq('assigned_to', email)
+                .is('assigned_participant_id', null);
+
+            if (taskWireError) {
+                console.warn('⚠️ Task wiring warning (non-critical):', taskWireError.message);
+            } else {
+                console.log(`✅ Wired unlinked tasks in deal ${dealId} → participant ${participantId}`);
             }
         }
 

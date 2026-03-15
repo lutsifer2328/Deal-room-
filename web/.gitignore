@@ -41,3 +41,28 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+.env*.local
+
+# Debug / one-off scripts — never commit these
+scripts/debug-*.ts
+scripts/audit-*.ts
+scripts/check-*.ts
+scripts/list-*.ts
+scripts/verify-*.ts
+scripts/test-*.ts
+scripts/rls-*.ts
+scripts/setup-test-data.ts
+scripts/db-dump.ts
+scripts/read-output.ts
+scripts/apply-isolation-fix.ts
+scripts/final-audit.ts
+scripts/reset-tommy-password.ts
+test-*.js
+test-*.ts
+*_output.txt
+*_final.txt
+alias_list.txt
+domain_inspect.txt
+g_output.txt
+test_id_document.txt
+supabase/.temp/

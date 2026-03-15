@@ -170,19 +170,17 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
         if (!deal?.id) return;
 
         setSendingInvite(true);
-        try {
-            // Get current session token for auth
-            const supabase = (await import('@/lib/supabase')).supabase;
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.access_token) throw new Error('Not authenticated');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
+        try {
             // Call the idempotent invite endpoint
             const response = await fetch('/api/participants/invite', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Content-Type': 'application/json'
                 },
+                signal: controller.signal,
                 body: JSON.stringify({
                     dealId: deal.id,
                     email: participantData.email,
@@ -191,6 +189,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                     resend: false
                 })
             });
+            clearTimeout(timeoutId);
 
             const result = await response.json();
 
@@ -199,7 +198,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
             console.log('✅ Participant added/linked successfully:', result);
 
             const successMsg = result.message === 'already-linked'
-                ? `✅ ${participantData.fullName} re-linked to deal (invite sent)`
+                ? `✅ ${participantData.fullName} re-linked to deal — invite resent`
                 : `✅ ${participantData.fullName} invited to deal`;
             setInviteSuccess(successMsg);
 
@@ -225,15 +224,16 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                 documentPermissions: { canViewRoles: [] }
             });
 
-            // Force refresh and wait for it to complete + propagate
-            await refreshData();
-            // Small delay to let React useEffect propagate the new deals array
-            await new Promise(resolve => setTimeout(resolve, 500));
-            console.log('🔄 Data refreshed after adding participant');
+            // Force refresh in background (non-blocking) to prevent UI hangs
+            refreshData().catch(e => console.warn('Background refresh error:', e));
+            console.log('🔄 Background data refresh triggered after adding participant');
 
         } catch (error: unknown) {
+            clearTimeout(timeoutId);
             console.error('Add participant error:', error);
-            const message = error instanceof Error ? error.message : 'Unknown error';
+            const message = error instanceof Error ?
+                (error.name === 'AbortError' ? 'The server took too long to respond. Please try again.' : error.message)
+                : 'Unknown error';
             alert(message);
         } finally {
             setSendingInvite(false);
@@ -346,7 +346,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
         const success = await inviteParticipant(deal.id, participant.email, participant.fullName, participant.role, isInternalUser, true);
 
         if (success) {
-            setInviteSuccess(`✅ Invitation sent to ${participant.email}`);
+            setInviteSuccess(`✅ Invitation sent to ${participant.email} `);
             setTimeout(() => setInviteSuccess(''), 5000);
         }
         setSendingInvite(false);
@@ -632,7 +632,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                     onChange={() => toggleNewParticipantRole(role)}
                                                     className="w-4 h-4"
                                                 />
-                                                <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase ${getRoleColor(role)}`}>
+                                                <span className={`text - xs font - bold px - 2 py - 0.5 rounded uppercase ${getRoleColor(role)} `}>
                                                     {role.replace('_', ' ')}
                                                 </span>
                                                 documents
@@ -710,9 +710,9 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                             />
                                         </div>
                                         <div>
-                                            <label htmlFor={`editRoleSelect-${participant.id}`} className="block text-xs font-medium text-gray-700 mb-1">Role *</label>
+                                            <label htmlFor={`editRoleSelect - ${participant.id} `} className="block text-xs font-medium text-gray-700 mb-1">Role *</label>
                                             <select
-                                                id={`editRoleSelect-${participant.id}`}
+                                                id={`editRoleSelect - ${participant.id} `}
                                                 value={editForm.role || 'buyer'}
                                                 onChange={(e) => setEditForm({ ...editForm, role: e.target.value as Role })}
                                                 className="w-full px-3 py-2 rounded border border-gray-300 text-sm bg-white outline-none"
@@ -720,7 +720,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                             >
                                                 <option value="buyer">{t('role.buyer')}</option>
                                                 <option value="seller">{t('role.seller')}</option>
-                                                <option value="broker">{t('role.agent')}</option>
+                                                <option value="agent">{t('role.agent')}</option>
                                                 <option value="attorney">{t('role.attorney')}</option>
                                                 <option value="notary">{t('role.notary')}</option>
                                                 <option value="bank_representative">{t('role.bank_representative')}</option>
@@ -769,8 +769,8 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                                 onChange={() => toggleRolePermission(role)}
                                                                 className="w-4 h-4"
                                                             />
-                                                            <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase ${getRoleColor(role)}`}>
-                                                                {t(`role.${role}` as TranslationKey) || role.replace('_', ' ')}
+                                                            <span className={`text - xs font - bold px - 2 py - 0.5 rounded uppercase ${getRoleColor(role)} `}>
+                                                                {t(`role.${role} ` as TranslationKey) || role.replace('_', ' ')}
                                                             </span>
                                                             {t('modal.inviteParticipant.documents')}
                                                         </label>

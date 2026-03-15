@@ -94,11 +94,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const hashParams = new URLSearchParams(window.location.hash.substring(1)); // remove #
             const type = hashParams.get('type');
             if (type === 'recovery' || type === 'invite') {
-                console.log(`🔄 Hash detected: type=${type}. Redirecting to update password...`);
-                // Short timeout to allow auth state to settle
-                setTimeout(() => {
-                    router.push('/auth/update-password');
-                }, 500);
+                console.log(`🔄 Hash detected: type=${type}. Establishing session then redirecting...`);
+                const accessToken = hashParams.get('access_token');
+                const refreshToken = hashParams.get('refresh_token');
+                if (accessToken) {
+                    supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken || ''
+                    }).then(() => {
+                        router.push('/auth/update-password');
+                    });
+                } else {
+                    setTimeout(() => {
+                        router.push('/auth/update-password');
+                    }, 500);
+                }
             }
         }
 
