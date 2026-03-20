@@ -8,12 +8,13 @@ export async function middleware(request: NextRequest) {
         },
     })
 
-    // FALLBACK: Hardcoded values because Vercel Env Vars are failing to load
-    const HARDCODED_URL = 'https://qolozennlzllvrqmibls.supabase.co'
-    const HARDCODED_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvbG96ZW5ubHpsbHZycW1pYmxzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4NTE1MjcsImV4cCI6MjA4NTQyNzUyN30.vu549GpXoQGGMwVs92PB4IC8IL9hniLWS9FDLsl28M8'
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || HARDCODED_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || HARDCODED_ANON
+    if (!supabaseUrl || !supabaseAnonKey) {
+        // middleware doesn't throw like a regular page, but we should handle it
+        return NextResponse.next()
+    }
 
     const supabase = createServerClient(
         supabaseUrl,
