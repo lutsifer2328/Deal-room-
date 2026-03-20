@@ -66,3 +66,6 @@ domain_inspect.txt
 g_output.txt
 test_id_document.txt
 supabase/.temp/
+
+.vercel
+.env*.local

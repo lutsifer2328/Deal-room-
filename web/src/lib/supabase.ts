@@ -1,35 +1,26 @@
 import { createBrowserClient } from '@supabase/ssr'
 
-// FALLBACK: Hardcoded values because Vercel Env Vars are failing to load
-// These are public values (Anon Key is safe to expose in client bundle)
-const HARDCODED_URL = 'https://qolozennlzllvrqmibls.supabase.co'
-const HARDCODED_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvbG96ZW5ubHpsbHZycW1pYmxzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4NTE1MjcsImV4cCI6MjA4NTQyNzUyN30.vu549GpXoQGGMwVs92PB4IC8IL9hniLWS9FDLsl28M8'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || HARDCODED_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || HARDCODED_ANON
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase Env Vars Missing! (Even hardcoded fallback failed?)')
+    throw new Error(
+        'Missing Supabase environment variables.\n' +
+        'Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'are set in your .env.local (local) or Vercel Environment Variables (production).'
+    )
 }
 
-// We use createBrowserClient from @supabase/ssr to automatically handle cookie synchronization
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
     auth: {
         flowType: 'pkce',
         detectSessionInUrl: true,
         persistSession: true,
         autoRefreshToken: true,
-        // Bypass navigator.locks entirely — prevents AbortError on init
-        lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<any>) => {
-            return fn();
-        },
-    },
-    realtime: {
-        params: {
-            eventsPerSecond: 10,
-        },
+        // NOTE: Do NOT override the lock function.
+        // The default Supabase lock prevents race conditions during
+        // auth operations like updateUser. Overriding it with a no-op
+        // causes deadlocks under certain browser conditions (e.g. when
+        // password manager extensions are active), leading to hangs.
     },
 })
-
-// Debugging
-// console.log('✅ Supabase Browser Client Initialized');
