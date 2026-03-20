@@ -27,38 +27,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         // 1. Check active session
-        const checkSession = async (retries = 3) => {
+        const initSession = async () => {
             try {
-                console.log(`🔐 Checking session... (Attempts left: ${retries})`);
-                const { data: { session }, error } = await supabase.auth.getSession();
-
-                if (error) throw error;
-
-                console.log('🔐 Session:', session ? 'FOUND' : 'NONE');
-
+                const { data: { session } } = await supabase.auth.getSession();
                 if (session?.user) {
                     await fetchUserProfile(session.user.id, session.user.email!, session);
                 } else {
-                    setUser(null);
                     setIsLoading(false);
                 }
-            } catch (error: any) {
-                // Retry on Abort/Network error
-                if (retries > 0 && (error.name === 'AbortError' || error.message?.includes('AbortError'))) {
-                    console.warn(`⚠️ Session check aborted. Retrying...`);
-                    await new Promise(r => setTimeout(r, 500));
-                    return checkSession(retries - 1);
-                }
-
-                console.error('❌ Session check failed:', error);
-                // Even if session check failed, try to see if we have ANY persistence user in localStorage if possible, or just fail.
-                // We set user to null to be safe.
-                setUser(null);
+            } catch (error) {
+                console.error('❌ Auth initialization error:', error);
                 setIsLoading(false);
             }
         };
 
-        checkSession();
+        initSession();
 
         // 2. Listen for auth changes (Primary source of truth if getSession fails)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
