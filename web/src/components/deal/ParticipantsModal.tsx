@@ -406,7 +406,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                         } catch { alert(inviteLink); }
                                     }}
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal/10 text-teal text-xs font-bold rounded-lg hover:bg-teal/20 transition-colors border border-teal/20"
-                                    title={t('common.copyLink' as TranslationKey) || "Copy Link"}
+                                    title={t('modal.inviteParticipant.copyLink' as TranslationKey) || "Copy Link"}
                                 >
                                     {linkCopied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                                 </button>

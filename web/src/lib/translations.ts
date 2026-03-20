@@ -164,6 +164,7 @@ export const translations = {
         "modal.inviteParticipant.selectRoles": "Select which roles' documents this person CAN view:",
         "modal.inviteParticipant.documents": "documents",
         "modal.inviteParticipant.saveChanges": "Save Changes",
+        "modal.inviteParticipant.help": "💡 Share this link with the participant if they haven't received the email.",
 
         "modal.createTask.title": "Add Document Requirement",
         "modal.createTask.docTitle": "Document Title *",
@@ -282,6 +283,10 @@ export const translations = {
         "audit.action.INVITED_USER": "Invited User",
         "audit.action.UPDATED_PARTICIPANT": "Updated Participant",
         "audit.action.UPDATED_DEAL_STEP": "Updated Deal Step",
+        "audit.action.ROLE_CHANGE": "Role Change",
+        "audit.action.ALL_ACTIONS": "All Actions",
+        "audit.title": "System Audit Log",
+        "audit.filter.search": "Search by actor, details...",
 
         "audit.filter.all": "All Actions",
         "audit.filter.auth": "Authentication",
@@ -380,6 +385,7 @@ export const translations = {
         "dashboardPro.closingSoonSub": "Сделки приключващи след ≤ 30 дни",
         "dashboardPro.urgentActions": "Спешни действия",
         "dashboardPro.urgentActionsSub": "Чакащи задачи и одобрения",
+        "dashboardPro.viewRegistry": "Виж регистъра",
 
         "deals.newDeal": "Нова сделка",
 
@@ -493,6 +499,7 @@ export const translations = {
         "modal.inviteParticipant.selectRoles": "Изберете кои документи на роли това лице МОЖЕ да преглежда:",
         "modal.inviteParticipant.documents": "документи",
         "modal.inviteParticipant.saveChanges": "Запазване на промените",
+        "modal.inviteParticipant.help": "💡 Споделете този линк с участника, ако не е получил имейла.",
 
         "modal.createTask.title": "Добави изискване за документ",
         "modal.createTask.docTitle": "Заглавие на документа *",
