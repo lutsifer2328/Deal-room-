@@ -7,7 +7,7 @@ import { rateLimit } from '@/lib/limiter';
 
 /**
  * POST /api/participants/invite
- * 
+ *
  * Idempotent participant invite endpoint.
  * Never throws "User already in deal". Always returns 200 on valid input.
  */
@@ -27,23 +27,20 @@ export async function POST(request: Request) {
 
         const authHeader = request.headers.get('Authorization');
         if (authHeader && authHeader.startsWith('Bearer ')) {
-            // Fallback: If Bearer is provided, use it
             const token = authHeader.replace('Bearer ', '');
             userClient = createClient(supabaseUrl, anonKey, {
                 auth: { autoRefreshToken: false, persistSession: false },
                 global: { headers: { Authorization: `Bearer ${token}` } }
             });
         } else {
-            // Primary: use SSR cookies automatically
             userClient = createServerClient(supabaseUrl, anonKey, {
                 cookies: {
                     getAll() { return cookieStore.getAll() },
-                    setAll() { } // Read-only in this route
+                    setAll() { }
                 }
             });
         }
 
-        // serviceClient: bypasses RLS for admin operations
         const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
             auth: { autoRefreshToken: false, persistSession: false }
         });
@@ -54,7 +51,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid token or session expired' }, { status: 401 });
         }
 
-        // Check caller is active staff via service client (bypasses RLS)
         const { data: callerProfile } = await serviceClient
             .from('users')
             .select('id, role, is_active')
@@ -67,15 +63,14 @@ export async function POST(request: Request) {
 
         // ── 2. Parse & validate request ──────────────────────────
         const body = await request.json();
-        const { dealId, participantRole, name, resend: isResend } = body;
+        const { dealId, participantRole, name, phone, agency, resend: isResend } = body;
         const email = body.email?.toLowerCase()?.trim();
 
         if (!email) {
             return NextResponse.json({ error: 'Missing required field: email' }, { status: 400 });
         }
 
-        // ── 1.5 Rate Limiting ────────────────────────────────────
-        // Limit: 5 invites to the same email by the same user per 10 minutes
+        // ── 2.5 Rate Limiting ────────────────────────────────────
         const rateKey = `invite:${caller.id}:${email}`;
         const { ok, reset } = await rateLimit(rateKey, 5, 600);
 
@@ -86,12 +81,12 @@ export async function POST(request: Request) {
                 { status: 429, headers: { 'Retry-After': reset ? Math.ceil((reset.getTime() - Date.now()) / 1000).toString() : '600' } }
             );
         }
+
         if (!dealId) {
             return NextResponse.json({ error: 'Missing required field: dealId' }, { status: 400 });
         }
 
         let message = '';
-        let invited = false;
 
         // ── 3. Ensure participants row exists ─────────────────────
         let participantId: string;
@@ -106,7 +101,6 @@ export async function POST(request: Request) {
             participantId = existingParticipant.id;
             console.log(`✅ Participant already exists: ${participantId}`);
         } else {
-            // Create new participant
             participantId = crypto.randomUUID();
             const { error: createErr } = await serviceClient
                 .from('participants')
@@ -114,13 +108,14 @@ export async function POST(request: Request) {
                     id: participantId,
                     email,
                     name: name || email.split('@')[0],
+                    phone: phone || null,
+                    agency: agency || null,
                     invitation_status: 'pending',
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
                 });
 
             if (createErr) {
-                // Race condition: another request created it first
                 if (createErr.code === '23505') {
                     const { data: retry } = await serviceClient
                         .from('participants')
@@ -147,11 +142,14 @@ export async function POST(request: Request) {
             .eq('participant_id', participantId)
             .maybeSingle();
 
-        if (existingLink) {
+        // FIX: Track whether this participant was already in this deal BEFORE this request.
+        // This is the key to deciding whether to send an email or not.
+        const wasAlreadyLinked = !!existingLink;
+
+        if (wasAlreadyLinked) {
             message = 'already-linked';
             console.log(`✅ Deal-participant link already exists`);
         } else {
-            // Create new link — NEVER fail on duplicates (unique constraint on deal_id+participant_id)
             const { error: linkErr } = await serviceClient
                 .from('deal_participants')
                 .insert({
@@ -177,11 +175,11 @@ export async function POST(request: Request) {
         }
 
         // ── 5. Ensure auth.users account ─────────────────────────
-        // CHECK FIRST, then create. Never blindly call inviteUserByEmail.
         let authUserId: string | null = null;
         let isNewUser = false;
 
-        // 5a. Check if user already exists in public.users
+        // FIX: Query public.users directly instead of listing all auth users.
+        // This is faster, more reliable, and doesn't have a 1000-user cap.
         const { data: existingPublicUser } = await serviceClient
             .from('users')
             .select('id')
@@ -189,40 +187,40 @@ export async function POST(request: Request) {
             .maybeSingle();
 
         if (existingPublicUser) {
-            // User already in public.users → they have an auth account
             authUserId = existingPublicUser.id;
             console.log(`✅ Existing user found in public.users: ${authUserId}`);
         } else {
-            // 5b. Not in public.users — try to create in auth.users
-            // If user exists in auth but not public (orphaned), createUser will 422 and we handle it
+            // Not in public.users — create in auth.users
             const { data: createData, error: createError } = await serviceClient.auth.admin.createUser({
                 email,
                 email_confirm: true,
-                password: crypto.randomUUID(), // temporary password, user will set via recovery link
+                password: crypto.randomUUID(),
                 user_metadata: {
                     name: name || email.split('@')[0],
-                    role: 'viewer'
+                    role: 'user'
                 }
             });
 
             if (createError) {
                 if (createError.message?.includes('already been registered') || createError.status === 422) {
-                    // User exists in auth but not in public.users (orphaned)
-                    // Find them by listing all users
-                    console.log(`ℹ️ Auth user exists but not in public.users. Searching...`);
-                    const { data: allUsersData } = await serviceClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
-                    const foundUser = allUsersData?.users?.find(u => u.email?.toLowerCase() === email);
-                    if (foundUser) {
-                        authUserId = foundUser.id;
-                        console.log(`✅ Found orphaned auth user: ${authUserId}`);
+                    // FIX: Instead of listUsers({ perPage: 1000 }), use a targeted approach.
+                    // User exists in auth but not in public.users (orphaned auth account).
+                    // We generate a link for them which also returns their user object.
+                    console.log(`ℹ️ Auth user exists but not in public.users. Recovering via generateLink...`);
+                    const { data: recoveryData } = await serviceClient.auth.admin.generateLink({
+                        type: 'recovery',
+                        email,
+                    });
+                    if (recoveryData?.user?.id) {
+                        authUserId = recoveryData.user.id;
+                        console.log(`✅ Recovered orphaned auth user: ${authUserId}`);
                     } else {
-                        console.error('❌ User reported as existing but not found in listUsers');
+                        console.error('❌ Could not recover orphaned auth user for:', email);
                     }
                 } else {
                     throw createError;
                 }
             } else {
-                // Brand new user created successfully
                 authUserId = createData.user.id;
                 isNewUser = true;
                 console.log(`✅ Created new auth user: ${authUserId}`);
@@ -230,7 +228,6 @@ export async function POST(request: Request) {
         }
 
         // ── 6. Ensure public.users row ───────────────────────────
-        // For NEW users: insert the row. For existing: do nothing (don't overwrite role/name).
         if (authUserId && isNewUser) {
             const { error: insertErr } = await serviceClient
                 .from('users')
@@ -238,12 +235,12 @@ export async function POST(request: Request) {
                     id: authUserId,
                     email,
                     name: name || email.split('@')[0],
-                    role: 'viewer',
+                    role: 'user',
                     is_active: true,
                     created_at: new Date().toISOString()
                 }, {
                     onConflict: 'id',
-                    ignoreDuplicates: true  // Don't overwrite existing user data
+                    ignoreDuplicates: true
                 });
 
             if (insertErr) {
@@ -252,7 +249,6 @@ export async function POST(request: Request) {
                 console.log(`✅ public.users row ensured for new user: ${authUserId}`);
             }
         } else if (authUserId) {
-            // Existing user: just ensure is_active = true
             await serviceClient
                 .from('users')
                 .update({ is_active: true })
@@ -263,7 +259,6 @@ export async function POST(request: Request) {
         // ── 7. Link participants.user_id ─────────────────────────
         const linked = !!authUserId;
         if (authUserId) {
-            // Only update if not already linked or linked to a different user
             const { data: currentP } = await serviceClient
                 .from('participants')
                 .select('user_id')
@@ -284,9 +279,6 @@ export async function POST(request: Request) {
         }
 
         // ── 7.5. Back-populate assigned_participant_id on existing tasks ──
-        // Tasks may have been created before this participant was invited, with
-        // assigned_to = email but assigned_participant_id = NULL. Wire them now so
-        // the participant can see their assigned work via the RLS tasks_assignee_read policy.
         if (participantId && dealId) {
             const { error: taskWireError } = await serviceClient
                 .from('tasks')
@@ -303,12 +295,18 @@ export async function POST(request: Request) {
         }
 
         // ── 8. Send invite/recovery email ────────────────────────
-        // For NEW users: send welcome + set-password link
-        // For EXISTING users: send "you have new deal access" + login link
+        // FIX: Only send email if:
+        //   a) This is a brand new participant being linked to this deal for the first time, OR
+        //   b) Admin explicitly clicked "Resend" (isResend = true)
+        //
+        // Do NOT send if the participant was already linked to this deal (wasAlreadyLinked)
+        // and this is not an explicit resend — they are already active and working.
+        const shouldSendEmail = !wasAlreadyLinked || isResend;
+        let invited = false;
         let directLink: string | null = null;
-        if (!invited || isResend) {
+
+        if (shouldSendEmail) {
             try {
-                // Get deal title for email
                 const { data: deal } = await serviceClient
                     .from('deals')
                     .select('title')
@@ -316,7 +314,6 @@ export async function POST(request: Request) {
                     .single();
                 const dealTitle = deal?.title || 'Agenzia Deal Room';
 
-                // Generate a recovery link so user can set password
                 const { data: linkData, error: linkError } = await serviceClient.auth.admin.generateLink({
                     type: 'recovery',
                     email,
@@ -326,46 +323,47 @@ export async function POST(request: Request) {
                 });
 
                 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dealroom.online';
-                const isExisting = !isNewUser || message === 'already-linked' || !!existingParticipant?.user_id;
+
+                // isExisting = true means "you already have an account, here's your new deal"
+                // isExisting = false means "welcome, please set your password"
+                const isExistingUser = !isNewUser;
 
                 if (!linkError && linkData?.properties?.action_link) {
-                    const supabaseActionLink = linkData.properties.action_link;
-
-                    // Extract raw token from Supabase's action_link to bypass PKCE redirect
-                    const actionUrl = new URL(supabaseActionLink);
+                    const actionUrl = new URL(linkData.properties.action_link);
                     const tokenHash = actionUrl.searchParams.get('token');
                     const linkType = actionUrl.searchParams.get('type') || 'recovery';
-
-                    // Build DIRECT callback URL (bypasses Supabase's server-side redirect + PKCE)
                     directLink = `${siteUrl}/auth/callback?token_hash=${tokenHash}&type=${linkType}`;
-
-                    console.log('\n══════════════════════════════════════════════════════');
-                    console.log('🔗 DIRECT LOGIN LINK FOR:', email);
-                    console.log('══════════════════════════════════════════════════════');
-                    console.log(directLink);
-                    console.log('══════════════════════════════════════════════════════\n');
                 } else {
-                    // generateLink failed or returned no action_link (rate-limit, confirmed user state, etc.)
-                    // FALLBACK: send a plain login link — the participant can log in normally
                     if (linkError) {
                         console.warn('⚠️ generateLink failed:', linkError.message, '— using plain login fallback');
-                    } else {
-                        console.warn('⚠️ generateLink returned no action_link — using plain login fallback. linkData:', JSON.stringify(linkData));
                     }
                     directLink = `${siteUrl}/login`;
                 }
 
-                // Always send the email — even if we fell back to a plain login link
-                const emailResult = await sendInviteEmail(email, name || email, directLink, participantRole || 'participant', dealTitle, isExisting);
+                console.log('\n══════════════════════════════════════════════════════');
+                console.log('🔗 SENDING INVITE LINK TO:', email, isExistingUser ? '(existing user - new deal access)' : '(new user - set password)');
+                console.log('══════════════════════════════════════════════════════\n');
+
+                const emailResult = await sendInviteEmail(
+                    email,
+                    name || email,
+                    directLink,
+                    participantRole || 'participant',
+                    dealTitle,
+                    isExistingUser  // drives "welcome" vs "new deal access" email template
+                );
                 invited = true;
-                console.log(`✅ Email dispatch result: success=${emailResult.success}, messageId=${emailResult.messageId || 'N/A'}`);
+                console.log(`✅ Email sent: success=${emailResult.success}, messageId=${emailResult.messageId || 'N/A'}`);
             } catch (emailErr: unknown) {
                 console.warn('⚠️ Email send failed (non-critical):', emailErr instanceof Error ? emailErr.message : emailErr);
-                // Don't fail the request — participant is still linked
             }
+        } else {
+            // Participant already in this deal, not a resend — skip email entirely
+            console.log(`⏭️ Skipping email for ${email} — already linked to deal ${dealId} and not a resend`);
+            invited = false;
         }
 
-        // Update invitation status
+        // ── 9. Update invitation status ──────────────────────────
         if (invited) {
             await serviceClient
                 .from('participants')
@@ -375,10 +373,10 @@ export async function POST(request: Request) {
                 })
                 .eq('id', participantId);
 
-            message = isResend ? 'resent' : (message === 'already-linked' ? 'already-linked' : 'invited');
+            message = isResend ? 'resent' : (wasAlreadyLinked ? 'already-linked' : 'invited');
         }
 
-        // ── 9. Return success (ALWAYS) ───────────────────────────
+        // ── 10. Return success (ALWAYS) ──────────────────────────
         return NextResponse.json({
             success: true,
             participantId,
@@ -386,17 +384,13 @@ export async function POST(request: Request) {
             linked,
             invited,
             message,
-            inviteLink: directLink // Always include so client can show "Copy Link" fallback
+            inviteLink: directLink
         });
 
     } catch (error: unknown) {
         const errMsg = error instanceof Error ? error.message : 'Internal server error';
         console.error('❌ Participant invite error:', error);
         console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
-        console.error('Full Error Object:', JSON.stringify(error, null, 2));
-        return NextResponse.json(
-            { error: errMsg },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: errMsg }, { status: 500 });
     }
 }

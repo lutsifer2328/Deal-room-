@@ -14,7 +14,7 @@ import { useTranslation } from '@/lib/useTranslation';
 import { TranslationKey } from '@/lib/translations';
 
 export default function ParticipantsModal({ deal, onClose, isOpen = true }: { deal: Deal, onClose: () => void, isOpen?: boolean }) {
-    const { removeParticipant, updateParticipant, deals, getParticipantDeals, users, inviteParticipant, refreshData } = useData();
+    const { removeParticipant, updateParticipant, deals, getParticipantDeals, users, refreshData } = useData();
     const { t } = useTranslation();
 
     // Get fresh deal data from store to see newly added participants
@@ -185,6 +185,8 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                     dealId: deal.id,
                     email: participantData.email,
                     name: participantData.fullName,
+                    phone: participantData.phone,
+                    agency: participantData.agency,
                     participantRole: participantData.role,
                     resend: false
                 })
@@ -339,17 +341,35 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
 
     const handleSendInvite = async (participant: Participant) => {
         if (!deal?.id) return;
-
         setSendingInvite(true);
+        try {
+            const response = await fetch('/api/participants/invite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    dealId: deal.id,
+                    email: participant.email,
+                    name: participant.fullName,
+                    phone: participant.phone,
+                    participantRole: participant.role,
+                    resend: true   // ← explicit resend flag
+                })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Failed to send invite');
 
-        // Use the new idempotent endpoint with resend:true
-        const success = await inviteParticipant(deal.id, participant.email, participant.fullName, participant.role, isInternalUser, true);
-
-        if (success) {
-            setInviteSuccess(`✅ Invitation sent to ${participant.email} `);
-            setTimeout(() => setInviteSuccess(''), 5000);
+            setInviteSuccess(`✅ Invitation sent to ${participant.email}`);
+            if (result.inviteLink) {
+                setInviteLink(result.inviteLink);
+                setLinkCopied(false);
+            }
+            setTimeout(() => { setInviteSuccess(''); setInviteLink(null); }, 30000);
+        } catch (error) {
+            console.error('Resend invite error:', error);
+            alert(error instanceof Error ? error.message : 'Failed to send invite');
+        } finally {
+            setSendingInvite(false);
         }
-        setSendingInvite(false);
     };
 
     const getRoleColor = (role: Role | string) => {
