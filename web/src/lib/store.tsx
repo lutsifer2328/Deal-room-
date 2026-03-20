@@ -109,10 +109,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
 
     // Fetch Data
+    const isFetchingRef = useRef<boolean>(false);
     const fetchData = async () => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
             // ONLY fetch data if the user is authenticated, to prevent 400 error loops on the login page
-            const { data: sessionData } = await supabase.auth.getSession();
+            const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
             if (!sessionData.session) {
                 console.log('[DEBUG] No active session found. Skipping data fetch structure.');
                 setIsInitialized(true); // Let the app load (which will redirect to login)
@@ -246,8 +249,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
             })));
 
             setIsInitialized(true);
-        } catch (error) {
+        } catch (error: any) {
+            // Gracefully handle signal abortions (common in React Strict Mode or on navigation)
+            if (error.name === 'AbortError' || error.message?.includes('AbortError')) {
+                console.log('[DEBUG] Data fetch aborted (routine).');
+                return;
+            }
             console.warn('Error fetching data from Supabase:', error);
+        } finally {
+            isFetchingRef.current = false;
         }
     };
 
@@ -509,9 +519,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     // DEBUG: Raw Fetch fallback to bypass client library issues
     const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number) => {
-        const HARDCODED_URL = 'https://qolozennlzllvrqmibls.supabase.co';
-        const HARDCODED_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvbG96ZW5ubHpsbHZycW1pYmxzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4NTE1MjcsImV4cCI6MjA4NTQyNzUyN30.vu549GpXoQGGMwVs92PB4IC8IL9hniLWS9FDLsl28M8';
-
         try {
             const dealId = crypto.randomUUID();
             const defaultTimeline = createDefaultTimeline();
@@ -546,11 +553,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
             // 2. RAW FETCH EXECUTION
             console.log('⚡ Attempting CREATE via RAW FETCH...');
-            const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL || HARDCODED_URL}/rest/v1/deals`, {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+            if (!supabaseUrl || !supabaseAnonKey) {
+                throw new Error("Supabase environment variables are not configured correctly.");
+            }
+
+            const response = await fetch(`${supabaseUrl}/rest/v1/deals`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || HARDCODED_ANON,
+                    'apikey': supabaseAnonKey,
                     'Authorization': `Bearer ${token}`,
                     'Prefer': 'return=minimal'
                 },

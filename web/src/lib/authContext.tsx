@@ -35,7 +35,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 } else {
                     setIsLoading(false);
                 }
-            } catch (error) {
+            } catch (error: any) {
+                if (error.name === 'AbortError' || error.message?.includes('AbortError')) {
+                    // Silent no-op for routine abortions
+                    return;
+                }
                 console.error('❌ Auth initialization error:', error);
                 setIsLoading(false);
             }
