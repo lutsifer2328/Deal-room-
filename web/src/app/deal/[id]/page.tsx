@@ -147,6 +147,7 @@ export default function DealDetailPage() {
                             role={group.role}
                             tasks={group.tasks}
                             userRole={user.role}
+                            dealId={deal.id}
                             onDeleteTask={(taskId) => deleteTask(taskId, user.id)}
                             currentDealParticipantRecord={currentDealParticipantRecord}
                         />
@@ -181,11 +182,12 @@ export default function DealDetailPage() {
     );
 }
 
-function ParticipantTaskGroup({ participant, role, tasks, userRole, onDeleteTask, currentDealParticipantRecord }: {
+function ParticipantTaskGroup({ participant, role, tasks, userRole, dealId, onDeleteTask, currentDealParticipantRecord }: {
     participant?: Deal['participants'][0],
     role: string,
     tasks: Task[],
     userRole: string,
+    dealId: string,
     onDeleteTask: (id: string) => void,
     currentDealParticipantRecord?: DealParticipant
 }) {
@@ -235,6 +237,7 @@ function ParticipantTaskGroup({ participant, role, tasks, userRole, onDeleteTask
                         key={task.id}
                         task={task}
                         userRole={userRole}
+                        dealId={dealId}
                         onDelete={() => onDeleteTask(task.id)}
                         currentDealParticipantRecord={currentDealParticipantRecord}
                         taskOwnerRole={role} // Pass the group role as the task owner role
@@ -245,9 +248,10 @@ function ParticipantTaskGroup({ participant, role, tasks, userRole, onDeleteTask
     );
 }
 
-function TaskItem({ task, userRole, onDelete, currentDealParticipantRecord, taskOwnerRole }: {
+function TaskItem({ task, userRole, dealId, onDelete, currentDealParticipantRecord, taskOwnerRole }: {
     task: Task,
     userRole: string,
+    dealId: string,
     onDelete: () => void,
     currentDealParticipantRecord?: DealParticipant,
     taskOwnerRole?: string
@@ -373,6 +377,7 @@ function TaskItem({ task, userRole, onDelete, currentDealParticipantRecord, task
             <UploadModal
                 taskId={task.id}
                 taskTitle={task.title_en}
+                dealId={dealId}
                 onClose={() => setIsUploadModalOpen(false)}
                 isOpen={isUploadModalOpen}
             />

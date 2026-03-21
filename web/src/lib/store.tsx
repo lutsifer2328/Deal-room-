@@ -45,7 +45,7 @@ interface DataContextType {
     updateParticipant: (dealId: string, participantId: string, updates: Partial<Participant>) => void;
 
     // Doc Actions
-    uploadDocument: (taskId: string, file: File, uploadedBy: string) => void;
+    uploadDocument: (taskId: string, file: File, uploadedBy: string, dealId?: string) => void;
     verifyDocument: (actorId: string, taskId: string, docId: string) => void;
     releaseDocument: (actorId: string, taskId: string, docId: string) => void;
     rejectDocument: (actorId: string, taskId: string, docId: string, reasonEn: string, reasonBg: string) => void;
@@ -1319,8 +1319,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const uploadDocument = async (taskId: string, file: File, uploadedBy: string) => {
-        console.log(`[DEBUG] uploadDocument called for task ${taskId}, file: ${file.name}, by: ${uploadedBy}`);
+    const uploadDocument = async (taskId: string, file: File, uploadedBy: string, dealId?: string) => {
+        const resolvedDealId = dealId || activeDealId;
+        if (!resolvedDealId) {
+            addNotification('error', 'Upload Error', 'Could not determine deal context for upload.');
+            return;
+        }
+
+        console.log(`[DEBUG] uploadDocument called for task ${taskId}, file: ${file.name}, by: ${uploadedBy}, resolvedDealId: ${resolvedDealId}`);
         if (!taskId) {
             addNotification('error', 'Upload Error', 'You must upload a document under a specific task.');
             return;
@@ -1330,7 +1336,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             // 1. Upload to Storage
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-            const filePath = `${activeDealId}/${taskId}/${fileName}`;
+            const filePath = `${resolvedDealId}/${taskId}/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
                 .from('documents')
@@ -1357,7 +1363,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
             const dbDoc = {
                 id: docId,
-                deal_id: activeDealId,
+                deal_id: resolvedDealId,
                 task_id: taskId,
                 url: filePath,
                 title_en: file.name,
@@ -1376,17 +1382,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 throw new Error(`DB Insert failed: ${insertError.message}`);
             }
 
-            // --- TEMP DISABLED FOR DEBUGGING LAG ---
             // 3. Update parent task to pending_review
-            // const { error: taskError } = await supabase
-            //     .from('tasks')
-            //     .update({ status: 'pending_review' })
-            //     .eq('id', taskId);
-            //
-            // if (taskError) {
-            //     console.error('Failed to update task status:', taskError);
-            // }
-            // ----------------------------------------
+            const { error: taskError } = await supabase
+                .from('tasks')
+                .update({ status: 'pending_review' })
+                .eq('id', taskId);
+
+            if (taskError) {
+                console.error('Failed to update task status:', taskError);
+            }
 
             // 4. Optimistic Update (Raw Documents & Tasks)
             setRawDocuments(prev => [...prev, dbDoc]);

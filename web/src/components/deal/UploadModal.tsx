@@ -5,9 +5,10 @@ import { useAuth } from '@/lib/authContext';
 import { Modal, ModalHeader, ModalContent, ModalFooter } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 
-export default function UploadModal({ taskId, taskTitle, onClose, isOpen = true }: {
+export default function UploadModal({ taskId, taskTitle, dealId, onClose, isOpen = true }: {
     taskId: string,
     taskTitle: string,
+    dealId: string,
     onClose: () => void,
     isOpen?: boolean
 }) {
@@ -36,7 +37,7 @@ export default function UploadModal({ taskId, taskTitle, onClose, isOpen = true 
             setIsUploading(true);
 
             // Pass the actual File object to the store function
-            await uploadDocument(taskId, selectedFile, user.id);
+            await uploadDocument(taskId, selectedFile, user.id, dealId);
 
             // Only close on success
             setIsUploading(false);
