@@ -37,7 +37,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
             } catch (error: any) {
                 if (error.name === 'AbortError' || error.message?.includes('AbortError')) {
-                    // Silent no-op for routine abortions
+                    // Silent no-op for routine abortions, but MUST clear loading state
+                    setIsLoading(false);
                     return;
                 }
                 console.error('❌ Auth initialization error:', error);
@@ -118,34 +119,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         lastFetchRef.current = now;
 
         let dbData = null;
-        let retryCount = 0;
-        const maxRetries = 3;
 
-        // 1. Try to fetch from DB with Retries
-        while (retryCount < maxRetries) {
-            try {
-                // console.log(`🔍 Try ${retryCount + 1}/${maxRetries} fetching profile for: ${email}`);
-                const { data, error } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('id', userId)
-                    .single();
+        // 1. Try to fetch from DB
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', userId)
+                .single();
 
-                if (error) throw error;
-                if (data) {
-                    dbData = data;
-                    break; // Success
-                }
-            } catch (error: any) {
-                // Only retry on network/abort errors
-                if (error.name === 'AbortError' || error.message?.includes('AbortError') || error.message?.includes('fetch')) {
-                    console.warn(`⚠️ Profile fetch aborted/failed. Retrying (${retryCount + 1}/${maxRetries})...`);
-                    retryCount++;
-                    await new Promise(r => setTimeout(r, 500)); // Wait 500ms
-                } else {
-                    console.error('❌ Non-retriable DB Error:', error);
-                    break; // Don't retry logic errors
-                }
+            if (error) throw error;
+            if (data) {
+                dbData = data;
+            }
+        } catch (error: any) {
+            if (error.name === 'AbortError' || error.message?.includes('AbortError')) {
+                console.warn(`⚠️ Profile fetch aborted. App navigation likely interrupting.`);
+            } else {
+                console.error('❌ DB Error fetching profile:', error);
             }
         }
 
