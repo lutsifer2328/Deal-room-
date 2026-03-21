@@ -392,6 +392,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             supabase.removeChannel(channelRef.current);
         }
 
+        let realtimeErrorCount = 0;
         const channel = supabase.channel(`deal-room-${activeDealId}`)
             .on(
                 'postgres_changes',
@@ -440,8 +441,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
                     console.log(`Realtime connected for deal ${activeDealId}`);
+                    realtimeErrorCount = 0;
                 } else if (status === 'CHANNEL_ERROR') {
-                    console.error(`Realtime channel error for deal ${activeDealId}`);
+                    realtimeErrorCount++;
+                    console.error(`Realtime channel error for deal ${activeDealId} (attempt ${realtimeErrorCount})`);
+                    if (realtimeErrorCount >= 3) {
+                        console.warn('Realtime: max retries reached, falling back to polling');
+                        supabase.removeChannel(channel);
+                    }
                 } else if (status === 'TIMED_OUT') {
                     console.warn(`Realtime timed out for deal ${activeDealId}`);
                 } else if (status === 'CLOSED') {
@@ -1082,9 +1089,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
             if (data.deactivated) {
                 // User was auto-deactivated instead of deleted (has deal associations)
+                setRawUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: false } : u));
                 await fetchData(); // Refresh to show updated status
                 addNotification('info', 'User Deactivated', data.message);
-                toast.success('User deactivated — they appear as "FORMER STAFF" in their deals');
+                toast.success('User deactivated — access revoked. They appear as "Former Staff" in their deals.');
             } else {
                 setRawUsers(prev => prev.filter(u => u.id !== userId));
                 addNotification('success', 'User Deleted', 'Permanently removed.');

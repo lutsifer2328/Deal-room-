@@ -109,7 +109,7 @@ export default function UserManagementTable() {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-100">
                             {organizationalUsers.map((user) => (
-                                <tr key={user.id} className="hover:bg-teal/[0.02] transition-colors">
+                                <tr key={user.id} className={`hover:bg-teal/[0.02] transition-colors ${!user.isActive ? 'opacity-50' : ''}`}>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
                                             <div className="h-10 w-10 flex-shrink-0">
@@ -134,8 +134,8 @@ export default function UserManagementTable() {
                                                 Active
                                             </span>
                                         ) : (
-                                            <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-red-50 text-red-600 border border-red-100">
-                                                Inactive
+                                            <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-gray-100 text-gray-500 border border-gray-200 line-through">
+                                                Deactivated
                                             </span>
                                         )}
                                     </td>
@@ -172,12 +172,14 @@ export default function UserManagementTable() {
                                                     </button>
                                                 )}
 
-                                                <button
-                                                    onClick={() => setPendingAction({ type: 'delete', userId: user.id, userName: user.name })}
-                                                    className="text-red-500 hover:text-red-700 font-bold transition-colors text-sm"
-                                                >
-                                                    Delete
-                                                </button>
+                                                {user.isActive && (
+                                                    <button
+                                                        onClick={() => setPendingAction({ type: 'delete', userId: user.id, userName: user.name })}
+                                                        className="text-red-500 hover:text-red-700 font-bold transition-colors text-sm"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                )}
                                             </>
                                         )}
                                     </td>
