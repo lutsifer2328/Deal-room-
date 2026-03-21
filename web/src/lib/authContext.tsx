@@ -112,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Prevent redundant fetches within 2 seconds or if already fetching
         if (isFetchingRef.current || (now - lastFetchRef.current < 2000)) {
             console.log('⏳ Skipping redundant profile fetch (debounced)');
+            setIsLoading(false); // ← ensure loading clears even when debounced
             return;
         }
 

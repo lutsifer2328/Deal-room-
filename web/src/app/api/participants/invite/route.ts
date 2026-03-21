@@ -331,9 +331,8 @@ export async function POST(request: Request) {
 
                 if (!linkError && linkData?.properties?.action_link) {
                     const actionUrl = new URL(linkData.properties.action_link);
-                    const tokenHash = actionUrl.searchParams.get('token');
-                    const linkType = actionUrl.searchParams.get('type') || 'recovery';
-                    directLink = `${siteUrl}/auth/callback?token_hash=${tokenHash}&type=${linkType}`;
+                    const extractedToken = actionUrl.searchParams.get('token');
+                    directLink = `${siteUrl}/auth/callback?token_hash=${extractedToken}&type=${linkType}`;
                 } else {
                     if (linkError) {
                         console.warn('⚠️ generateLink failed:', linkError.message, '— using plain login fallback');

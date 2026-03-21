@@ -69,6 +69,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
             .map(p => p.role)
     ));
 
+    const [sendingInviteIds, setSendingInviteIds] = useState<Set<string>>(new Set());
     const [sendingInvite, setSendingInvite] = useState(false);
     const [inviteSuccess, setInviteSuccess] = useState('');
     const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -341,7 +342,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
 
     const handleSendInvite = async (participant: Participant) => {
         if (!deal?.id) return;
-        setSendingInvite(true);
+        setSendingInviteIds(prev => new Set(prev).add(participant.id));
         try {
             const response = await fetch('/api/participants/invite', {
                 method: 'POST',
@@ -368,7 +369,11 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
             console.error('Resend invite error:', error);
             alert(error instanceof Error ? error.message : 'Failed to send invite');
         } finally {
-            setSendingInvite(false);
+            setSendingInviteIds(prev => {
+                const next = new Set(prev);
+                next.delete(participant.id);
+                return next;
+            });
         }
     };
 
@@ -868,9 +873,9 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                             size="sm"
                                             className="text-teal border-teal/20 hover:bg-teal/5 h-8 px-2 text-xs flex items-center gap-1"
                                             title={participant.invitedAt ? 'Resend Invitation' : 'Send Invitation Email'}
-                                            disabled={sendingInvite}
+                                            disabled={sendingInviteIds.has(participant.id)}
                                         >
-                                            <Send className="w-3 h-3" /> {sendingInvite ? 'Sending...' : (participant.invitedAt ? 'Resend' : 'Invite')}
+                                            <Send className="w-3 h-3" /> {sendingInviteIds.has(participant.id) ? 'Sending...' : (participant.invitedAt ? 'Resend' : 'Invite')}
                                         </Button>
                                         <Button
                                             onClick={() => startEdit(participant)}

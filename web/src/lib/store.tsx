@@ -256,6 +256,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 return;
             }
             console.warn('Error fetching data from Supabase:', error);
+            // Ensure we initialize even on error to unblock the UI
+            setIsInitialized(true);
         } finally {
             isFetchingRef.current = false;
         }
