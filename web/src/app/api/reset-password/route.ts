@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       type: 'recovery',
       email: email,
       options: {
-        redirectTo: `${siteUrl}/auth/update-password`
+        redirectTo: `${siteUrl}/auth/callback`
       }
     });
 

@@ -23,6 +23,14 @@ export default function AuthCallback() {
                 const tokenHash = searchParams.get('token_hash');
                 const tokenType = searchParams.get('type') as 'recovery' | 'magiclink' | 'invite' | 'signup' | 'email';
 
+                const isNewInvite = searchParams.get('new') === '1';
+                const getRedirectPath = (type: string | null): string => {
+                    if (type === 'recovery' && isNewInvite) return '/auth/set-password';
+                    if (type === 'recovery') return '/auth/update-password';
+                    if (type === 'magiclink') return '/';
+                    return '/auth/set-password'; // default for invite/signup
+                };
+
                 if (tokenHash) {
                     console.log('🔐 Verifying OTP token_hash directly (Strategy 0)...');
                     const { data, error } = await supabase.auth.verifyOtp({
@@ -44,7 +52,7 @@ export default function AuthCallback() {
                     if (data.session) {
                         console.log('✅ Session established via verifyOtp!');
                         setStatus('success');
-                        setTimeout(() => router.push('/auth/set-password'), 1500);
+                        setTimeout(() => router.push(getRedirectPath(tokenType)), 1500);
                         return;
                     }
                 }
@@ -88,7 +96,8 @@ export default function AuthCallback() {
                     if (data.session) {
                         console.log('✅ Session established from hash tokens');
                         setStatus('success');
-                        setTimeout(() => router.push('/auth/set-password'), 1500);
+                        const hashType = hashParams.get('type');
+                        setTimeout(() => router.push(getRedirectPath(hashType)), 1500);
                         return;
                     }
                 }
@@ -105,7 +114,7 @@ export default function AuthCallback() {
                     } else if (data.session) {
                         console.log('✅ Session established from PKCE code');
                         setStatus('success');
-                        setTimeout(() => router.push('/auth/set-password'), 1500);
+                        setTimeout(() => router.push(getRedirectPath(null)), 1500);
                         return;
                     }
                 }
@@ -116,7 +125,7 @@ export default function AuthCallback() {
                 if (session) {
                     console.log('✅ Session found via getSession()');
                     setStatus('success');
-                    setTimeout(() => router.push('/auth/set-password'), 1500);
+                    setTimeout(() => router.push(getRedirectPath(null)), 1500);
                     return;
                 }
 

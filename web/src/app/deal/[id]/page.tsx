@@ -476,8 +476,9 @@ function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, task
                         {doc.status === 'rejected' ? <AlertTriangle className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
                     </div>
                     <div className="min-w-0">
-                        <div className="text-sm font-bold text-navy-primary flex items-center gap-2 mb-0.5 truncate pr-2">
-                            <span className="truncate">{doc.title_en}</span>
+                        <div className="text-sm font-medium text-text-secondary flex items-center gap-1.5 mb-0.5 truncate pr-2">
+                            <span className="text-xs font-bold text-text-light uppercase tracking-wide shrink-0">File:</span>
+                            <span className="truncate text-navy-primary">{doc.title_en}</span>
                             {!canDownload && doc.status !== 'rejected' && <Lock className="w-3 h-3 text-gold flex-shrink-0" />}
                         </div>
                         {doc.status === 'rejected' ? (

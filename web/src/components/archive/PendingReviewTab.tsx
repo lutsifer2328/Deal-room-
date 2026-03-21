@@ -152,8 +152,11 @@ export default function PendingReviewTab() {
                                     <div className="flex items-start gap-3">
                                         <FileText className="w-4 h-4 text-teal opacity-70 mt-0.5 shrink-0" />
                                         <div className="min-w-0">
-                                            <div className="font-bold text-navy-primary text-sm line-clamp-1 break-all">{item.doc.title_en}</div>
-                                            <div className="text-xs text-text-light font-medium line-clamp-1">{item.taskTitle}</div>
+                                            <div className="font-bold text-navy-primary text-sm line-clamp-1">{item.taskTitle}</div>
+                                            <div className="text-xs text-text-light font-medium line-clamp-1 flex items-center gap-1">
+                                                <span>📎</span>
+                                                <span className="truncate">{item.doc.title_en}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

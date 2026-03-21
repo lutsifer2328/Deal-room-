@@ -332,7 +332,11 @@ export async function POST(request: Request) {
                 if (!linkError && linkData?.properties?.action_link) {
                     const actionUrl = new URL(linkData.properties.action_link);
                     const extractedToken = actionUrl.searchParams.get('token');
-                    directLink = `${siteUrl}/auth/callback?token_hash=${extractedToken}&type=${linkType}`;
+                    if (isNewUser) {
+                        directLink = `${siteUrl}/auth/callback?token_hash=${extractedToken}&type=recovery&new=1`;
+                    } else {
+                        directLink = `${siteUrl}/auth/callback?token_hash=${extractedToken}&type=magiclink`;
+                    }
                 } else {
                     if (linkError) {
                         console.warn('⚠️ generateLink failed:', linkError.message, '— using plain login fallback');
