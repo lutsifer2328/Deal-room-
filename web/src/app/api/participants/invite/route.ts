@@ -314,8 +314,9 @@ export async function POST(request: Request) {
                     .single();
                 const dealTitle = deal?.title || 'Agenzia Deal Room';
 
+                const linkType = isNewUser ? 'recovery' : 'magiclink';
                 const { data: linkData, error: linkError } = await serviceClient.auth.admin.generateLink({
-                    type: 'recovery',
+                    type: linkType as any,
                     email,
                     options: {
                         redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://dealroom.online'}/auth/callback`
