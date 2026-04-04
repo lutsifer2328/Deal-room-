@@ -534,7 +534,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                     >
                                                         <option value="agent">{t('role.agent')}</option>
                                                         <option value="staff">{t('role.staff')}</option>
-                                                        <option value="lawyer">{t('role.attorney')}</option>
+                                                        <option value="attorney">{t('role.attorney')}</option>
                                                         <option value="admin">{t('role.admin')}</option>
                                                         <option value="viewer">{t('role.viewer')}</option>
                                                     </select>

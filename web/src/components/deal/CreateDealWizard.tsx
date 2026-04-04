@@ -3,7 +3,7 @@
 import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
 import { X, ChevronRight, ChevronLeft, UserPlus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Participant, Role, GlobalParticipant } from '@/lib/types';
 import DuplicateDetectionModal from '@/components/participants/DuplicateDetectionModal';
 import { useTranslation, TranslationKey } from '@/lib/useTranslation';
@@ -32,6 +32,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
         hasAcceptedInvite: false,
         isActive: true
     });
+    const roleSelectRef = useRef<HTMLSelectElement>(null);
 
     // Duplicate detection state
     const [duplicateParticipant, setDuplicateParticipant] = useState<GlobalParticipant | null>(null);
@@ -61,18 +62,24 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
             return;
         }
 
+        // Safeguard: read role directly from the DOM select to prevent stale state
+        const domRole = roleSelectRef.current?.value as Role | undefined;
+        const participantToAdd = domRole && domRole !== currentParticipant.role
+            ? { ...currentParticipant, role: domRole }
+            : currentParticipant;
+
         // Check for duplicate email
-        const duplicate = checkDuplicateEmail(currentParticipant.email);
+        const duplicate = checkDuplicateEmail(participantToAdd.email);
         if (duplicate) {
             // Store pending data and show duplicate modal
-            setPendingParticipantData(currentParticipant);
+            setPendingParticipantData(participantToAdd);
             setDuplicateParticipant(duplicate);
             setShowDuplicateModal(true);
             return;
         }
 
         // No duplicate, proceed with adding
-        proceedWithAddingParticipant(currentParticipant);
+        proceedWithAddingParticipant(participantToAdd);
     };
 
     const proceedWithAddingParticipant = (participantData: any) => {
@@ -327,6 +334,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                                     <div>
                                         <label className="block text-xs font-medium text-gray-700 mb-1">{t('wizard.label.role')}</label>
                                         <select
+                                            ref={roleSelectRef}
                                             value={currentParticipant.role}
                                             onChange={(e) => setCurrentParticipant({ ...currentParticipant, role: e.target.value as Role })}
                                             className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white outline-none text-sm"
@@ -334,7 +342,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                                             <option value="buyer">{t('role.buyer')}</option>
                                             <option value="seller">{t('role.seller')}</option>
                                             <option value="agent">{t('role.agent')}</option>
-                                            <option value="lawyer">{t('role.lawyer')}</option>
+                                            <option value="attorney">{t('role.attorney')}</option>
                                             <option value="notary">{t('role.notary')}</option>
                                             <option value="bank_representative">{t('role.bank_representative')}</option>
                                         </select>
@@ -381,13 +389,20 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                                 <ChevronLeft className="w-4 h-4" />
                                 {t('wizard.btn.back')}
                             </button>
-                            <button
-                                onClick={handleCreateDeal}
-                                disabled={isSubmitting}
-                                className="px-6 py-2 bg-teal text-white font-bold rounded-lg hover:bg-teal/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isSubmitting ? 'Creating...' : t('wizard.btn.create')}
-                            </button>
+                            <div className="flex items-center gap-3">
+                                {currentParticipant.fullName && currentParticipant.email && (
+                                    <span className="text-xs text-amber-600 font-medium max-w-[180px]">
+                                        ⚠ Add or clear the participant form first
+                                    </span>
+                                )}
+                                <button
+                                    onClick={handleCreateDeal}
+                                    disabled={isSubmitting || !!(currentParticipant.fullName && currentParticipant.email)}
+                                    className="px-6 py-2 bg-teal text-white font-bold rounded-lg hover:bg-teal/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSubmitting ? 'Creating...' : t('wizard.btn.create')}
+                                </button>
+                            </div>
                         </>
                     )}
                 </div>

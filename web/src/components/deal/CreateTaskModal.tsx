@@ -207,7 +207,12 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
                         </button>
                         <button
                             type="submit"
-                            disabled={isSubmitting || !selectedParticipantId}
+                            disabled={isSubmitting || !selectedParticipantId || !title.trim()}
+                            title={
+                                !title.trim() ? (t('modal.createTask.placeholderTitle') || 'Enter a document title')
+                                : !selectedParticipantId ? (t('modal.createTask.alertParticipant') || 'Select a participant')
+                                : ''
+                            }
                             className="px-6 py-2 bg-midnight text-white font-bold rounded-lg shadow-lg hover:bg-midnight/90 disabled:opacity-50 transition-all"
                         >
                             {isSubmitting ? t('modal.createTask.submitting') : t('modal.createTask.submit')}
