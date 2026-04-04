@@ -12,8 +12,9 @@ import RejectionModal from '@/components/deal/RejectionModal';
 
 export default function Home() {
   const { user, isLoading } = useAuth();
-  const { activeDeal } = useData();
+  const { activeDeal, deals, isInitialized, refreshData } = useData();
   const router = useRouter();
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     // Wait for auth to finish loading
@@ -30,17 +31,32 @@ export default function Home() {
       router.push('/dashboard-pro');
     } else if (user.role === 'lawyer' || user.role === 'staff') {
       router.push('/dashboard');
-    } else if (activeDeal) {
-      // Redirect other users to their active deal
+    } else if (activeDeal?.id) {
+      // Redirect participants to their active deal (only if we have a valid deal id)
       router.push(`/deal/${activeDeal.id}`);
+    } else if (deals.length > 0 && deals[0]?.id) {
+      // Fallback: use first deal from the list
+      router.push(`/deal/${deals[0].id}`);
+    } else if (isInitialized && retryCount < 3) {
+      // Data loaded but no deals found — might be a race condition.
+      // Retry fetching after a short delay to allow session to propagate.
+      const timer = setTimeout(() => {
+        console.log(`[Home] No deals found for participant, retrying fetch (attempt ${retryCount + 1}/3)...`);
+        refreshData();
+        setRetryCount(prev => prev + 1);
+      }, 1500);
+      return () => clearTimeout(timer);
     }
-  }, [user, isLoading, activeDeal, router]);
+    // If retryCount >= 3 and still no deals, show loading spinner (better than broken redirect)
+  }, [user, isLoading, activeDeal, deals, isInitialized, retryCount, router, refreshData]);
 
   return (
     <div className="flex items-center justify-center h-screen">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading...</p>
+        <p className="text-gray-600">
+          {!user ? 'Redirecting to login...' : 'Loading your deal room...'}
+        </p>
       </div>
     </div>
   );

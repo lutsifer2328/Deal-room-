@@ -265,7 +265,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         fetchData();
-        // Setup Realtime (Optional for later)
+
+        // Listen for auth state changes to re-fetch data when session becomes available.
+        // This fixes the race condition during invite callback flow where fetchData()
+        // runs before the session is established (verifyOtp hasn't completed yet).
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (
+                (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') &&
+                session
+            ) {
+                // Only re-fetch if we have no deals loaded (i.e., initial fetch missed them)
+                // This prevents unnecessary refetches on every token refresh for users who already have data.
+                setRawDeals(prev => {
+                    if (prev.length === 0) {
+                        console.log(`[Store] Auth event "${event}" with empty deals — re-fetching data...`);
+                        fetchData();
+                    }
+                    return prev;
+                });
+            }
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     // Compute Enriched Global Participants (contracts attached)
