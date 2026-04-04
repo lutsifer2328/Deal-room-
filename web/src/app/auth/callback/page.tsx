@@ -17,6 +17,13 @@ export default function AuthCallback() {
                 console.log('🔍 Hash:', window.location.hash);
                 console.log('🔍 Search:', window.location.search);
 
+                // ── Clear any existing session first ──
+                // Prevents session bleed: if user A is logged in and clicks
+                // an invite link for user B, the old session must be cleared
+                // so the incoming token is always respected.
+                await supabase.auth.signOut();
+                console.log('🔐 Cleared existing session before processing token');
+
                 // ── Strategy 0: Direct token_hash verification (our invite links) ──
                 // Our invite endpoint sends links like: /auth/callback?token_hash=TOKEN&type=recovery
                 const searchParams = new URLSearchParams(window.location.search);
