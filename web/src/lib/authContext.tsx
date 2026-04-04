@@ -55,12 +55,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Handle Password Recovery & Invite Redirects
             if (_event === 'PASSWORD_RECOVERY') {
                 const currentPath = window.location.pathname;
-                // Only redirect if NOT already on auth callback or set-password pages
-                if (!currentPath.includes('/auth/')) {
-                    console.log('🔄 Password Recovery Event Detected. Redirecting to set password...');
-                    router.push('/auth/set-password');
+                const urlParams = new URLSearchParams(window.location.search);
+                const isNewInvite = urlParams.get('new') === '1';
+
+                if (isNewInvite) {
+                    // New participant arriving via invite → always go to set-password
+                    if (currentPath === '/auth/set-password') {
+                        console.log('🔄 Password Recovery (new invite): already on set-password, skipping redirect');
+                    } else {
+                        console.log('🔄 Password Recovery (new invite): redirecting to set-password...');
+                        router.push('/auth/set-password');
+                    }
                 } else {
-                    console.log('🔄 Password Recovery Event Detected (already on auth page, skipping redirect)');
+                    // Returning user forgot-password flow → go to update-password
+                    if (currentPath === '/auth/update-password') {
+                        console.log('🔄 Password Recovery (returning user): already on update-password, skipping redirect');
+                    } else if (currentPath.includes('/auth/callback')) {
+                        // On callback page for a recovery flow without new=1 → redirect to update-password
+                        console.log('🔄 Password Recovery (returning user): redirecting to update-password...');
+                        router.push('/auth/update-password');
+                    } else if (!currentPath.includes('/auth/')) {
+                        console.log('🔄 Password Recovery Event Detected. Redirecting to update-password...');
+                        router.push('/auth/update-password');
+                    } else {
+                        console.log('🔄 Password Recovery Event Detected (already on auth page, skipping redirect)');
+                    }
                 }
                 return;
             }
