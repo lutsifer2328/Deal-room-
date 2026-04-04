@@ -1,0 +1,56 @@
+{
+  "columns": [
+    "id",
+    "title",
+    "property_address",
+    "status",
+    "current_step_id",
+    "timeline_json",
+    "created_at",
+    "closed_at",
+    "closed_by",
+    "closure_notes",
+    "created_by",
+    "price"
+  ],
+  "sample": {
+    "id": "d95c1692-9592-433d-9832-0e2f086e3bc3",
+    "title": "ul.Pirin 87 ",
+    "property_address": "ul. Pirin 87 ",
+    "status": "active",
+    "current_step_id": "step_1",
+    "timeline_json": [
+      {
+        "id": "step_1",
+        "label": "Onboarding",
+        "order": 1
+      },
+      {
+        "id": "step_2",
+        "label": "Documents",
+        "order": 2
+      },
+      {
+        "id": "step_3",
+        "label": "Preliminary Contract",
+        "order": 3
+      },
+      {
+        "id": "step_4",
+        "label": "Final Review",
+        "order": 4
+      },
+      {
+        "id": "step_5",
+        "label": "Closing",
+        "order": 5
+      }
+    ],
+    "created_at": "2026-04-04T11:12:10.914+00:00",
+    "closed_at": null,
+    "closed_by": null,
+    "closure_notes": null,
+    "created_by": "8f51b0ca-17ca-4b17-b40b-b19a9c28f756",
+    "price": 250000
+  }
+}

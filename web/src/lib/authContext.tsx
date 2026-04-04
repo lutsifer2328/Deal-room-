@@ -210,8 +210,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error('❌ Metadata fallback failed:', metaError);
         }
 
-        // 4. Ultimate Fallback -> Viewer
-        console.warn('⚠️ No user data found in DB OR Metadata, defaulting to viewer');
+        // 4. Track B Fallback -> Check deal_participants by auth user_id
+        try {
+            console.log('🔍 Track B lookup: checking participants table for user_id:', userId);
+            const { data: participantData } = await supabase
+                .from('participants')
+                .select('id, name, email')
+                .eq('user_id', userId)
+                .single();
+
+            if (participantData) {
+                // Found a global participant record — find their deal role
+                const { data: dpData } = await supabase
+                    .from('deal_participants')
+                    .select('role')
+                    .eq('participant_id', participantData.id)
+                    .eq('is_active', true)
+                    .limit(1)
+                    .single();
+
+                const participantRole = dpData?.role || 'buyer';
+                console.log('✅ Track B participant found, role:', participantRole);
+                setUser({
+                    id: userId,
+                    email: email,
+                    name: participantData.name || 'User',
+                    role: participantRole,
+                    permissions: getPermissionsForRole(participantRole),
+                    isActive: true,
+                    createdAt: new Date().toISOString()
+                });
+                setIsLoading(false);
+                isFetchingRef.current = false;
+                return;
+            }
+        } catch (trackBError) {
+            console.warn('⚠️ Track B participant lookup failed:', trackBError);
+        }
+
+        // 5. Ultimate Fallback -> Viewer
+        console.warn('⚠️ No user data found in DB OR Metadata OR deal_participants, defaulting to viewer');
         setUser({
             id: userId,
             email: email,

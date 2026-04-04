@@ -201,12 +201,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
             }));
 
             // Use real database documents if available
+            const systemUserId = fetchedUsers && fetchedUsers.length > 0 ? fetchedUsers[0].id : null;
+            const currentUserRole = fetchedUsers?.find(u => u.id === sessionData.session.user.id)?.role;
+            const canSeed = ['admin', 'lawyer', 'staff'].includes(currentUserRole || '');
+
             if (validFetchedDocs.length > 0) {
                 setStandardDocuments(validFetchedDocs);
-            } else {
-                // If DB is empty, we MUST seed it immediately and wait for it
+            } else if (canSeed) {
+                // If DB is empty and user is staff/admin, seed it immediately and wait for it
                 console.log('DB missing standard docs. Seeding now...');
-                const systemUserId = fetchedUsers && fetchedUsers.length > 0 ? fetchedUsers[0].id : null;
 
                 try {
                     // Await the seed operation so we can show data immediately
@@ -237,6 +240,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     console.error('Seeding exception:', e);
                     setStandardDocuments(MOCK_STANDARD_DOCUMENTS);
                 }
+            } else {
+                // Not authorized to seed, just fallback silently to mock UI
+                setStandardDocuments(MOCK_STANDARD_DOCUMENTS);
             }
             if (fetchedLogs) setLogs(fetchedLogs);
             if (fetchedContracts) setAgencyContracts(fetchedContracts.map((c: any) => ({
@@ -358,7 +364,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 agentId: participants.find(p => p.role === 'agent')?.userId,
                 price: d.price ? Number(d.price) : undefined,
                 createdAt: d.created_at,
-                dealNumber: undefined
+                dealNumber: d.external_reference
             };
         });
 
@@ -575,7 +581,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 created_by: validCreatorId,
                 price: price || null
             };
-            if (dealNumber) { /* dealPayload.crm_id = dealNumber; */ }
+            if (dealNumber) { dealPayload.external_reference = dealNumber; }
 
             // Optimistic Update
             setRawDeals(prev => [...prev, dealPayload as Deal]);
@@ -1361,19 +1367,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
             return;
         }
 
+        // Create an isolated Supabase client specifically for uploading.
+        // This ensures the upload fetch request is not bound or aborted
+        // by any global AbortController attached to the shared client,
+        // specifically when window focus events trigger background data refetches.
+        const { createBrowserClient } = require('@supabase/ssr');
+        const isolatedSupabase = createBrowserClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
         try {
             // 1. Upload to Storage
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
             const filePath = `${resolvedDealId}/${taskId}/${fileName}`;
 
-            const { error: uploadError } = await supabase.storage
+            const { error: uploadError } = await isolatedSupabase.storage
                 .from('documents')
                 .upload(filePath, file);
 
             if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
-
-
 
             // 2. Insert into 'documents' table (Required for Signed URLs)
             const docId = crypto.randomUUID();
@@ -1384,7 +1398,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 id: docId,
                 title_en: file.name,
                 title_bg: file.name,
-                url: filePath, // Store path, NOT public URL
+                url: filePath,
                 uploadedBy: uploadedBy,
                 status: 'private',
                 uploadedAt: now
@@ -1402,7 +1416,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 uploaded_at: now
             };
 
-            const { error: insertError } = await supabase
+            const { error: insertError } = await isolatedSupabase
                 .from('documents')
                 .insert(dbDoc);
 

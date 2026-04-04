@@ -24,7 +24,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     if (!user) return null;
 
     const navItems = [
-        { icon: LayoutDashboard, label: t('nav.dealRoom'), href: user.role === 'admin' ? '/dashboard-pro' : '/dashboard', roles: ['admin', 'lawyer', 'staff', 'broker', 'agent', 'buyer', 'seller', 'notary', 'bank_representative', 'viewer', 'attorney'] },
+        { icon: LayoutDashboard, label: t('nav.dealRoom'), href: user.role === 'admin' ? '/dashboard-pro' : '/dashboard', roles: ['admin', 'lawyer', 'staff', 'broker', 'agent', 'buyer', 'seller', 'notary', 'bank_representative', 'viewer', 'attorney', 'user'] },
         { icon: ClipboardCheck, label: t('nav.archive'), href: '/archive', roles: ['admin', 'lawyer', 'staff', 'broker', 'agent'] },
         { icon: Users, label: t('nav.participants'), href: '/participants', roles: ['admin', 'lawyer', 'staff', 'broker'] },
         { icon: CreditCard, label: t('nav.finances'), href: '/finances', roles: ['admin', 'lawyer'] },

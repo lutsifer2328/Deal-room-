@@ -1,0 +1,14 @@
+﻿e26dfba - Fix admin workflow issues: standardized 'attorney' role, resolved wizard race condition, and improved task modal submit UX
+e9a65da - Fix: User Delete UX improvements, optimistic deactivation state, and Realtime reconnection retry limit
+aded9dc - Fix document display labels UX and Unified Auth Flow callback routing
+c73e3eb - Fix participant document upload and status update
+55c2cda - Fix dashboard loading hang, smart invite links, and participant modal visual bugs
+7f9dece - Fix: Resolved infinite loading spinner and cascading AbortError retries in AuthContext
+941e8ca - Feat: Smart invite links (Magiclink for existing users, Recovery for new users)
+eb1a159 - Security: Final removal of all remaining hardcoded Supabase credentials and fallbacks (Verified)
+6cd7a6f - Security: Removed all remaining hardcoded Supabase credentials and fallbacks
+4819b3c - Fix: Resolved auth race conditions and silenced routine AbortErrors
+2839eb0 - Fix: Hardened global AuthContext and removed brittle session retry loops
+e5db2d5 - Fix: Auth timeout deadlock and credential hardening
+9c91477 - Fix: Participant invitation loop, RLS recursion, and field persistence
+6fcfdff - Fix participant visibility (RLS bypass script), Bulgarian translation keys, and modal typo

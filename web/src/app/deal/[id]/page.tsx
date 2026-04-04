@@ -33,7 +33,6 @@ export default function DealDetailPage() {
     if (!isInitialized || !user) return <div className="p-10 text-center">{t('common.loading')}</div>;
     if (!deal) return <div className="p-10 text-center">Deal not found</div>;
 
-    // Get the current user's general participant record for this deal
     const currentUserParticipant = deal.participants.find(p => p.userId === user.id);
 
     // Get the exact deal_participants join record for permissions
@@ -41,11 +40,14 @@ export default function DealDetailPage() {
         dp => dp.dealId === deal.id && dp.participantId === currentUserParticipant?.id
     );
 
+    const isStaff = ['admin', 'lawyer', 'staff'].includes(user.role);
+    const contextualUserRole = isStaff ? user.role : (currentDealParticipantRecord?.role || user.role);
+
     const relevantTasks = tasks.filter(t => {
         if (t.dealId !== deal.id) return false;
         
         // Admins/Lawyers/Staff see everything
-        if (user.permissions.canViewAllDeals) return true;
+        if (isStaff || user.permissions.canViewAllDeals) return true;
 
         // Managers (Broker) see everything in this deal
         if (currentDealParticipantRecord?.role === 'broker') return true;
@@ -146,7 +148,7 @@ export default function DealDetailPage() {
                             participant={group.participant}
                             role={group.role}
                             tasks={group.tasks}
-                            userRole={user.role}
+                            userRole={contextualUserRole}
                             dealId={deal.id}
                             onDeleteTask={(taskId) => deleteTask(taskId, user.id)}
                             currentDealParticipantRecord={currentDealParticipantRecord}

@@ -2,7 +2,7 @@
 
 import { Deal } from '@/lib/types';
 import { useData } from '@/lib/store';
-import { Building, Users, Archive, ChevronDown, Pencil } from 'lucide-react';
+import { Building, Users, Archive, ChevronDown, Pencil, Copy, Check } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import ParticipantsModal from './ParticipantsModal';
 import CloseDealModal from './CloseDealModal';
@@ -21,6 +21,7 @@ export default function DealHeader({ deal }: { deal: Deal }) {
     const [isEditDealModalOpen, setIsEditDealModalOpen] = useState(false);
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+    const [copied, setCopied] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const canEdit = currentUser?.permissions.canEditDeals;
@@ -75,10 +76,22 @@ export default function DealHeader({ deal }: { deal: Deal }) {
             <div className="flex flex-col md:flex-row justify-between items-start relative z-10 gap-6">
                 <div className="flex-1">
                     <div className="flex items-center gap-4 mb-3">
-                        <div className="flex items-center gap-2 text-teal font-bold text-xs uppercase tracking-[2px] bg-teal/5 px-3 py-1 rounded-lg">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (deal.dealNumber) {
+                                    navigator.clipboard.writeText(deal.dealNumber);
+                                    setCopied(true);
+                                    setTimeout(() => setCopied(false), 2000);
+                                }
+                            }}
+                            title={deal.dealNumber ? 'Click to copy CRM reference' : undefined}
+                            className="flex items-center gap-2 text-teal font-bold text-xs uppercase tracking-[2px] bg-teal/5 px-3 py-1 rounded-lg hover:bg-teal/10 transition-colors cursor-copy"
+                        >
                             <Building className="w-3 h-3" />
                             <span>{t('deal.header.deal')} {deal.dealNumber ? `#${deal.dealNumber}` : ''}</span>
-                        </div>
+                            {deal.dealNumber && (copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3 opacity-50" />)}
+                        </button>
                         <DealStatusBadge status={deal.status} />
                     </div>
 

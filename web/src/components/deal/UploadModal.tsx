@@ -95,7 +95,7 @@ export default function UploadModal({ taskId, taskTitle, dealId, onClose, isOpen
                     <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex gap-2 items-start">
                         <div className="text-blue-500 mt-0.5">ℹ️</div>
                         <p className="text-xs text-blue-800 leading-relaxed">
-                            <strong>Note:</strong> After upload, the lawyer will review your document before it becomes visible to other parties.
+                            <strong>Note:</strong> After upload, the attorney will review your document before it becomes visible to other parties.
                         </p>
                     </div>
                 </div>

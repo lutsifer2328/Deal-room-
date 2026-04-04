@@ -138,8 +138,12 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
         // Prevent duplicate submissions
         if (isSubmitting) return;
 
+        if (!dealNumber) {
+            alert('Deal number is required');
+            return;
+        }
         if (!title || !propertyAddress) {
-            alert('Please fill in deal title and property address');
+            alert('Please fill in title and property address');
             return;
         }
 
@@ -215,23 +219,6 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                     {step === 1 && (
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {t('wizard.label.dealId')}
-                                    <span className="text-gray-400 font-normal ml-2">{t('wizard.label.optionalCrm')}</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={dealNumber}
-                                    onChange={(e) => setDealNumber(e.target.value)}
-                                    placeholder={t('wizard.placeholder.dealId')}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    {t('wizard.hint.crm')}
-                                </p>
-                            </div>
-
-                            <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('wizard.label.title')}</label>
                                 <input
                                     type="text"
@@ -241,6 +228,23 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                                     placeholder={t('wizard.placeholder.title')}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none"
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    {t('wizard.label.dealId')} <span className="text-red-500 font-bold">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={dealNumber}
+                                    onChange={(e) => setDealNumber(e.target.value)}
+                                    placeholder={t('wizard.placeholder.dealId')}
+                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    {t('wizard.hint.crm')}
+                                </p>
                             </div>
 
                             <div>
