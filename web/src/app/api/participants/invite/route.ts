@@ -178,35 +178,45 @@ export async function POST(request: Request) {
         let authUserId: string | null = null;
         let isNewUser = false;
 
-        // FIX: Query public.users directly instead of listing all auth users.
-        // This is faster, more reliable, and doesn't have a 1000-user cap.
-        const { data: existingPublicUser } = await serviceClient
-            .from('users')
-            .select('id')
+        // Try to find if they are an existing participant
+        const { data: existingP } = await serviceClient
+            .from('participants')
+            .select('user_id')
             .eq('email', email)
             .maybeSingle();
 
-        if (existingPublicUser) {
-            authUserId = existingPublicUser.id;
-            console.log(`✅ Existing user found in public.users: ${authUserId}`);
+        if (existingP?.user_id) {
+            authUserId = existingP.user_id;
+            console.log(`✅ Existing participant found, authUserId: ${authUserId}`);
         } else {
-            // Not in public.users — create in auth.users
+            // Not a participant yet, maybe a staff member?
+            const { data: existingStaff } = await serviceClient
+                .from('users')
+                .select('id')
+                .eq('email', email)
+                .maybeSingle();
+
+            if (existingStaff) {
+                authUserId = existingStaff.id;
+                console.log(`✅ Existing staff found, authUserId: ${authUserId}`);
+            }
+        }
+
+        if (!authUserId) {
+            // Not found in our DB — create in auth.users
             const { data: createData, error: createError } = await serviceClient.auth.admin.createUser({
                 email,
                 email_confirm: true,
                 password: crypto.randomUUID(),
                 user_metadata: {
                     name: name || email.split('@')[0],
-                    role: 'user'
+                    role: 'participant'
                 }
             });
 
             if (createError) {
                 if (createError.message?.includes('already been registered') || createError.status === 422) {
-                    // FIX: Instead of listUsers({ perPage: 1000 }), use a targeted approach.
-                    // User exists in auth but not in public.users (orphaned auth account).
-                    // We generate a link for them which also returns their user object.
-                    console.log(`ℹ️ Auth user exists but not in public.users. Recovering via generateLink...`);
+                    console.log(`ℹ️ Auth user exists but not linked in our DB. Recovering ID via generateLink...`);
                     const { data: recoveryData } = await serviceClient.auth.admin.generateLink({
                         type: 'recovery',
                         email,
@@ -227,34 +237,10 @@ export async function POST(request: Request) {
             }
         }
 
-        // ── 6. Ensure public.users row ───────────────────────────
-        if (authUserId && isNewUser) {
-            const { error: insertErr } = await serviceClient
-                .from('users')
-                .upsert({
-                    id: authUserId,
-                    email,
-                    name: name || email.split('@')[0],
-                    role: 'user',
-                    is_active: true,
-                    created_at: new Date().toISOString()
-                }, {
-                    onConflict: 'id',
-                    ignoreDuplicates: true
-                });
-
-            if (insertErr) {
-                console.warn('⚠️ public.users insert warning:', insertErr.message);
-            } else {
-                console.log(`✅ public.users row ensured for new user: ${authUserId}`);
-            }
-        } else if (authUserId) {
-            await serviceClient
-                .from('users')
-                .update({ is_active: true })
-                .eq('id', authUserId);
-            console.log(`✅ Existing user reactivated: ${authUserId}`);
-        }
+        // ── 6. (DELETED) Ensure public.users row ───────────────────────────
+        // NOTE: Participants are NO LONGER replicated to the public.users table.
+        // This table is reserved for internal staff only (admin, lawyer, staff).
+        // Identity is now managed via Track B (auth.users -> participants -> deal_participants).
 
         // ── 7. Link participants.user_id ─────────────────────────
         const linked = !!authUserId;
@@ -279,18 +265,18 @@ export async function POST(request: Request) {
         }
 
         // ── 7.5. Back-populate assigned_participant_id on existing tasks ──
-        if (participantId && dealId) {
+        // No deal_id filter: participant may have tasks across multiple deals.
+        if (participantId) {
             const { error: taskWireError } = await serviceClient
                 .from('tasks')
                 .update({ assigned_participant_id: participantId })
-                .eq('deal_id', dealId)
                 .eq('assigned_to', email)
                 .is('assigned_participant_id', null);
 
             if (taskWireError) {
                 console.warn('⚠️ Task wiring warning (non-critical):', taskWireError.message);
             } else {
-                console.log(`✅ Wired unlinked tasks in deal ${dealId} → participant ${participantId}`);
+                console.log(`✅ Wired unlinked tasks across all deals → participant ${participantId} (${email})`);
             }
         }
 
@@ -316,6 +302,7 @@ export async function POST(request: Request) {
 
                 const linkType = isNewUser ? 'recovery' : 'magiclink';
                 const { data: linkData, error: linkError } = await serviceClient.auth.admin.generateLink({
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     type: linkType as any,
                     email,
                     options: {

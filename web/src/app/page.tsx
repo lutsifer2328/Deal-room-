@@ -46,8 +46,11 @@ export default function Home() {
         setRetryCount(prev => prev + 1);
       }, 1500);
       return () => clearTimeout(timer);
+    } else if (isInitialized && retryCount >= 3) {
+      // Retries exhausted — authenticated but no deals linked. Never show admin UI.
+      console.warn('[Home] No deals found after retries — redirecting to no-access page');
+      router.push('/auth/no-access');
     }
-    // If retryCount >= 3 and still no deals, show loading spinner (better than broken redirect)
   }, [user, isLoading, activeDeal, deals, isInitialized, retryCount, router, refreshData]);
 
   return (

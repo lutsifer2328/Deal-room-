@@ -48,6 +48,17 @@ export const ROLE_PERMISSIONS: Record<Role, Permission> = {
         canManageDocuments: false,
         canExportData: false,
     },
+    participant: {
+        canCreateDeals: false,
+        canEditDeals: false,
+        canDeleteDeals: false,
+        canManageUsers: false,
+        canViewAllDeals: false,
+        canEditTimeline: false,
+        canCloseDeals: false,
+        canManageDocuments: false,
+        canExportData: false,
+    },
     // Deal participants have limited access
     buyer: {
         canCreateDeals: false,

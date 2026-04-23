@@ -30,12 +30,10 @@ export default function AuthCallback() {
                 const tokenHash = searchParams.get('token_hash');
                 const tokenType = searchParams.get('type') as 'recovery' | 'magiclink' | 'invite' | 'signup' | 'email';
 
-                const isNewInvite = searchParams.get('new') === '1';
-                const getRedirectPath = (type: string | null): string => {
-                    if (type === 'recovery' && isNewInvite) return '/auth/set-password';
-                    if (type === 'recovery') return '/auth/update-password';
+                const getRedirectPath = (type: string | null, isNew: boolean): string => {
                     if (type === 'magiclink') return '/';
-                    return '/auth/set-password'; // default for invite/signup
+                    if (type === 'recovery' && !isNew) return '/auth/update-password';
+                    return '/auth/set-password'; // new invite (recovery+new=1) or signup
                 };
 
                 if (tokenHash) {
@@ -59,7 +57,7 @@ export default function AuthCallback() {
                     if (data.session) {
                         console.log('✅ Session established via verifyOtp!');
                         setStatus('success');
-                        setTimeout(() => router.push(getRedirectPath(tokenType)), 1500);
+                        setTimeout(() => router.push(getRedirectPath(tokenType, searchParams.get('new') === '1')), 1500);
                         return;
                     }
                 }
@@ -104,7 +102,8 @@ export default function AuthCallback() {
                         console.log('✅ Session established from hash tokens');
                         setStatus('success');
                         const hashType = hashParams.get('type');
-                        setTimeout(() => router.push(getRedirectPath(hashType)), 1500);
+                        const hashIsNew = hashParams.get('new') === '1';
+                        setTimeout(() => router.push(getRedirectPath(hashType, hashIsNew)), 1500);
                         return;
                     }
                 }
@@ -121,7 +120,7 @@ export default function AuthCallback() {
                     } else if (data.session) {
                         console.log('✅ Session established from PKCE code');
                         setStatus('success');
-                        setTimeout(() => router.push(getRedirectPath(null)), 1500);
+                        setTimeout(() => router.push(getRedirectPath(null, false)), 1500);
                         return;
                     }
                 }
@@ -132,7 +131,7 @@ export default function AuthCallback() {
                 if (session) {
                     console.log('✅ Session found via getSession()');
                     setStatus('success');
-                    setTimeout(() => router.push(getRedirectPath(null)), 1500);
+                    setTimeout(() => router.push(getRedirectPath(null, false)), 1500);
                     return;
                 }
 

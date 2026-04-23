@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'lawyer' | 'staff' | 'viewer' | 'buyer' | 'seller' | 'agent' | 'notary' | 'bank_representative' | 'broker' | 'attorney';
+export type Role = 'admin' | 'lawyer' | 'staff' | 'viewer' | 'buyer' | 'seller' | 'agent' | 'notary' | 'bank_representative' | 'broker' | 'attorney' | 'participant';
 
 export interface Permission {
   canCreateDeals: boolean;

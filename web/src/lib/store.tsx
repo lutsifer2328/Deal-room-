@@ -560,14 +560,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
             const defaultTimeline = createDefaultTimeline();
             const validCreatorId = actorId && actorId !== 'unknown' && actorId.length > 20 ? actorId : null;
 
-            // 0. Get Token (Try LocalStorage manually to bypass broken SDK)
-            let token: string | undefined;
-            // 0. Get Token via SDK (Reliable)
-            const { data: { session } } = await supabase.auth.getSession();
-            token = session?.access_token;
-
-            if (!token) throw new Error("No session token available! Please sign in again.");
-
             // 1. Create Deal Payload
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const dealPayload: any = {
@@ -587,37 +579,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
             setRawDeals(prev => [...prev, dealPayload as Deal]);
             setActiveDealId(dealId);
 
-            // 2. RAW FETCH EXECUTION
-            console.log('⚡ Attempting CREATE via RAW FETCH...');
-            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-            if (!supabaseUrl || !supabaseAnonKey) {
-                throw new Error("Supabase environment variables are not configured correctly.");
+            // 2. INSERT VIA SUPABASE CLIENT
+            console.log('⚡ Attempting CREATE via SUPABASE CLIENT...');
+            const { error: dealError } = await supabase.from('deals').insert(dealPayload);
+            if (dealError) {
+                throw new Error(`DB Error: ${dealError.message}`);
             }
-
-            const response = await fetch(`${supabaseUrl}/rest/v1/deals`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': supabaseAnonKey,
-                    'Authorization': `Bearer ${token}`,
-                    'Prefer': 'return=minimal'
-                },
-                body: JSON.stringify(dealPayload)
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                // Check for AbortError simulation
-                if (response.status === 499) throw new Error("Client Closed Request"); // Nginx code for client disconnect
-
-                throw new Error(`DB Error (${response.status}): ${errorText}`);
-            }
-
-            // Success (no body due to return=minimal usually, or verify)
-            console.log('✅ RAW FETCH SUCCESS');
-            const dealError = null; // shim
+            console.log('✅ DEAL CREATED SUCCESSFULLY');
 
             // 2. Process Participants sequentially...
             // (Function continues below)

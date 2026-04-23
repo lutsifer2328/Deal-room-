@@ -7,7 +7,7 @@ import DealHeader from '@/components/deal/DealHeader';
 import SingleProgressBar from '@/components/deal/SingleProgressBar';
 import { FileText, Lock, ShieldCheck, Download, Upload, AlertTriangle, Eye, Mail, ArrowLeft, Trash2 } from 'lucide-react';
 import { Task, DealDocument, Deal, DealParticipant } from '@/lib/types';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import CreateTaskModal from '@/components/deal/CreateTaskModal';
 import RejectionModal from '@/components/deal/RejectionModal';
 import AuditLogPanel from '@/components/deal/AuditLogPanel';
@@ -27,6 +27,14 @@ export default function DealDetailPage() {
     const { isInitialized, deals, tasks, deleteTask, rawDealParticipants } = useData();
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const { t } = useTranslation();
+
+    useEffect(() => {
+        // If auth finishes loading and there is no user, redirect to login
+        // We do this here because ClientLayout doesn't automatically protect sub-routes
+        if (isInitialized && !user) {
+            router.push(`/login`);
+        }
+    }, [isInitialized, user, router, dealId]);
 
     const deal = deals.find(d => d.id === dealId);
 
