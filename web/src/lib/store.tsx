@@ -332,6 +332,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     role: dp.role,
                     canViewDocuments: dp.permissions?.canViewDocuments || false,
                     canDownload: dp.permissions?.canDownloadDocuments || false,
+                    canViewAllTasks: dp.permissions?.canViewAllTasks || false,
+                    canViewAllDocuments: dp.permissions?.canViewAllDocuments || false,
+                    documentPermissions: {
+                        canViewRoles: dp.permissions?.canViewRoles ?? []
+                    },
                     isActive: dp.isActive,
                     isUserActive: user ? user.isActive : true,
                     addedAt: dp.joinedAt,
