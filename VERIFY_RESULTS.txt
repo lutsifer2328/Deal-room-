@@ -1,0 +1,11 @@
+🏁 Final Verification of RLS Isolation
+
+--- Checking Buyer ---
+Auth UID: deea75f2-1f7c-4e67-b38e-dd56f25118e1
+Buyer sees participants: [{"id":"e88d397c-f657-4066-a0a2-f5e03c5d52c6","user_id":"deea75f2-1f7c-4e67-b38e-dd56f25118e1","name":"Buyer","email":"buyer_verify@agency.com","phone":null,"agency":null,"invitation_status":"pending","internal_notes":null,"created_at":"2026-03-14T12:23:45.526391+00:00","updated_at":"2026-03-14T12:23:45.526391+00:00","functional_role":null},{"id":"0dddaddb-f404-485e-b2a4-b8ba9f4c7b0a","user_id":"dbdd66f2-d3a9-4455-9408-c684b25249b3","name":"Seller","email":"seller_verify@agency.com","phone":null,"agency":null,"invitation_status":"pending","internal_notes":null,"created_at":"2026-03-14T12:23:45.526391+00:00","updated_at":"2026-03-14T12:23:45.526391+00:00","functional_role":null}]
+Buyer sees tasks: []
+
+--- Checking Seller ---
+Auth UID: dbdd66f2-d3a9-4455-9408-c684b25249b3
+Seller sees participants: [{"id":"e88d397c-f657-4066-a0a2-f5e03c5d52c6","user_id":"deea75f2-1f7c-4e67-b38e-dd56f25118e1","name":"Buyer","email":"buyer_verify@agency.com","phone":null,"agency":null,"invitation_status":"pending","internal_notes":null,"created_at":"2026-03-14T12:23:45.526391+00:00","updated_at":"2026-03-14T12:23:45.526391+00:00","functional_role":null},{"id":"0dddaddb-f404-485e-b2a4-b8ba9f4c7b0a","user_id":"dbdd66f2-d3a9-4455-9408-c684b25249b3","name":"Seller","email":"seller_verify@agency.com","phone":null,"agency":null,"invitation_status":"pending","internal_notes":null,"created_at":"2026-03-14T12:23:45.526391+00:00","updated_at":"2026-03-14T12:23:45.526391+00:00","functional_role":null}]
+Seller sees tasks: []

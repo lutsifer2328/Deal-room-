@@ -33,6 +33,8 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
         userId: undefined as string | undefined,
         canViewDocuments: true,
         canDownload: true,
+        canViewAllTasks: false,
+        canViewAllDocuments: false,
         documentPermissions: { canViewRoles: [] as Role[] }
     };
     const [newParticipant, setNewParticipant] = useState(defaultParticipantState);
@@ -87,6 +89,8 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
         userId: string | undefined;
         canViewDocuments: boolean;
         canDownload: boolean;
+        canViewAllTasks: boolean;
+        canViewAllDocuments: boolean;
         documentPermissions: { canViewRoles: Role[] };
     } | null>(null);
 
@@ -224,6 +228,8 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                 userId: undefined,
                 canViewDocuments: true,
                 canDownload: true,
+                canViewAllTasks: false,
+                canViewAllDocuments: false,
                 documentPermissions: { canViewRoles: [] }
             });
 
@@ -622,8 +628,39 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                             </div>
 
                             {/* Permissions for new participant */}
-                            <div className="space-y-2 mb-3">
-                                <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
+                            <div className="border-t border-gray-100 pt-3 mb-3">
+                                <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                    <Eye className="w-4 h-4" /> Deal Visibility
+                                </h4>
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
+                                        <input
+                                            type="checkbox"
+                                            checked={newParticipant.canViewAllTasks ?? false}
+                                            onChange={(e) => setNewParticipant({ ...newParticipant, canViewAllTasks: e.target.checked })}
+                                            className="w-4 h-4"
+                                        />
+                                        <span className="font-medium">Can see all tasks in this deal</span>
+                                    </label>
+
+                                    <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
+                                        <input
+                                            type="checkbox"
+                                            checked={newParticipant.canViewAllDocuments ?? false}
+                                            onChange={(e) => setNewParticipant({ ...newParticipant, canViewAllDocuments: e.target.checked })}
+                                            className="w-4 h-4"
+                                        />
+                                        <span className="font-medium">Can see all documents in this deal</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="border-t border-gray-100 pt-3 mb-3">
+                                <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                    <Download className="w-4 h-4" /> Document Access Permissions
+                                </h4>
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
                                     <input
                                         type="checkbox"
                                         checked={newParticipant.canViewDocuments}
@@ -644,8 +681,9 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                     <span className="font-medium">Can download documents</span>
                                 </label>
                             </div>
+                        </div>
 
-                            {!newParticipant.canViewDocuments && availableRoles.length > 0 && (
+                        {!newParticipant.canViewDocuments && availableRoles.length > 0 && (
                                 <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-3">
                                     <p className="text-xs font-medium text-blue-800 mb-2">Select which roles&apos; documents this person CAN view:</p>
                                     <div className="space-y-1">
@@ -754,9 +792,34 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                     </div>
 
                                     {/* Permissions Section */}
-                                    <div className="border-t pt-3">
+                                    <div className="border-t pt-3 mb-3">
                                         <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                            <Eye className="w-4 h-4" /> Document Access Permissions
+                                            <Eye className="w-4 h-4" /> Deal Visibility
+                                        </h4>
+                                        <div className="space-y-2 mb-3">
+                                            <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={editForm.canViewAllTasks ?? false}
+                                                    onChange={(e) => setEditForm({ ...editForm, canViewAllTasks: e.target.checked })}
+                                                    className="w-4 h-4"
+                                                />
+                                                <span className="font-medium">Can see all tasks in this deal</span>
+                                            </label>
+
+                                            <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={editForm.canViewAllDocuments ?? false}
+                                                    onChange={(e) => setEditForm({ ...editForm, canViewAllDocuments: e.target.checked })}
+                                                    className="w-4 h-4"
+                                                />
+                                                <span className="font-medium">Can see all documents in this deal</span>
+                                            </label>
+                                        </div>
+
+                                        <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2 border-t pt-3">
+                                            <Download className="w-4 h-4" /> Document Access Permissions
                                         </h4>
 
                                         <div className="space-y-2 mb-3">
@@ -851,6 +914,12 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                 </div>
                                             )}
                                             <div className="text-xs space-y-0.5 mt-2">
+                                                {participant.canViewAllTasks && (
+                                                    <div className="text-green-600 font-medium">✓ Can see all tasks</div>
+                                                )}
+                                                {participant.canViewAllDocuments && (
+                                                    <div className="text-green-600 font-medium">✓ Can see all documents</div>
+                                                )}
                                                 <div className={participant.canViewDocuments ? 'text-green-600 font-medium' : 'text-gray-500'}>
                                                     {participant.canViewDocuments ? '✓ Can view all documents' : '○ Limited document access'}
                                                 </div>

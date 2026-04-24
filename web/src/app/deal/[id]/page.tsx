@@ -65,10 +65,7 @@ export default function DealDetailPage() {
         // If they have canViewDocuments=true, they see all documents content, but not necessarily all tasks.
         // However, the current grouping logic uses this to show the whole section.
         // We will stick to assignment-based filtering for restricted roles.
-        const restrictedRoles = ['buyer', 'seller', 'notary', 'bank_representative'];
-        const isRestrictedRole = restrictedRoles.includes(currentDealParticipantRecord?.role || '');
-
-        if (!isRestrictedRole && currentDealParticipantRecord?.permissions?.canViewDocuments) return true;
+        if (currentDealParticipantRecord?.permissions?.canViewDocuments) return true;
 
         // Standard logic: Assigned to me (by ID, by Role, or by Email)
         if (t.assignedTo === currentUserParticipant?.id) return true;

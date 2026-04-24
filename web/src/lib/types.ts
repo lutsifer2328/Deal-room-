@@ -72,6 +72,8 @@ export interface DealParticipant {
     canDownloadDocuments: boolean;
     canUploadDocuments: boolean;
     canViewTimeline: boolean;
+    canViewAllTasks?: boolean;
+    canViewAllDocuments?: boolean;
     canViewRoles?: Role[]; // Added for granular permissions
   };
 
@@ -92,6 +94,8 @@ export interface Participant {
   role: Role;
   canViewDocuments: boolean;  // Legacy - kept for backwards compatibility
   canDownload: boolean;  // Can download documents they have access to
+  canViewAllTasks?: boolean;
+  canViewAllDocuments?: boolean;
   documentPermissions?: {
     canViewRoles: Role[];  // Which roles' documents can this person view? e.g., ['buyer', 'seller']
   };

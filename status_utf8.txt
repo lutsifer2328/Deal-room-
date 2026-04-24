@@ -1,0 +1,18 @@
+﻿ M directives/00_MASTER_SPEC_BACKUP.md
+?? AUDIT_RESULTS.txt
+?? DB_DUMP_FULL.txt
+?? DEBUG_AND_FIX_RLS.sql
+?? FINAL_PHASE2_CLEANUP_AND_RESTORE.sql
+?? FINAL_SECURITY_FIX.sql
+?? HELPER_PERMISSIONS_FIX.sql
+?? PHASE2_FINAL_SECURITY_CLEANUP.sql
+?? REFINE_RLS_POLICIES.sql
+?? VERIFY_RESULTS.txt
+?? apply_migration_v2.ts
+?? apply_migration_v3.js
+?? apply_rls.mjs
+?? status.txt
+?? status_utf8.txt
+?? tmp_check_tasks.ts
+?? web/last_14_commits.txt
+?? web/last_14_commits_utf8.txt

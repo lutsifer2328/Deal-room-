@@ -1254,14 +1254,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
             const dealUpdates: any = {};
             if (updates.role) dealUpdates.role = updates.role;
 
-            if (updates.canViewDocuments !== undefined || updates.canDownload !== undefined || updates.documentPermissions) {
+            if (updates.canViewDocuments !== undefined || updates.canDownload !== undefined || updates.documentPermissions || updates.canViewAllTasks !== undefined || updates.canViewAllDocuments !== undefined) {
                 // Merge with existing permissions
                 const currentPerms = currentDP.permissions || {};
 
                 const newPermissions = {
                     canViewDocuments: updates.canViewDocuments !== undefined ? updates.canViewDocuments : currentPerms.canViewDocuments,
                     canDownloadDocuments: updates.canDownload !== undefined ? updates.canDownload : currentPerms.canDownloadDocuments, // Note: Mapped name in DB is often check
-                    canViewRoles: updates.documentPermissions?.canViewRoles ?? currentPerms.canViewRoles ?? []
+                    canViewRoles: updates.documentPermissions?.canViewRoles ?? currentPerms.canViewRoles ?? [],
+                    canViewAllTasks: updates.canViewAllTasks !== undefined ? updates.canViewAllTasks : currentPerms.canViewAllTasks,
+                    canViewAllDocuments: updates.canViewAllDocuments !== undefined ? updates.canViewAllDocuments : currentPerms.canViewAllDocuments
                 };
 
                 dealUpdates.permissions = newPermissions;
@@ -1285,7 +1287,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
                                 ...(dp.permissions || {}),
                                 canViewDocuments: dealUpdates.permissions?.canViewDocuments ?? dp.permissions?.canViewDocuments ?? false,
                                 canDownloadDocuments: dealUpdates.permissions?.canDownloadDocuments ?? dp.permissions?.canDownloadDocuments ?? false,
-                                canViewRoles: dealUpdates.permissions?.canViewRoles ?? dp.permissions?.canViewRoles ?? []
+                                canViewRoles: dealUpdates.permissions?.canViewRoles ?? dp.permissions?.canViewRoles ?? [],
+                                canViewAllTasks: dealUpdates.permissions?.canViewAllTasks ?? dp.permissions?.canViewAllTasks ?? false,
+                                canViewAllDocuments: dealUpdates.permissions?.canViewAllDocuments ?? dp.permissions?.canViewAllDocuments ?? false
                             }
                         };
                     }
@@ -1384,23 +1388,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 uploaded_at: now
             };
 
-            const { error: insertError } = await isolatedSupabase
-                .from('documents')
-                .insert(dbDoc);
+            // 2 & 3. Insert document and update task status via secure API route (bypasses RLS)
+            const insertResponse = await fetch('/api/documents/insert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dbDoc, taskId })
+            });
 
-            if (insertError) {
-                console.error('Failed to insert into documents table:', insertError);
-                throw new Error(`DB Insert failed: ${insertError.message}`);
-            }
-
-            // 3. Update parent task to pending_review
-            const { error: taskError } = await supabase
-                .from('tasks')
-                .update({ status: 'pending_review' })
-                .eq('id', taskId);
-
-            if (taskError) {
-                console.error('Failed to update task status:', taskError);
+            if (!insertResponse.ok) {
+                const errorData = await insertResponse.json();
+                console.error('API Insert failed:', errorData);
+                throw new Error(`API Insert failed: ${errorData.error || 'Unknown error'}`);
             }
 
             // 4. Optimistic Update (Raw Documents & Tasks)

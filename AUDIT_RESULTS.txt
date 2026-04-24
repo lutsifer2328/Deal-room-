@@ -1,0 +1,19 @@
+🧐 Policy Audit
+
+--- Policies for tasks ---
+Could not fetch policies for tasks: Could not find the function public.exec_sql(sql) in the schema cache
+
+--- Policies for participants ---
+Could not fetch policies for participants: Could not find the function public.exec_sql(sql) in the schema cache
+
+--- Policies for deals ---
+Could not fetch policies for deals: Could not find the function public.exec_sql(sql) in the schema cache
+
+--- Policies for deal_participants ---
+Could not fetch policies for deal_participants: Could not find the function public.exec_sql(sql) in the schema cache
+
+--- Policies for users ---
+Could not fetch policies for users: Could not find the function public.exec_sql(sql) in the schema cache
+
+--- Policies for documents ---
+Could not fetch policies for documents: Could not find the function public.exec_sql(sql) in the schema cache
