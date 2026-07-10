@@ -1,9 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/limiter';
+import { requireStaff } from '@/lib/apiAuth';
 
 export async function POST(request: Request) {
     try {
+        // SECURITY: this returns user PII (email/role/phone/status) — staff only.
+        const auth = await requireStaff();
+        if (!auth.ok) {
+            return NextResponse.json({ error: auth.error }, { status: auth.status });
+        }
+
         const { email } = await request.json();
 
         if (!email) {

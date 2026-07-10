@@ -1,18 +1,30 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/limiter';
+import { requireStaff } from '@/lib/apiAuth';
 
 export async function DELETE(
     request: Request,
     props: { params: Promise<{ id: string }> }
 ) {
     try {
+        // SECURITY: only authenticated staff may delete/deactivate users.
+        const auth = await requireStaff();
+        if (!auth.ok) {
+            return NextResponse.json({ error: auth.error }, { status: auth.status });
+        }
+
         const params = await props.params;
         const userId = params.id;
         console.log('🗑️ API: Deleting user:', userId);
 
         if (!userId) {
             return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+        }
+
+        // Prevent an admin from deleting their own account (would orphan the session).
+        if (userId === auth.caller.userId) {
+            return NextResponse.json({ error: 'You cannot delete your own account' }, { status: 400 });
         }
 
         // Setup Admin Client

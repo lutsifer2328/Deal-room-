@@ -2,9 +2,16 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { sendInviteEmail, sendStaffInviteEmail } from '@/lib/emailService';
 import { rateLimit } from '@/lib/limiter';
+import { requireStaff } from '@/lib/apiAuth';
 
 export async function POST(request: Request) {
     try {
+        // SECURITY: only authenticated staff may create/invite users or grant roles.
+        const auth = await requireStaff();
+        if (!auth.ok) {
+            return NextResponse.json({ error: auth.error }, { status: auth.status });
+        }
+
         const {
             dealId,
             email,

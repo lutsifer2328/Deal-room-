@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/limiter';
 
 export async function POST(request: Request) {
   try {
@@ -7,6 +8,15 @@ export async function POST(request: Request) {
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+    }
+
+    // This endpoint is intentionally public (forgot-password), so rate-limit by IP
+    // to prevent using it to bomb an inbox. Still returns success regardless, so
+    // it never reveals whether an account exists.
+    const reqIp = request.headers.get('x-forwarded-for') || 'unknown-ip';
+    const { ok } = await rateLimit(`reset-password:${reqIp}`, 5, 600); // 5 per 10 min
+    if (!ok) {
+      return NextResponse.json({ success: true });
     }
 
     const supabaseAdmin = createClient(
