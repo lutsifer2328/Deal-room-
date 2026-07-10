@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createBrowserClient } from '@supabase/ssr';
 import { supabase } from '@/lib/supabase';
 import { getPermissionsForRole } from './permissions';
 import { User } from './types';
@@ -148,23 +149,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         let dbData = null;
 
-        // 1. Try to fetch from DB
-        try {
-            const { data, error } = await supabase
-                .from('users')
-                .select('*')
-                .eq('id', userId)
-                .single();
+        // 1. Try to fetch from DB using an ISOLATED client.
+        //    Right after sign-in the shared Supabase client churns (token refresh +
+        //    the data store reloading at the same time), which aborts this in-flight
+        //    request ("AbortError: signal is aborted without reason") and used to drop us
+        //    onto the fragile metadata fallback (wrong/stale role, blank screen). A
+        //    dedicated client instance has its own request scope; we also retry once on an
+        //    abort so we reliably read the real role from the DB.
+        const db = createBrowserClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        for (let attempt = 0; attempt < 2 && !dbData; attempt++) {
+            try {
+                const { data, error } = await db
+                    .from('users')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
 
-            if (error) throw error;
-            if (data) {
-                dbData = data;
-            }
-        } catch (error: any) {
-            if (error.name === 'AbortError' || error.message?.includes('AbortError')) {
-                console.warn(`⚠️ Profile fetch aborted. App navigation likely interrupting.`);
-            } else {
-                console.error('❌ DB Error fetching profile:', error);
+                if (error) throw error;
+                if (data) {
+                    dbData = data;
+                }
+            } catch (error: any) {
+                const aborted = error.name === 'AbortError' || error.message?.includes('AbortError');
+                if (aborted && attempt === 0) {
+                    console.warn('⚠️ Profile fetch aborted — retrying once after brief settle...');
+                    await new Promise((r) => setTimeout(r, 300));
+                    continue;
+                }
+                if (aborted) {
+                    console.warn('⚠️ Profile fetch aborted again — falling back to session metadata.');
+                } else {
+                    console.error('❌ DB Error fetching profile:', error);
+                }
             }
         }
 

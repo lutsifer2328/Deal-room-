@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
+import { createBrowserClient } from '@supabase/ssr';
 import { supabase } from './supabase';
 import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, DealStatus, Role, StandardDocument, GlobalParticipant, DealParticipant, Notification, AgencyContract, DealDocument } from './types';
 import { createDefaultTimeline } from './defaultTimeline';
@@ -114,8 +115,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (isFetchingRef.current) return;
         isFetchingRef.current = true;
         try {
+            // Use an ISOLATED Supabase client for the bulk read.
+            // The shared client's auth churn (token auto-refresh + authContext and this
+            // store both calling getUser/getSession around every auth event) was cancelling
+            // these requests mid-flight ("AbortError: signal is aborted without reason"),
+            // leaving the dashboard with 0 deals. A dedicated client instance has its own
+            // request scope and isn't aborted by that churn — the same workaround the upload
+            // path already relies on.
+            const db = createBrowserClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            );
+
             // ONLY fetch data if the user is authenticated, to prevent 400 error loops on the login page
-            const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+            const { data: sessionData } = await db.auth.getSession();
             if (!sessionData.session) {
                 console.log('[DEBUG] No active session found. Skipping data fetch structure.');
                 setIsInitialized(true); // Let the app load (which will redirect to login)
@@ -133,15 +146,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 { data: fetchedContracts },
                 { data: fetchedDocuments }
             ] = await Promise.all([
-                supabase.from('users').select('*').order('created_at', { ascending: false }),
-                supabase.from('deals').select('*'),
-                supabase.from('tasks').select('*'), // Removed documents(*) join
-                supabase.from('participants').select('*'),
-                supabase.from('deal_participants').select('*'),
-                supabase.from('standard_documents').select('*'),
-                supabase.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(100),
-                supabase.from('agency_contracts').select('*'),
-                supabase.from('documents').select('*') // Direct fetch
+                db.from('users').select('*').order('created_at', { ascending: false }),
+                db.from('deals').select('*'),
+                db.from('tasks').select('*'), // Removed documents(*) join
+                db.from('participants').select('*'),
+                db.from('deal_participants').select('*'),
+                db.from('standard_documents').select('*'),
+                db.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(100),
+                db.from('agency_contracts').select('*'),
+                db.from('documents').select('*') // Direct fetch
             ]);
 
             if (fetchedUsers) setRawUsers(fetchedUsers.map(u => ({
@@ -213,7 +226,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
                 try {
                     // Await the seed operation so we can show data immediately
-                    const { error } = await supabase.from('standard_documents').upsert(
+                    const { error } = await db.from('standard_documents').upsert(
                         MOCK_STANDARD_DOCUMENTS.map(d => ({
                             id: d.id,
                             name: d.name,
