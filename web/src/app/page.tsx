@@ -31,12 +31,16 @@ export default function Home() {
       router.push('/dashboard-pro');
     } else if (user.role === 'lawyer' || user.role === 'staff') {
       router.push('/dashboard');
-    } else if (activeDeal?.id) {
-      // Redirect participants to their active deal (only if we have a valid deal id)
-      router.push(`/deal/${activeDeal.id}`);
-    } else if (deals.length > 0 && deals[0]?.id) {
-      // Fallback: use first deal from the list
+    } else if (deals.length > 1) {
+      // Participant in multiple deals → show the deal list so each deal stays
+      // a separate "table" (avoids mixing document requests across deals).
+      router.push('/dashboard');
+    } else if (deals.length === 1 && deals[0]?.id) {
+      // Exactly one deal → skip the list and open it directly (no extra click).
       router.push(`/deal/${deals[0].id}`);
+    } else if (activeDeal?.id) {
+      // Fallback: an active deal is known but the list hasn't populated yet.
+      router.push(`/deal/${activeDeal.id}`);
     } else if (isInitialized && retryCount < 3) {
       // Data loaded but no deals found — might be a race condition.
       // Retry fetching after a short delay to allow session to propagate.

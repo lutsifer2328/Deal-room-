@@ -7,6 +7,7 @@ import { Plus, Building, Calendar, Search, Globe, UserCheck, ChevronLeft, Chevro
 import { useState, useEffect } from 'react';
 import CreateDealWizard from '@/components/deal/CreateDealWizard';
 import DealStatusBadge from '@/components/deal/DealStatusBadge';
+import ParticipantDealsGrid from '@/components/dashboard/ParticipantDealsGrid';
 import { DealStatus } from '@/lib/types';
 import { useTranslation } from '@/lib/useTranslation';
 import { supabase } from '@/lib/supabase';
@@ -15,7 +16,7 @@ type StatusFilter = 'active' | 'on_hold' | 'closed';
 type ViewMode = 'my-deals' | 'global-index';
 
 export default function DashboardPage() {
-    const { deals } = useData();
+    const { deals, tasks } = useData();
     const { user, isLoading } = useAuth();
     const router = useRouter();
     const { t } = useTranslation();
@@ -232,7 +233,10 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    {/* Deals List */}
+                    {/* Deals List — participants get document-focused cards; staff keep the ops table */}
+                    {!isInternal ? (
+                        <ParticipantDealsGrid deals={filteredMyDeals} tasks={tasks} />
+                    ) : (
                     <div className="bg-white rounded-3xl shadow-xl shadow-navy-primary/5 border border-white/20 overflow-hidden backdrop-blur-xl">
 
                         {/* Mobile Card View */}
@@ -369,6 +373,7 @@ export default function DashboardPage() {
                             </tbody>
                         </table>
                     </div>
+                    )}
                 </>
             )}
 
