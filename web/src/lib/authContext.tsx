@@ -225,7 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     .from('deal_participants')
                     .select('role')
                     .eq('participant_id', participantData.id)
-                    .eq('is_active', true)
+                    .neq('is_active', false)
                     .limit(1)
                     .single();
 
