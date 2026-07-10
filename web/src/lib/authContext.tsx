@@ -71,9 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     if (currentPath === '/auth/update-password') {
                         console.log('🔄 Password Recovery (returning user): already on update-password, skipping redirect');
                     } else if (currentPath.includes('/auth/callback')) {
-                        // On callback page for a recovery flow without new=1 → redirect to update-password
-                        console.log('🔄 Password Recovery (returning user): redirecting to update-password...');
-                        router.push('/auth/update-password');
+                        // The callback page owns token processing and performs its own
+                        // redirect. Do NOT redirect here or we race it (see AbortError note
+                        // in the manual hash handler below).
+                        console.log('🔄 Password Recovery on callback page — deferring to callback handler');
                     } else if (!currentPath.includes('/auth/')) {
                         console.log('🔄 Password Recovery Event Detected. Redirecting to update-password...');
                         router.push('/auth/update-password');
@@ -97,7 +98,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // 3. Manual Hash Check for "type=invite" or "type=recovery"
         // Sometimes onAuthStateChange fires AFTER the hash is consumed or doesn't fire PASSWORD_RECOVERY for invites.
-        if (typeof window !== 'undefined' && window.location.hash) {
+        //
+        // IMPORTANT: The /auth/callback page is the dedicated owner of token processing
+        // (it signs out, sets the session, then redirects). If we also process the hash
+        // and redirect here, the two race — our router.push unmounts the callback page
+        // mid-setSession, throwing "AbortError: signal is aborted without reason". So we
+        // skip this fallback entirely while on /auth/callback and let that page do its job.
+        const onCallbackPage = typeof window !== 'undefined'
+            && window.location.pathname.startsWith('/auth/callback');
+        if (typeof window !== 'undefined' && window.location.hash && !onCallbackPage) {
             const hashParams = new URLSearchParams(window.location.hash.substring(1)); // remove #
             const type = hashParams.get('type');
             if (type === 'recovery' || type === 'invite') {
