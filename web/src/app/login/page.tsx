@@ -102,6 +102,11 @@ export default function LoginPage() {
         }
 
         setLoading(true);
+        // Clear any existing session first so code login always signs in as THIS
+        // email. Prevents "session bleed" if someone is already signed in on the
+        // device (mirrors the /auth/callback pattern). No-op when not signed in.
+        try { await supabase.auth.signOut(); } catch { /* ignore */ }
+
         // shouldCreateUser:false → only existing (invited) accounts can request a code.
         const { error: otpError } = await supabase.auth.signInWithOtp({
             email: email.trim(),
