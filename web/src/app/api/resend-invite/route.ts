@@ -84,7 +84,7 @@ export async function POST(request: Request) {
             email,
             name,
             directLink,
-            userProfile?.role || 'user',
+            userProfile?.role || 'viewer',
             undefined, // no deal title for a generic password reset
             false      // explicitly mark as generic invite/reset flow
         );

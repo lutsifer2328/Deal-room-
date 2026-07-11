@@ -31,6 +31,16 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
+        // SECURITY: creating/promoting an INTERNAL (Agenzia staff) account grants house
+        // authority — restrict that to admins/lawyers. Plain staff can invite external
+        // participants but cannot mint new staff/admins ("only Agenzia hands out house keys").
+        if (isInternal && !['admin', 'lawyer'].includes(auth.caller.role)) {
+            return NextResponse.json(
+                { error: 'Forbidden: only an admin can create or promote staff accounts' },
+                { status: 403 }
+            );
+        }
+
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
         const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY!;
 
@@ -125,10 +135,12 @@ export async function POST(request: Request) {
             // A. Create in Auth (without auto-invite)
             const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
                 email,
-                password: 'password123', // <-- ADDED: Default password for new organizational users
+                // Unguessable random password — the user sets their own via the recovery/code
+                // link. Never a shared default (a known default = anyone can log in as them).
+                password: crypto.randomUUID() + crypto.randomUUID(),
                 user_metadata: {
                     name: fullName,
-                    role: isInternal ? (['admin', 'lawyer', 'staff'].includes(role) ? role : 'staff') : 'user',
+                    role: isInternal ? (['admin', 'lawyer', 'staff'].includes(role) ? role : 'staff') : 'viewer',
                     functional_role: role // 'broker', 'buyer', etc.
                 },
                 email_confirm: true // We will verify them via the magic link
@@ -151,7 +163,7 @@ export async function POST(request: Request) {
                         await supabaseAdmin.auth.admin.updateUserById(userId, {
                             user_metadata: {
                                 name: fullName,
-                                role: isInternal ? 'staff' : 'user',
+                                role: isInternal ? 'staff' : 'viewer',
                                 functional_role: role
                             }
                         });
@@ -172,7 +184,7 @@ export async function POST(request: Request) {
                     id: userId,
                     email,
                     name: fullName,
-                    role: isInternal ? (['admin', 'lawyer', 'staff'].includes(role) ? role : 'staff') : 'user',
+                    role: isInternal ? (['admin', 'lawyer', 'staff'].includes(role) ? role : 'staff') : 'viewer',
                     is_active: true,
                     requires_password_change: true, // Force them to set password on first login
                     created_at: new Date().toISOString()

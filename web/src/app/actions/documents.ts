@@ -60,6 +60,18 @@ export async function getDocumentSignedUrl(documentId: string, isDownload: boole
             return { url: '', error: 'Access denied or document not found' };
         }
 
+        // Content gate (defence in depth): explicitly confirm the caller is allowed to
+        // OPEN this document — deal host, the uploader, or an attorney-granted participant.
+        // Row RLS already restricts the select above, but this makes the content decision
+        // explicit and independent of row-visibility policy.
+        const { data: canOpen, error: canOpenError } = await supabaseUser.rpc('can_open_document', {
+            doc_uuid: documentId,
+        });
+        if (canOpenError || canOpen !== true) {
+            console.warn('Content access denied for document', documentId, canOpenError?.message);
+            return { url: '', error: 'Access denied' };
+        }
+
         // Removed supabaseAdmin creation as we now use supabaseUser with Storage RLS
 
         // 4. Generate the signed URL
