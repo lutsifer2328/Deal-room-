@@ -2,20 +2,22 @@
 
 import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
-import { X, Lock, ShieldCheck, UploadCloud, Users, Check } from 'lucide-react';
+import { X, Lock, ShieldCheck, UploadCloud, Eye, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
     getDocumentAccess,
     setDocumentAccess,
     setDocumentAccessBulk,
     type DocAccessParticipant,
+    type AccessLevel,
 } from '@/app/actions/document-access';
 
 /**
  * Attorney "who can open this document" control.
- * Content is closed by default; the host opens it per participant. Hosts and the
- * uploader always have access (shown, not toggleable). All changes are audit-logged
- * server-side.
+ * Three levels per participant: Closed / View only / View + Download.
+ * Content is closed by default; the host opens it per participant when the deal
+ * conditions are met. Hosts and the uploader always have full access. All changes
+ * are audit-logged server-side.
  */
 export default function DocumentAccessModal({ documentId, onClose }: {
     documentId: string;
@@ -45,59 +47,66 @@ export default function DocumentAccessModal({ documentId, onClose }: {
         return () => { document.body.style.overflow = 'unset'; };
     }, [documentId]);
 
-    // Guests = everyone who isn't a host and isn't the uploader (the toggleable rows).
     const guests = rows.filter((r) => !r.isHostParticipant && !r.isUploader);
 
-    const toggle = async (r: DocAccessParticipant) => {
-        const next = !r.granted;
+    const setLevel = async (r: DocAccessParticipant, level: AccessLevel) => {
+        if (r.level === level) return;
         setBusyId(r.participantId);
-        // optimistic
-        setRows((prev) => prev.map((x) => x.participantId === r.participantId ? { ...x, granted: next } : x));
-        const res = await setDocumentAccess(documentId, r.participantId, next);
+        const prev = r.level;
+        setRows((p) => p.map((x) => x.participantId === r.participantId ? { ...x, level } : x));
+        const res = await setDocumentAccess(documentId, r.participantId, level);
         setBusyId(null);
         if (!res.ok) {
-            setRows((prev) => prev.map((x) => x.participantId === r.participantId ? { ...x, granted: !next } : x));
+            setRows((p) => p.map((x) => x.participantId === r.participantId ? { ...x, level: prev } : x));
             toast.error(res.error || 'Could not update access');
-        } else {
-            toast.success(next ? `Opened to ${r.name}` : `Closed for ${r.name}`);
         }
     };
 
-    const bulk = async (granted: boolean) => {
+    const bulk = async (level: AccessLevel) => {
         const ids = guests.map((g) => g.participantId);
         if (!ids.length) return;
         setBulkBusy(true);
         const prev = rows;
-        setRows((p) => p.map((x) => (!x.isHostParticipant && !x.isUploader) ? { ...x, granted } : x));
-        const res = await setDocumentAccessBulk(documentId, ids, granted);
+        setRows((p) => p.map((x) => (!x.isHostParticipant && !x.isUploader) ? { ...x, level } : x));
+        const res = await setDocumentAccessBulk(documentId, ids, level);
         setBulkBusy(false);
-        if (!res.ok) {
-            setRows(prev);
-            toast.error(res.error || 'Could not update access');
-        } else {
-            toast.success(granted ? 'Opened to everyone' : 'Closed to everyone');
-        }
+        if (!res.ok) { setRows(prev); toast.error(res.error || 'Could not update access'); }
+        else toast.success(level === 'none' ? 'Closed to everyone' : 'Opened to everyone');
     };
 
     if (!mounted) return null;
 
+    const SegBtn = ({ active, onClick, disabled, children, tone }: {
+        active: boolean; onClick: () => void; disabled?: boolean; children: React.ReactNode; tone: 'gray' | 'teal' | 'navy';
+    }) => {
+        const toneCls = active
+            ? (tone === 'teal' ? 'bg-teal text-white border-teal'
+                : tone === 'navy' ? 'bg-navy-primary text-white border-navy-primary'
+                    : 'bg-gray-200 text-gray-700 border-gray-300')
+            : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50';
+        return (
+            <button onClick={onClick} disabled={disabled}
+                className={`flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 border transition-colors disabled:opacity-50 ${toneCls}`}>
+                {children}
+            </button>
+        );
+    };
+
     return createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
-                {/* Header */}
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl flex flex-col max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-start">
                     <div>
                         <h2 className="text-lg font-bold text-navy-primary flex items-center gap-2">
                             <Lock className="w-4 h-4 text-teal" /> Who can open this document
                         </h2>
-                        <p className="text-xs text-text-light mt-0.5 truncate max-w-[24rem]">{title}</p>
+                        <p className="text-xs text-text-light mt-0.5 truncate max-w-[26rem]">{title}</p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-700" title="Close">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                {/* Body */}
                 <div className="flex-1 overflow-y-auto p-4">
                     {loading ? (
                         <div className="flex items-center justify-center py-12">
@@ -108,10 +117,9 @@ export default function DocumentAccessModal({ documentId, onClose }: {
                     ) : (
                         <>
                             <p className="text-xs text-text-secondary bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 mb-4">
-                                Content is closed by default. Open it to a participant only when the deal conditions are met — they can then view and download it.
+                                Closed by default. <strong>View</strong> lets them read the document in-app; <strong>Download</strong> also lets them save a copy (e.g. for a bank or their own lawyer).
                             </p>
 
-                            {/* Always-access rows (hosts + uploader) */}
                             {rows.filter((r) => r.isHostParticipant || r.isUploader).map((r) => (
                                 <div key={r.participantId} className="flex items-center justify-between py-2.5 px-2 opacity-70">
                                     <div className="flex items-center gap-3 min-w-0">
@@ -124,57 +132,62 @@ export default function DocumentAccessModal({ documentId, onClose }: {
                                         </div>
                                     </div>
                                     <span className="text-[11px] font-bold text-gray-400 whitespace-nowrap">
-                                        {r.isUploader ? 'Uploader — always' : 'Agenzia — always'}
+                                        {r.isUploader ? 'Uploader — full' : 'Agenzia — full'}
                                     </span>
                                 </div>
                             ))}
 
                             {guests.length > 0 && <div className="border-t border-gray-100 my-2" />}
 
-                            {/* Toggleable guest rows */}
                             {guests.map((r) => (
-                                <button
-                                    key={r.participantId}
-                                    onClick={() => toggle(r)}
-                                    disabled={busyId === r.participantId || bulkBusy}
-                                    className="w-full flex items-center justify-between py-2.5 px-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-                                >
+                                <div key={r.participantId} className="flex items-center justify-between py-2.5 px-2 gap-3">
                                     <div className="flex items-center gap-3 min-w-0">
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${r.granted ? 'bg-teal/10 text-teal' : 'bg-gray-100 text-gray-400'}`}>
-                                            <Users className="w-4 h-4" />
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${r.level !== 'none' ? 'bg-teal/10 text-teal' : 'bg-gray-100 text-gray-400'}`}>
+                                            {r.level === 'download' ? <Download className="w-4 h-4" /> : r.level === 'view' ? <Eye className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                                         </div>
-                                        <div className="min-w-0 text-left">
+                                        <div className="min-w-0">
                                             <div className="text-sm font-medium text-navy-primary truncate">{r.name}</div>
                                             <div className="text-[11px] text-text-light uppercase tracking-wide">{r.role}</div>
                                         </div>
                                     </div>
-                                    {/* Toggle pill */}
-                                    <span className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-colors ${r.granted ? 'bg-teal text-white border-teal' : 'bg-white text-gray-500 border-gray-200'}`}>
-                                        {r.granted ? (<><Check className="w-3 h-3" /> Can open</>) : (<><Lock className="w-3 h-3" /> Closed</>)}
-                                    </span>
-                                </button>
+                                    {/* Segmented 3-state control */}
+                                    <div className="flex rounded-lg overflow-hidden flex-shrink-0" style={{ opacity: busyId === r.participantId || bulkBusy ? 0.5 : 1 }}>
+                                        <SegBtn tone="gray" active={r.level === 'none'} disabled={busyId === r.participantId || bulkBusy} onClick={() => setLevel(r, 'none')}>
+                                            <Lock className="w-3 h-3" /> Closed
+                                        </SegBtn>
+                                        <SegBtn tone="teal" active={r.level === 'view'} disabled={busyId === r.participantId || bulkBusy} onClick={() => setLevel(r, 'view')}>
+                                            <Eye className="w-3 h-3" /> View
+                                        </SegBtn>
+                                        <SegBtn tone="navy" active={r.level === 'download'} disabled={busyId === r.participantId || bulkBusy} onClick={() => setLevel(r, 'download')}>
+                                            <Download className="w-3 h-3" /> Download
+                                        </SegBtn>
+                                    </div>
+                                </div>
                             ))}
 
                             {guests.length === 0 && (
-                                <div className="text-center py-8 text-sm text-text-light">
-                                    No other participants to grant access to yet.
-                                </div>
+                                <div className="text-center py-8 text-sm text-text-light">No other participants to grant access to yet.</div>
                             )}
                         </>
                     )}
                 </div>
 
-                {/* Footer shortcuts */}
                 {!loading && !error && guests.length > 0 && (
-                    <div className="px-4 py-3 border-t border-gray-100 flex justify-between items-center gap-3">
-                        <button onClick={() => bulk(false)} disabled={bulkBusy}
+                    <div className="px-4 py-3 border-t border-gray-100 flex justify-between items-center gap-2">
+                        <button onClick={() => bulk('none')} disabled={bulkBusy}
                             className="text-xs font-bold text-gray-500 hover:text-danger disabled:opacity-50">
                             Close to everyone
                         </button>
-                        <button onClick={() => bulk(true)} disabled={bulkBusy}
-                            className="text-xs font-bold text-white bg-teal hover:bg-teal/90 px-4 py-2 rounded-lg disabled:opacity-50">
-                            Open to everyone
-                        </button>
+                        <div className="flex gap-2">
+                            <button onClick={() => bulk('view')} disabled={bulkBusy}
+                                className="text-xs font-bold text-teal border border-teal/30 hover:bg-teal/5 px-3 py-2 rounded-lg disabled:opacity-50">
+                                View for everyone
+                            </button>
+                            <button onClick={() => bulk('download')} disabled={bulkBusy}
+                                className="text-xs font-bold text-white bg-navy-primary hover:bg-navy-secondary px-3 py-2 rounded-lg disabled:opacity-50">
+                                Allow download for everyone
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

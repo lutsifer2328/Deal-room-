@@ -352,7 +352,6 @@ function TaskItem({ task, userRole, dealId, onDelete, currentDealParticipantReco
                                     taskId={task.id}
                                     currentDealParticipantRecord={currentDealParticipantRecord}
                                     taskOwnerRole={taskOwnerRole}
-                                    isTaskAssignee={isAssignedParticipant}
                                 />
                             </div>
                         ))}
@@ -393,15 +392,14 @@ function TaskItem({ task, userRole, dealId, onDelete, currentDealParticipantReco
     );
 }
 
-function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, taskOwnerRole, isTaskAssignee }: {
+function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, taskOwnerRole }: {
     doc: DealDocument,
     userRole: string,
     taskId: string,
     currentDealParticipantRecord?: DealParticipant,
     taskOwnerRole?: string,
-    isTaskAssignee?: boolean
 }) {
-    const { verifyDocument, releaseDocument, rejectDocument, deleteDocument } = useData();
+    const { verifyDocument, releaseDocument, rejectDocument, deleteDocument, downloadableDocIds } = useData();
     const { user } = useAuth();
     const { t } = useTranslation();
     const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false);
@@ -431,13 +429,10 @@ function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, task
     // view and download. Staff/hosts keep their existing access.
     const grantedByDatabase = !isStaffOrAbove;
 
-    // 1. Can Download?
-    // ONLY render if:
-    // - User is Admin/Staff
-    // - OR User is Assignee/Owner of that specific task
-    // - OR permissions.canDownloadDocuments === true
-    const hasExplicitDownloadPermission = currentDealParticipantRecord?.permissions?.canDownloadDocuments === true;
-    const canDownload = isStaffOrAbove || isTaskAssignee || isOwner || hasExplicitDownloadPermission || grantedByDatabase;
+    // 1. Can Download? Download is a stricter, per-document grant the attorney
+    //    controls (view is not the same as download). Staff/host and the uploader
+    //    may always download; everyone else only if explicitly download-granted.
+    const canDownload = isStaffOrAbove || isOwner || downloadableDocIds.has(doc.id);
 
     // 2. Can View Content? (Metadata is usually visible if they have access to the deal)
     // - Lawyers/Admins/Owners/FullViewers always can

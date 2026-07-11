@@ -807,65 +807,11 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                 <span className="font-medium">Can see all tasks in this deal</span>
                                             </label>
 
-                                            <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={editForm.canViewAllDocuments ?? false}
-                                                    onChange={(e) => setEditForm({ ...editForm, canViewAllDocuments: e.target.checked })}
-                                                    className="w-4 h-4"
-                                                />
-                                                <span className="font-medium">Can see all documents in this deal</span>
-                                            </label>
                                         </div>
 
-                                        <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2 border-t pt-3">
-                                            <Download className="w-4 h-4" /> Document Access Permissions
-                                        </h4>
-
-                                        <div className="space-y-2 mb-3">
-                                            <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={editForm.canViewDocuments || false}
-                                                    onChange={(e) => setEditForm({ ...editForm, canViewDocuments: e.target.checked })}
-                                                    className="w-4 h-4"
-                                                />
-                                                <span className="font-medium">{t('modal.inviteParticipant.canViewAll')}</span>
-                                            </label>
-
-                                            <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={editForm.canDownload !== false}
-                                                    onChange={(e) => setEditForm({ ...editForm, canDownload: e.target.checked })}
-                                                    className="w-4 h-4"
-                                                />
-                                                <Download className="w-4 h-4" />
-                                                <span className="font-medium">{t('modal.inviteParticipant.canDownload')}</span>
-                                            </label>
+                                        <div className="bg-teal/5 border border-teal/20 rounded-lg p-3 text-xs text-navy-primary leading-relaxed">
+                                            <strong>Document content</strong> (view / download) is controlled <strong>per document</strong>. Use the <strong>&ldquo;Manage access&rdquo;</strong> button on each document in the deal to open it — view only, or with download — for each participant.
                                         </div>
-
-                                        {!editForm.canViewDocuments && availableRoles.length > 0 && (
-                                            <div className="bg-blue-50 border border-blue-200 rounded p-3">
-                                                <p className="text-xs font-medium text-blue-800 mb-2">{t('modal.inviteParticipant.selectRoles')}</p>
-                                                <div className="space-y-1">
-                                                    {availableRoles.map(role => (
-                                                        <label key={role} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-blue-100 p-2 rounded">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={editForm.documentPermissions?.canViewRoles?.includes(role) || false}
-                                                                onChange={() => toggleRolePermission(role)}
-                                                                className="w-4 h-4"
-                                                            />
-                                                            <span className={`text - xs font - bold px - 2 py - 0.5 rounded uppercase ${getRoleColor(role)} `}>
-                                                                {t(`role.${role} ` as TranslationKey) || role.replace('_', ' ')}
-                                                            </span>
-                                                            {t('modal.inviteParticipant.documents')}
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
 
                                     <div className="flex justify-end gap-2 pt-2">
@@ -917,20 +863,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                 {participant.canViewAllTasks && (
                                                     <div className="text-green-600 font-medium">✓ Can see all tasks</div>
                                                 )}
-                                                {participant.canViewAllDocuments && (
-                                                    <div className="text-green-600 font-medium">✓ Can see all documents</div>
-                                                )}
-                                                <div className={participant.canViewDocuments ? 'text-green-600 font-medium' : 'text-gray-500'}>
-                                                    {participant.canViewDocuments ? '✓ Can view all documents' : '○ Limited document access'}
-                                                </div>
-                                                {!participant.canViewDocuments && participant.documentPermissions?.canViewRoles && participant.documentPermissions.canViewRoles.length > 0 && (
-                                                    <div className="text-gray-600 ml-3">
-                                                        → Can view: {participant.documentPermissions.canViewRoles.map(r => r.toUpperCase()).join(', ')} docs
-                                                    </div>
-                                                )}
-                                                <div className={participant.canDownload !== false ? 'text-green-600 font-medium' : 'text-red-600'}>
-                                                    {participant.canDownload !== false ? '✓ Can download' : '✗ Cannot download'}
-                                                </div>
+                                                <div className="text-gray-400 italic">Document access is set per document (Manage access)</div>
                                             </div>
                                         </div>
                                     </div>

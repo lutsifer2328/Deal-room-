@@ -20,6 +20,9 @@ interface DataContextType {
     deals: Deal[];
     tasks: Task[];
     isInitialized: boolean;
+    // Document ids the current user may DOWNLOAD (host/uploader/download-granted).
+    // Viewing is gated by RLS on the row itself; download is the stricter subset.
+    downloadableDocIds: Set<string>;
 
     // Actions
     createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number) => Promise<string>;
@@ -99,6 +102,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const [logs, setLogs] = useState<AuditLogEntry[]>([]);
     const [agencyContracts, setAgencyContracts] = useState<AgencyContract[]>([]);
     const [rawDocuments, setRawDocuments] = useState<any[]>([]);
+    const [downloadableDocIds, setDownloadableDocIds] = useState<Set<string>>(new Set());
 
     // Refs
     const lastFetchRef = useRef<number>(0);
@@ -173,6 +177,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
             if (fetchedDocuments) {
                 console.log(`[DEBUG] Fetched ${fetchedDocuments.length} documents from DB.`);
                 setRawDocuments(fetchedDocuments);
+            }
+
+            // Which of these documents may the current user DOWNLOAD?
+            // = ones they uploaded + ones granted to them with can_download.
+            // (document_grants RLS returns the caller's own grants; hosts see all.)
+            try {
+                const uid = sessionData.session.user.id;
+                const { data: myGrants } = await db.from('document_grants').select('document_id, can_download');
+                const dlSet = new Set<string>();
+                (fetchedDocuments || []).forEach((d: any) => { if (d.uploaded_by === uid) dlSet.add(d.id); });
+                (myGrants || []).forEach((g: any) => { if (g.can_download) dlSet.add(g.document_id); });
+                setDownloadableDocIds(dlSet);
+            } catch (e) {
+                console.warn('Could not load download grants (non-critical):', e);
             }
             if (fetchedGPs) setRawGlobalParticipants(fetchedGPs.map(gp => ({
                 id: gp.id,
@@ -1860,6 +1878,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         deals,
         tasks,
         isInitialized,
+        downloadableDocIds,
         createDeal,
         updateDeal,
         addTask,
