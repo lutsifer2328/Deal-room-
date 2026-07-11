@@ -109,18 +109,15 @@ export default function DocumentPreviewModal({ doc, onClose }: {
                             />
                         ) : doc.title_en.toLowerCase().endsWith('.pdf') ? (
                             <iframe src={signedUrl} className="w-full h-[600px] border-none rounded shadow-sm" title={`PDF preview: ${doc.title_en}`} />
-                        ) : doc.title_en.toLowerCase().match(/\.(doc|docx|xls|xlsx|ppt|pptx)$/) ? (
-                            <iframe
-                                src={`https://docs.google.com/viewer?url=${encodeURIComponent(signedUrl)}&embedded=true`}
-                                className="w-full h-[600px] border-none rounded shadow-sm"
-                                title={`Document preview: ${doc.title_en}`}
-                            />
                         ) : (
+                            // Office and other non-inline formats: offer a download instead of
+                            // embedding via a third-party (Google) viewer, so client documents
+                            // never leave our own infrastructure. PDFs/images still render inline above.
                             <div className="text-center py-20">
                                 <FileText className="w-24 h-24 text-gray-300 mx-auto mb-4" />
-                                <p className="text-gray-600 font-bold mb-2">Preview not supported for this file type</p>
+                                <p className="text-gray-600 font-bold mb-2">Open this document to review it</p>
                                 <a href={signedUrl} target="_blank" rel="noopener noreferrer" className="text-teal hover:underline font-bold">
-                                    Download to View
+                                    Download to review
                                 </a>
                             </div>
                         )

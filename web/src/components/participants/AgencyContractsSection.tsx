@@ -349,18 +349,15 @@ export default function AgencyContractsSection({ participant }: { participant: G
                                         <img src={signedUrl} alt={previewContract.title} className="max-w-full max-h-full object-contain" />
                                     ) : previewContract.url.toLowerCase().endsWith('.pdf') ? (
                                         <iframe src={signedUrl} className="w-full h-full border-none" title="PDF Preview" />
-                                    ) : previewContract.url.toLowerCase().match(/\.(doc|docx|xls|xlsx|ppt|pptx)$/) ? (
-                                        <iframe
-                                            src={`https://docs.google.com/viewer?url=${encodeURIComponent(signedUrl)}&embedded=true`}
-                                            className="w-full h-full border-none"
-                                            title="Office Document Preview"
-                                        />
                                     ) : (
+                                        // Office and other non-inline formats: offer a download instead of
+                                        // embedding via a third-party (Google) viewer, so documents never
+                                        // leave our own infrastructure. PDFs/images still render inline above.
                                         <div className="text-center p-8">
                                             <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                            <p className="font-bold text-gray-600 mb-2">Preview not supported for this file type</p>
+                                            <p className="font-bold text-gray-600 mb-2">Open this document to review it</p>
                                             <a href={signedUrl} target="_blank" rel="noopener noreferrer" className="text-teal font-bold hover:underline">
-                                                Download to view
+                                                Download to review
                                             </a>
                                         </div>
                                     )
