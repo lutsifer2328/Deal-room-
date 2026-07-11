@@ -115,7 +115,7 @@ export default function LoginPage() {
         }
 
         setCodeSent(true);
-        setSuccessMessage(`Изпратихме 6-цифрен код на ${email.trim()}. | We sent a 6-digit code to ${email.trim()}.`);
+        setSuccessMessage(`Изпратихме код за вход на ${email.trim()}. | We sent a sign-in code to ${email.trim()}.`);
     };
 
     const handleVerifyCode = async (e: React.FormEvent) => {
@@ -123,8 +123,8 @@ export default function LoginPage() {
         setError('');
 
         const token = otp.replace(/\D/g, '');
-        if (token.length !== 6) {
-            setError('Моля, въведете 6-цифрения код. | Please enter the 6-digit code.');
+        if (token.length < 6) {
+            setError('Моля, въведете кода от имейла. | Please enter the code from your email.');
             return;
         }
 
@@ -285,18 +285,18 @@ export default function LoginPage() {
                                 )}
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-1">6-Digit Code</label>
+                                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-1">Verification Code</label>
                                     <div className="relative group">
                                         <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-teal-500 transition-colors" />
                                         <input
                                             type="text"
                                             inputMode="numeric"
                                             autoComplete="one-time-code"
-                                            maxLength={6}
+                                            maxLength={10}
                                             value={otp}
                                             onChange={(e) => setOtp(e.target.value)}
-                                            className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all placeholder:text-slate-400 text-slate-800 tracking-[0.5em] font-bold text-lg"
-                                            placeholder="000000"
+                                            className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all placeholder:text-slate-400 text-slate-800 tracking-widest font-bold text-lg"
+                                            placeholder="Enter code"
                                             required
                                             autoFocus
                                         />
