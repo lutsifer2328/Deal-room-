@@ -23,11 +23,12 @@ Today "staff" is one global switch (`is_staff()`), which grants full access to *
 - **Deal host** — new. `is_deal_host(deal) = is_staff() AND NOT recused_from(deal)`. This is the check that guards a *specific* deal's content and controls.
 
 **Recusal** (`recused_from(deal)`) is true when the staff member holds a **party seat** on that deal:
-- Auto-recused for party roles: **buyer, seller, bank_representative** (final list = open decision #1).
+- Auto-recused for party roles: **buyer, seller** only — i.e. a staff member actually buying/selling for themselves.
+- **Agents are NOT recused.** Agenzia staff frequently act as agents representing a client (several are real-estate agents) — that is a professional capacity, not a personal stake, so agent/notary/lawyer seats keep host authority.
 - Plus a manual **"recuse" switch** on the participant record for edge cases a role label doesn't capture.
 - Fail-safe: a staff-member-as-party defaults to **recused (closed)**; granting host access is always a deliberate act.
 
-Professional seats (Agenzia lawyer/agent/notary acting for the deal) are **not** party seats → they keep host authority. An outside client's lawyer has no Agenzia staff account at all → guest.
+An outside client's lawyer has no Agenzia staff account at all → guest.
 
 ---
 
@@ -72,11 +73,21 @@ Marks a participant as recused from host authority on that deal. Auto-set true w
 - `is_deal_host(deal_uuid)` → `is_staff() AND NOT (caller is a recused/party participant in deal_uuid)`
 - `can_open_document(doc_uuid)` → `is_deal_host(doc.deal) OR doc.uploaded_by = auth.uid() OR EXISTS grant(doc, current_participant_id())`
 
-**Policy changes:**
-- `documents` (content/row): replace the blanket `is_staff()` all-access with `is_deal_host(...)`, plus uploader, plus grant — so a recused staff member no longer reads their own deal's counterparty files.
-- `document_grants`: insert/delete allowed to **deal host only**; select to host + the grantee.
-- `tasks` (progress): ensure deal participants can read requirement names + status for their deal (Layer A).
-- **Content enforcement in `getDocumentSignedUrl`**: add an explicit `can_open_document` check *before* signing, so the 60-second URL is only ever minted for someone allowed to open the file (defence in depth, not just row RLS).
+**VERIFIED CURRENT STATE (why this matters):** today content is open to every deal member.
+- `documents`: `admin_full_access_documents` (is_staff ALL), `participant_select_documents` (**any** active deal member can SELECT every document row), `documents_view_all_if_permitted` (canViewAllDocuments), `participant_insert_documents` (member + owner=self on insert).
+- `storage.objects`: `storage_documents_member_select` (**any** deal member can read objects in the deal folder), `storage_documents_staff_select` (is_staff), plus staff insert/update/delete and member insert.
+- Net effect: the attorney's per-participant toggles are cosmetic; any participant can fetch any file in their deal. Recusal doesn't exist. **This is the gap we close.**
+
+**Policy changes (exact):**
+- `documents` SELECT — tighten so participants no longer read arbitrary rows:
+  - Replace `participant_select_documents` + `documents_view_all_if_permitted` with a single rule: `can_open_document(id)` (host OR uploader OR grant). Progress no longer depends on document rows — it comes from `tasks`.
+  - Replace `admin_full_access_documents` with the same `is_deal_host`-based rule for SELECT/UPDATE/DELETE so a **recused** staff member loses blanket access to their own deal. (INSERT policy for participants unchanged.)
+- `storage.objects` (the real content backstop — must change or the server check can be bypassed via the client SDK):
+  - `storage_documents_member_select` → allow only when the object's document (`documents.url = objects.name`) passes `can_open_document`.
+  - `storage_documents_staff_select` → change `is_staff()` to `is_deal_host((foldername)[1]::uuid)` so recused staff can't read counterparty objects. (Upload/update/delete staff policies unchanged.)
+- `document_grants`: insert/delete = **deal host only**; select = host + the grantee.
+- `tasks` (progress, Layer A): confirm deal participants can read requirement names + status for their deal (already partially via `tasks_view_all_if_permitted`; make name+status visible to all members).
+- **`getDocumentSignedUrl`**: add an explicit `can_open_document` check before signing — defence in depth on top of the storage RLS.
 
 ---
 
@@ -126,9 +137,9 @@ On the audit branch + local, against the live project, verify:
 
 ---
 
-## 11. Open decisions (need your answer before Phase A)
+## 11. Decisions (RESOLVED)
 
-1. **Party roles that auto-recuse** — confirm: buyer, seller, bank_representative. (Add/remove any?)
-2. **Progress detail** — show requirement *name + status* only (recommended), or also expose that N files were uploaded / their count?
-3. **Backfill** — grant currently-released documents to current participants on migrate, so nothing is hidden retroactively (recommended)?
-4. **Guest role name** — reuse existing `viewer`, or introduce an explicit `guest` / `external` role?
+1. **Auto-recuse seats** — **buyer, seller only.** Agents are never auto-recused (Agenzia staff routinely act as agents for clients). Manual recuse switch covers edge cases.
+2. **Progress detail** — requirement **name + status only**. No file counts or content.
+3. **Backfill** — **preserve current access**: grant currently-openable documents to their deal's participants on migrate, so nothing visible today is hidden retroactively. New uploads follow default-closed.
+4. **Guest role** — **reuse `viewer`** for external guests. Fold the stray `user` role into `viewer` and stop the invite path minting `user`.
