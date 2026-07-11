@@ -5,7 +5,7 @@ import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
 import DealHeader from '@/components/deal/DealHeader';
 import SingleProgressBar from '@/components/deal/SingleProgressBar';
-import { FileText, Lock, ShieldCheck, Download, Upload, AlertTriangle, Eye, Mail, ArrowLeft, Trash2 } from 'lucide-react';
+import { FileText, Lock, ShieldCheck, Download, Upload, AlertTriangle, Eye, Mail, ArrowLeft, Trash2, Users } from 'lucide-react';
 import { Task, DealDocument, Deal, DealParticipant } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import CreateTaskModal from '@/components/deal/CreateTaskModal';
@@ -14,6 +14,7 @@ import AuditLogPanel from '@/components/deal/AuditLogPanel';
 import UploadModal from '@/components/deal/UploadModal';
 import DocumentPreviewModal from '@/components/deal/DocumentPreviewModal';
 import DeleteDocumentModal from '@/components/deal/DeleteDocumentModal';
+import DocumentAccessModal from '@/components/deal/DocumentAccessModal';
 import TaskComments from '@/components/deal/TaskComments';
 import { useTranslation, TranslationKey } from '@/lib/useTranslation';
 import { supabase } from '@/lib/supabase';
@@ -406,6 +407,7 @@ function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, task
     const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
 
     // Deal participant role takes priority over deprecated global 'viewer' role
     const globalRole = user?.role || userRole;
@@ -423,13 +425,19 @@ function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, task
 
     const isFullViewer = currentDealParticipantRecord?.permissions?.canViewDocuments === true;
 
+    // Phase 6: the database now decides which documents reach each user (deal host,
+    // uploader, or attorney-granted). So for a non-staff participant, the mere fact
+    // that this document was returned to them means they are allowed to OPEN it —
+    // view and download. Staff/hosts keep their existing access.
+    const grantedByDatabase = !isStaffOrAbove;
+
     // 1. Can Download?
     // ONLY render if:
     // - User is Admin/Staff
     // - OR User is Assignee/Owner of that specific task
     // - OR permissions.canDownloadDocuments === true
     const hasExplicitDownloadPermission = currentDealParticipantRecord?.permissions?.canDownloadDocuments === true;
-    const canDownload = isStaffOrAbove || isTaskAssignee || isOwner || hasExplicitDownloadPermission;
+    const canDownload = isStaffOrAbove || isTaskAssignee || isOwner || hasExplicitDownloadPermission || grantedByDatabase;
 
     // 2. Can View Content? (Metadata is usually visible if they have access to the deal)
     // - Lawyers/Admins/Owners/FullViewers always can
@@ -437,7 +445,7 @@ function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, task
     //   a) If 'Private', they can't see it (unless owner)
     //   b) If 'Verified' or 'Released', check detailed permissions:
     //      - canViewDocuments = false (Limited) -> ONLY if role is in canViewRoles list
-    const hasViewPermission = isFullViewer || isLawyer || isAdmin || isOwner || (
+    const hasViewPermission = isFullViewer || isLawyer || isAdmin || isOwner || grantedByDatabase || (
         // Must be verified/released to even check additional permissions for non-admin/owner
         (doc.status !== 'private') && (
             // Fallback: If no explicit setting, they can see roles assigned to them (default behavior)
@@ -512,6 +520,17 @@ function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, task
                         </button>
                     )}
 
+                    {/* Manage access — the deal host decides who can open this document */}
+                    {isStaffOrAbove && (
+                        <button
+                            onClick={() => setIsAccessModalOpen(true)}
+                            className="p-2 text-navy-primary bg-navy-primary/5 hover:bg-navy-primary/10 rounded-lg transition-colors border border-navy-primary/10"
+                            title="Manage who can open this document"
+                        >
+                            <Users className="w-4 h-4" />
+                        </button>
+                    )}
+
                     {/* Document actions: Only if global role is lawyer/admin (NOT viewer) */}
                     {(isLawyer || isAdmin) && !isViewer && user && (
                         <>
@@ -577,6 +596,13 @@ function DocumentRow({ doc, userRole, taskId, currentDealParticipantRecord, task
                 <DocumentPreviewModal
                     doc={doc}
                     onClose={() => setIsPreviewOpen(false)}
+                />
+            )}
+
+            {isAccessModalOpen && (
+                <DocumentAccessModal
+                    documentId={doc.id}
+                    onClose={() => setIsAccessModalOpen(false)}
                 />
             )}
 

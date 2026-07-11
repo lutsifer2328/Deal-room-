@@ -1,7 +1,7 @@
 # Deal Room — Document Visibility & Deal Authority
 ## Build Plan (for sign-off before implementation)
 
-Status: PHASE A applied + PHASE B built 2026-07-11. Phases C-D pending.
+Status: PHASES A-C live 2026-07-11. Attorney grant control operable. (Recusal badge = optional polish.)
 
 ---
 
