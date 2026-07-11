@@ -1,7 +1,7 @@
 # Deal Room — Document Visibility & Deal Authority
 ## Build Plan (for sign-off before implementation)
 
-Status: DRAFT — awaiting product-owner approval. No live-database changes until approved.
+Status: PHASE A APPLIED to live DB 2026-07-11 (migration phase6_001). Phases B-D pending.
 
 ---
 
