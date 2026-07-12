@@ -6,12 +6,29 @@ import { useAuth } from '@/lib/authContext';
 import { Check, Settings } from 'lucide-react';
 import { useState } from 'react';
 import TimelineEditor from './TimelineEditor';
-import { useTranslation } from '@/lib/useTranslation';
+import { useTranslation, type TranslationKey } from '@/lib/useTranslation';
+
+// The 5 standard timeline steps are stored as English data on each deal, so the
+// bar rendered them in English regardless of language. Map the known labels to
+// the existing phase translations; custom labels (edited by staff) fall through
+// untouched.
+const STANDARD_STEP_KEYS: Record<string, TranslationKey> = {
+    'onboarding': 'dashboard.phase.onboarding',
+    'documents': 'dashboard.phase.documents',
+    'preliminary contract': 'dashboard.phase.preliminary_contract',
+    'final review': 'dashboard.phase.final_review',
+    'closing': 'dashboard.phase.closing',
+};
 
 export default function SingleProgressBar({ deal }: { deal: Deal }) {
     const { updateDealTimeline, updateCurrentStepId } = useData();
     const { user } = useAuth();
     const { t } = useTranslation();
+
+    const stepLabel = (label: string) => {
+        const key = STANDARD_STEP_KEYS[label.toLowerCase().trim()];
+        return key ? t(key) : label;
+    };
     const [confirmingStepId, setConfirmingStepId] = useState<string | null>(null);
     const [isEditingTimeline, setIsEditingTimeline] = useState(false);
 
@@ -79,7 +96,7 @@ export default function SingleProgressBar({ deal }: { deal: Deal }) {
                                     disabled={!isClickable}
                                     className={`flex flex-col items-center gap-2 transition-all ${isClickable ? 'cursor-pointer hover:scale-105' : 'cursor-default'
                                         }`}
-                                    title={isClickable ? `${t('deal.progress.tip')}: ${step.label}` : ''}
+                                    title={isClickable ? `${t('deal.progress.tip')}: ${stepLabel(step.label)}` : ''}
                                 >
                                     {/* Indicator */}
                                     <div className="z-10 relative flex justify-center items-center">
@@ -109,7 +126,7 @@ export default function SingleProgressBar({ deal }: { deal: Deal }) {
                                         className={`text-xs font-medium text-center max-w-[120px] ${isCurrent ? 'text-teal font-bold' : isPast ? 'text-gray-700' : 'text-gray-400'
                                             }`}
                                     >
-                                        {step.label}
+                                        {stepLabel(step.label)}
                                     </span>
                                 </button>
                             );
@@ -130,7 +147,7 @@ export default function SingleProgressBar({ deal }: { deal: Deal }) {
                     <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md animate-in fade-in zoom-in duration-200">
                         <h3 className="text-lg font-bold text-midnight mb-2">{t('deal.progress.modalTitle')}</h3>
                         <p className="text-gray-600 mb-6">
-                            {t('deal.progress.modalText')} <strong className="text-teal">{confirmingStep.label}</strong> {t('deal.progress.phase')}
+                            {t('deal.progress.modalText')} <strong className="text-teal">{stepLabel(confirmingStep.label)}</strong> {t('deal.progress.phase')}
                         </p>
                         <div className="flex justify-end gap-3">
                             <button
