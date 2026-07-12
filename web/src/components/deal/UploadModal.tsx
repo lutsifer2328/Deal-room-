@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Upload as UploadIcon, FileText } from 'lucide-react';
 import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
+import { useTranslation } from '@/lib/useTranslation';
 import { Modal, ModalHeader, ModalContent, ModalFooter } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 
@@ -14,6 +15,7 @@ export default function UploadModal({ taskId, taskTitle, dealId, onClose, isOpen
 }) {
     const { uploadDocument } = useData();
     const { user } = useAuth();
+    const { t } = useTranslation();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
 
@@ -27,7 +29,7 @@ export default function UploadModal({ taskId, taskTitle, dealId, onClose, isOpen
 
     const handleUpload = async () => {
         if (!selectedFile || !user) {
-            alert('Please select a file first');
+            alert(t('upload.selectFirst'));
             return;
         }
 
@@ -52,18 +54,18 @@ export default function UploadModal({ taskId, taskTitle, dealId, onClose, isOpen
     return (
         <Modal isOpen={isOpen} onClose={onClose} size="md">
             <ModalHeader onClose={onClose} className="bg-midnight text-white">
-                Upload Document
+                {t('upload.title')}
             </ModalHeader>
 
             <ModalContent>
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">Requirement</label>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">{t('upload.requirement')}</label>
                         <p className="text-gray-600 font-medium bg-gray-50 p-2 rounded border border-gray-100">{taskTitle}</p>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Select File</label>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">{t('upload.selectFile')}</label>
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-teal transition-colors group cursor-pointer bg-gray-50/50 hover:bg-teal/5">
                             <input
                                 type="file"
@@ -79,13 +81,13 @@ export default function UploadModal({ taskId, taskTitle, dealId, onClose, isOpen
                                     <div className="flex flex-col items-center justify-center gap-2 text-teal animate-in fade-in">
                                         <FileText className="w-8 h-8" />
                                         <span className="font-bold">{selectedFile.name}</span>
-                                        <span className="text-xs text-gray-500 font-medium">Click to change file</span>
+                                        <span className="text-xs text-gray-500 font-medium">{t('upload.changeFile')}</span>
                                     </div>
                                 ) : (
                                     <div className="group-hover:translate-y-[-2px] transition-transform duration-200">
                                         <UploadIcon className="w-10 h-10 mx-auto text-gray-400 mb-3 group-hover:text-teal transition-colors" />
-                                        <p className="text-gray-600 font-bold group-hover:text-teal transition-colors">Click to select file</p>
-                                        <p className="text-xs text-gray-400 mt-1">PDF, DOC, JPG, PNG (max 10MB)</p>
+                                        <p className="text-gray-600 font-bold group-hover:text-teal transition-colors">{t('upload.clickToSelect')}</p>
+                                        <p className="text-xs text-gray-400 mt-1">{t('upload.fileHint')}</p>
                                     </div>
                                 )}
                             </label>
@@ -95,7 +97,7 @@ export default function UploadModal({ taskId, taskTitle, dealId, onClose, isOpen
                     <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex gap-2 items-start">
                         <div className="text-blue-500 mt-0.5">ℹ️</div>
                         <p className="text-xs text-blue-800 leading-relaxed">
-                            <strong>Note:</strong> After upload, the attorney will review your document before it becomes visible to other parties.
+                            <strong>{t('upload.noteLabel')}</strong> {t('upload.noteBody')}
                         </p>
                     </div>
                 </div>
@@ -103,7 +105,7 @@ export default function UploadModal({ taskId, taskTitle, dealId, onClose, isOpen
 
             <ModalFooter>
                 <Button variant="ghost" onClick={onClose} disabled={isUploading}>
-                    Cancel
+                    {t('common.cancel')}
                 </Button>
                 <Button
                     variant="primary"
@@ -113,7 +115,7 @@ export default function UploadModal({ taskId, taskTitle, dealId, onClose, isOpen
                     className="flex items-center gap-2"
                 >
                     {!isUploading && <UploadIcon className="w-4 h-4" />}
-                    Upload Document
+                    {t('upload.title')}
                 </Button>
             </ModalFooter>
         </Modal>

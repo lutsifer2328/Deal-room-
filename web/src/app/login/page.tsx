@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/authContext';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useTranslation } from '@/lib/useTranslation';
 import { Lock, Mail, ArrowRight, KeyRound } from 'lucide-react';
 
 type Mode = 'code' | 'password';
@@ -11,6 +12,7 @@ type Mode = 'code' | 'password';
 export default function LoginPage() {
     const { login } = useAuth();
     const router = useRouter();
+    const { t, language, setLanguage } = useTranslation();
     const [mode, setMode] = useState<Mode>('code');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -32,7 +34,7 @@ export default function LoginPage() {
         setLoading(true);
 
         if (!termsAccepted) {
-            setError('Моля, съгласете се с Общите условия и Политиката за поверителност преди да продължите.');
+            setError(t('auth.msg.termsRequired'));
             setLoading(false);
             return;
         }
@@ -40,7 +42,7 @@ export default function LoginPage() {
         const { error: loginError } = await login(email, password);
 
         if (loginError) {
-            setError(loginError.message || 'Invalid email or password');
+            setError(loginError.message || t('auth.msg.invalidCredentials'));
             setLoading(false);
         } else {
             // Successful login will trigger auth state change and let the root page handle redirect logic
@@ -55,7 +57,7 @@ export default function LoginPage() {
         setLoading(true);
 
         if (!email) {
-            setError('Моля, въведете имейл адрес.');
+            setError(t('auth.msg.enterEmail'));
             setLoading(false);
             return;
         }
@@ -70,12 +72,12 @@ export default function LoginPage() {
             const data = await res.json();
 
             if (!res.ok) {
-                setError(data.error || 'Възникна грешка. Моля, опитайте отново.');
+                setError(data.error || t('auth.msg.genericError'));
             } else {
-                setSuccessMessage('Връзката за нулиране на паролата е изпратена! Моля, проверете имейла си.');
+                setSuccessMessage(t('auth.msg.resetLinkSent'));
             }
         } catch {
-            setError('Възникна грешка. Моля, опитайте отново.');
+            setError(t('auth.msg.genericError'));
         } finally {
             setLoading(false);
         }
@@ -93,11 +95,11 @@ export default function LoginPage() {
         setSuccessMessage('');
 
         if (!email) {
-            setError('Моля, въведете имейл адрес. | Please enter your email address.');
+            setError(t('auth.msg.enterEmail'));
             return;
         }
         if (!termsAccepted) {
-            setError('Моля, съгласете се с Общите условия и Политиката за поверителност преди да продължите.');
+            setError(t('auth.msg.termsRequired'));
             return;
         }
 
@@ -115,12 +117,12 @@ export default function LoginPage() {
         setLoading(false);
 
         if (otpError) {
-            setError('Не открихме акаунт за този имейл или кодът не беше изпратен. Моля, проверете адреса или се свържете с вашия агент. | We couldn’t find an account for that email or the code could not be sent. Please check the address or contact your agent.');
+            setError(t('auth.msg.codeSendFailed'));
             return;
         }
 
         setCodeSent(true);
-        setSuccessMessage(`Изпратихме код за вход на ${email.trim()}. | We sent a sign-in code to ${email.trim()}.`);
+        setSuccessMessage(t('auth.msg.codeSent', { email: email.trim() }));
     };
 
     const handleVerifyCode = async (e: React.FormEvent) => {
@@ -129,7 +131,7 @@ export default function LoginPage() {
 
         const token = otp.replace(/\D/g, '');
         if (token.length < 6) {
-            setError('Моля, въведете кода от имейла. | Please enter the code from your email.');
+            setError(t('auth.msg.enterCode'));
             return;
         }
 
@@ -142,7 +144,7 @@ export default function LoginPage() {
 
         if (verifyError) {
             setLoading(false);
-            setError('Кодът е грешен или изтекъл. Опитайте отново или поискайте нов код. | That code is incorrect or has expired. Try again or request a new code.');
+            setError(t('auth.msg.codeInvalid'));
             return;
         }
 
@@ -167,16 +169,16 @@ export default function LoginPage() {
     };
 
     const cardTitle = isResetView
-        ? 'Reset Password'
+        ? t('auth.title.reset')
         : mode === 'password'
-            ? 'Welcome Back'
-            : 'Welcome to your Deal Room';
+            ? t('auth.title.welcomeBack')
+            : t('auth.title.welcome');
 
     const cardSubtitle = isResetView
-        ? 'Enter your email to receive a password reset link'
+        ? t('auth.subtitle.reset')
         : mode === 'password'
-            ? 'Please sign in to access your dashboard'
-            : 'Enter your email and we’ll send you a sign-in code';
+            ? t('auth.subtitle.password')
+            : t('auth.subtitle.code');
 
     return (
         <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
@@ -186,6 +188,26 @@ export default function LoginPage() {
             <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[80px]"></div>
 
             <div className="w-full max-w-md relative z-10">
+                {/* Language toggle (pre-login: no sidebar, so it lives here) */}
+                <div className="flex justify-center mb-4">
+                    <div className="inline-flex bg-white/10 rounded-lg p-1 backdrop-blur-sm">
+                        <button
+                            type="button"
+                            onClick={() => setLanguage('bg')}
+                            className={`px-3 py-1 text-xs font-bold rounded ${language === 'bg' ? 'bg-teal-500 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}
+                        >
+                            {t('auth.lang.bg')}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setLanguage('en')}
+                            className={`px-3 py-1 text-xs font-bold rounded ${language === 'en' ? 'bg-teal-500 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}
+                        >
+                            {t('auth.lang.en')}
+                        </button>
+                    </div>
+                </div>
+
                 {/* Logo/Header */}
                 <div className="text-center mb-8">
                     <div className="font-serif text-[2.5rem] font-bold text-white tracking-tight mb-2 drop-shadow-lg">Deal Room</div>
@@ -216,14 +238,14 @@ export default function LoginPage() {
                                 onClick={() => switchMode('code')}
                                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${mode === 'code' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
-                                <KeyRound className="w-4 h-4" /> Email me a code
+                                <KeyRound className="w-4 h-4" /> {t('auth.tab.code')}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => switchMode('password')}
                                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${mode === 'password' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
-                                <Lock className="w-4 h-4" /> Password
+                                <Lock className="w-4 h-4" /> {t('auth.tab.password')}
                             </button>
                         </div>
                     )}
@@ -233,7 +255,7 @@ export default function LoginPage() {
                         !codeSent ? (
                             <form onSubmit={handleSendCode} className="space-y-5">
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-1">Email Address</label>
+                                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-1">{t('auth.label.email')}</label>
                                     <div className="relative group">
                                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-teal-500 transition-colors" />
                                         <input
@@ -264,10 +286,10 @@ export default function LoginPage() {
                                         required
                                     />
                                     <label htmlFor="terms-code" className="text-xs text-slate-500 leading-tight">
-                                        Съгласен съм с{' '}
-                                        <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">Общите условия</a>
-                                        {' '}и{' '}
-                                        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">Политиката за поверителност</a>.
+                                        {t('auth.terms.prefix')}{' '}
+                                        <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">{t('auth.terms.termsLink')}</a>
+                                        {' '}{t('auth.terms.and')}{' '}
+                                        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">{t('auth.terms.privacyLink')}</a>.
                                     </label>
                                 </div>
 
@@ -276,7 +298,7 @@ export default function LoginPage() {
                                     disabled={loading}
                                     className="w-full bg-teal-500 text-white font-bold py-3.5 rounded-xl hover:bg-teal-600 active:scale-[0.98] transition-all shadow-lg shadow-teal-500/30 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group"
                                 >
-                                    {loading ? 'Sending code...' : 'Email me a code'}
+                                    {loading ? t('auth.btn.sendingCode') : t('auth.tab.code')}
                                     {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
                                 </button>
                             </form>
@@ -290,7 +312,7 @@ export default function LoginPage() {
                                 )}
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-1">Verification Code</label>
+                                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-1">{t('auth.label.code')}</label>
                                     <div className="relative group">
                                         <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-teal-500 transition-colors" />
                                         <input
@@ -301,7 +323,7 @@ export default function LoginPage() {
                                             value={otp}
                                             onChange={(e) => setOtp(e.target.value)}
                                             className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all placeholder:text-slate-400 text-slate-800 tracking-widest font-bold text-lg"
-                                            placeholder="Enter code"
+                                            placeholder={t('auth.placeholder.code')}
                                             required
                                             autoFocus
                                         />
@@ -320,16 +342,16 @@ export default function LoginPage() {
                                     disabled={loading}
                                     className="w-full bg-teal-500 text-white font-bold py-3.5 rounded-xl hover:bg-teal-600 active:scale-[0.98] transition-all shadow-lg shadow-teal-500/30 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group"
                                 >
-                                    {loading ? 'Verifying...' : 'Sign In'}
+                                    {loading ? t('auth.btn.verifying') : t('auth.btn.signIn')}
                                     {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
                                 </button>
 
                                 <div className="flex justify-between text-sm">
                                     <button type="button" onClick={handleSendCode} className="text-slate-500 hover:text-teal-600 font-medium bg-transparent border-none cursor-pointer">
-                                        Resend code
+                                        {t('auth.link.resend')}
                                     </button>
                                     <button type="button" onClick={backToEmailStep} className="text-slate-500 hover:text-teal-600 font-medium bg-transparent border-none cursor-pointer">
-                                        Use a different email
+                                        {t('auth.link.differentEmail')}
                                     </button>
                                 </div>
                             </form>
@@ -341,7 +363,7 @@ export default function LoginPage() {
                         <form onSubmit={handleLogin} className="space-y-5">
                             {/* Email */}
                             <div>
-                                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-1">Email Address</label>
+                                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-1">{t('auth.label.email')}</label>
                                 <div className="relative group">
                                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-teal-500 transition-colors" />
                                     <input
@@ -358,7 +380,7 @@ export default function LoginPage() {
                             {/* Password */}
                             <div>
                                 <div className="flex justify-between items-center mb-1.5 ml-1">
-                                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Password</label>
+                                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('auth.label.password')}</label>
                                 </div>
                                 <div className="relative group">
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-teal-500 transition-colors" />
@@ -392,10 +414,10 @@ export default function LoginPage() {
                                     required
                                 />
                                 <label htmlFor="terms" className="text-xs text-slate-500 leading-tight">
-                                    Съгласен съм с{' '}
-                                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">Общите условия</a>
-                                    {' '}и{' '}
-                                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">Политиката за поверителност</a>.
+                                    {t('auth.terms.prefix')}{' '}
+                                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">{t('auth.terms.termsLink')}</a>
+                                    {' '}{t('auth.terms.and')}{' '}
+                                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">{t('auth.terms.privacyLink')}</a>.
                                 </label>
                             </div>
 
@@ -405,7 +427,7 @@ export default function LoginPage() {
                                 disabled={loading}
                                 className="w-full bg-teal-500 text-white font-bold py-3.5 rounded-xl hover:bg-teal-600 active:scale-[0.98] transition-all shadow-lg shadow-teal-500/30 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group"
                             >
-                                {loading ? 'Signing in...' : 'Sign In'}
+                                {loading ? t('auth.btn.signingIn') : t('auth.btn.signIn')}
                                 {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
                             </button>
                         </form>
@@ -416,7 +438,7 @@ export default function LoginPage() {
                         <form onSubmit={handleResetPassword} className="space-y-5">
                             {/* Email */}
                             <div>
-                                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-1">Email Address</label>
+                                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-1">{t('auth.label.email')}</label>
                                 <div className="relative group">
                                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-teal-500 transition-colors" />
                                     <input
@@ -451,7 +473,7 @@ export default function LoginPage() {
                                 disabled={loading || !!successMessage}
                                 className="w-full bg-teal-500 text-white font-bold py-3.5 rounded-xl hover:bg-teal-600 active:scale-[0.98] transition-all shadow-lg shadow-teal-500/30 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group"
                             >
-                                {loading ? 'Sending link...' : 'Send Reset Link'}
+                                {loading ? t('auth.btn.sendingLink') : t('auth.btn.sendResetLink')}
                             </button>
                         </form>
                     )}
@@ -469,11 +491,11 @@ export default function LoginPage() {
                                         }}
                                         className="text-sm font-medium text-slate-500 hover:text-teal-600 transition-colors bg-transparent border-none cursor-pointer"
                                     >
-                                        Forgot your password?
+                                        {t('auth.link.forgotPassword')}
                                     </button>
                                 )}
                                 <p className="text-sm text-slate-400 mt-2">
-                                    New here? <a href="#" className="text-slate-600 font-semibold hover:text-teal-600 transition-colors">Contact administrator</a>
+                                    {t('auth.newHere')} <a href="#" className="text-slate-600 font-semibold hover:text-teal-600 transition-colors">{t('auth.link.contactAdmin')}</a>
                                 </p>
                             </>
                         ) : (
@@ -485,7 +507,7 @@ export default function LoginPage() {
                                 }}
                                 className="text-sm font-medium text-slate-500 hover:text-teal-600 transition-colors bg-transparent border-none cursor-pointer flex items-center justify-center w-full gap-1"
                             >
-                                <ArrowRight className="w-4 h-4 rotate-180" /> Back to Login
+                                <ArrowRight className="w-4 h-4 rotate-180" /> {t('auth.link.backToLogin')}
                             </button>
                         )}
                     </div>

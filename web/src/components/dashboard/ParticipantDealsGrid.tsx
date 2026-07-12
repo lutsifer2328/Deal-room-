@@ -4,6 +4,7 @@ import { Building, FileText, CheckCircle2, Clock, ArrowRight } from 'lucide-reac
 import { useRouter } from 'next/navigation';
 import { Deal, Task } from '@/lib/types';
 import DealStatusBadge from '@/components/deal/DealStatusBadge';
+import { useTranslation } from '@/lib/useTranslation';
 
 /**
  * Participant-facing deals home.
@@ -16,6 +17,7 @@ import DealStatusBadge from '@/components/deal/DealStatusBadge';
  */
 export default function ParticipantDealsGrid({ deals, tasks }: { deals: Deal[]; tasks: Task[] }) {
     const router = useRouter();
+    const { t } = useTranslation();
 
     if (deals.length === 0) {
         return (
@@ -23,7 +25,7 @@ export default function ParticipantDealsGrid({ deals, tasks }: { deals: Deal[]; 
                 <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Building className="w-8 h-8 opacity-20" />
                 </div>
-                <p className="text-lg font-medium text-text-secondary">No deals in this category.</p>
+                <p className="text-lg font-medium text-text-secondary">{t('deals.emptyCategory')}</p>
             </div>
         );
     }
@@ -38,7 +40,6 @@ export default function ParticipantDealsGrid({ deals, tasks }: { deals: Deal[]; 
                 const awaiting = dealTasks.filter((t) => t.status === 'pending_review' || t.status === 'in_review').length;
                 const done = dealTasks.filter((t) => t.status === 'completed').length;
                 const isClosed = deal.status === 'closed';
-                const s = (n: number) => (n === 1 ? '' : 's');
 
                 return (
                     <button
@@ -55,7 +56,7 @@ export default function ParticipantDealsGrid({ deals, tasks }: { deals: Deal[]; 
                                 </div>
                                 <div className="min-w-0">
                                     <h3 className="font-serif font-bold text-lg text-navy-primary truncate">{deal.title}</h3>
-                                    <p className="text-sm text-text-light truncate">{deal.propertyAddress || 'No address'}</p>
+                                    <p className="text-sm text-text-light truncate">{deal.propertyAddress || t('deals.noAddress')}</p>
                                 </div>
                             </div>
                             <div className="flex-shrink-0">
@@ -68,35 +69,35 @@ export default function ParticipantDealsGrid({ deals, tasks }: { deals: Deal[]; 
                             {total === 0 ? (
                                 <div className="flex items-center gap-2 text-sm text-text-light">
                                     <FileText className="w-4 h-4" />
-                                    <span>No documents requested yet</span>
+                                    <span>{t('deals.noDocsRequested')}</span>
                                 </div>
                             ) : needed > 0 ? (
                                 <div className="flex items-center gap-2 text-sm font-bold text-amber-600">
                                     <Clock className="w-4 h-4" />
-                                    <span>{needed} of {total} document{s(total)} still needed from you</span>
+                                    <span>{t('deals.stillNeeded', { needed, total })}</span>
                                 </div>
                             ) : awaiting > 0 ? (
                                 <div className="flex items-center gap-2 text-sm font-bold text-blue-600">
                                     <Clock className="w-4 h-4" />
-                                    <span>{awaiting} document{s(awaiting)} awaiting review</span>
+                                    <span>{t('deals.awaitingReview', { count: awaiting })}</span>
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2 text-sm font-bold text-green-600">
                                     <CheckCircle2 className="w-4 h-4" />
-                                    <span>All {total} document{s(total)} submitted</span>
+                                    <span>{t('deals.allSubmitted', { total })}</span>
                                 </div>
                             )}
                             {total > 0 && (
-                                <div className="mt-2 text-xs text-text-light">{done}/{total} completed</div>
+                                <div className="mt-2 text-xs text-text-light">{t('deals.completedCount', { done, total })}</div>
                             )}
                         </div>
 
                         <div className="mt-4 flex items-center justify-between">
                             <span className="text-xs font-bold uppercase tracking-wide text-text-light">
-                                {isClosed ? 'Closed deal' : 'Open deal'}
+                                {isClosed ? t('deals.closedDeal') : t('deals.openDeal')}
                             </span>
                             <span className="flex items-center gap-1 text-sm font-bold text-teal group-hover:gap-2 transition-all">
-                                View documents <ArrowRight className="w-4 h-4" />
+                                {t('deals.viewDocuments')} <ArrowRight className="w-4 h-4" />
                             </span>
                         </div>
                     </button>

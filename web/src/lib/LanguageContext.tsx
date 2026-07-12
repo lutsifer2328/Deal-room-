@@ -12,7 +12,9 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-    const [language, setLanguage] = useState<Language>('en');
+    // Default to Bulgarian — the client base is Bulgarian, so a new visitor should
+    // land in BG. Staff who pick English get it saved below and keep it thereafter.
+    const [language, setLanguage] = useState<Language>('bg');
 
     useEffect(() => {
         // Load preference from local storage

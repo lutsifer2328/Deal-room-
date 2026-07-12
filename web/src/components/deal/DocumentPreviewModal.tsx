@@ -3,11 +3,13 @@ import { useEffect, useState } from 'react';
 import { X, FileText, AlertTriangle } from 'lucide-react';
 import { DealDocument } from '@/lib/types';
 import { getDocumentSignedUrl } from '@/app/actions/documents';
+import { useTranslation } from '@/lib/useTranslation';
 
 export default function DocumentPreviewModal({ doc, onClose }: {
     doc: DealDocument,
     onClose: () => void
 }) {
+    const { t } = useTranslation();
     const [mounted, setMounted] = useState(false);
     const [signedUrl, setSignedUrl] = useState<string | null>(null);
     const [isLoadingUrl, setIsLoadingUrl] = useState(true);
@@ -52,7 +54,7 @@ export default function DocumentPreviewModal({ doc, onClose }: {
                     setTimeout(() => fetchUrl(true), 1000);
                     return;
                 }
-                setErrorMsg('Failed to load document preview');
+                setErrorMsg(t('preview.loadFailed'));
             } finally {
                 if (!isRetry || (isRetry && (errorMsg || signedUrl))) setIsLoadingUrl(false);
             }
@@ -78,9 +80,9 @@ export default function DocumentPreviewModal({ doc, onClose }: {
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-midnight text-white flex-shrink-0 rounded-t-xl">
                     <div>
                         <h2 className="text-lg font-bold">{doc.title_en}</h2>
-                        <p className="text-xs text-white/70">Uploaded {new Date(doc.uploadedAt).toLocaleString()}</p>
+                        <p className="text-xs text-white/70">{t('preview.uploaded', { date: new Date(doc.uploadedAt).toLocaleString() })}</p>
                     </div>
-                    <button onClick={onClose} className="text-white/80 hover:text-white transition-colors" title="Close Preview">
+                    <button onClick={onClose} className="text-white/80 hover:text-white transition-colors" title={t('preview.closeBtn')}>
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -103,7 +105,7 @@ export default function DocumentPreviewModal({ doc, onClose }: {
                                         // Force re-fetch? We can't easily recall fetchUrl from here without refactoring.
                                         // But invalidating signedUrl might trigger effect? No, effect depends on doc.url.
                                         // We'll just show error for now if image fails to load despite valid URL.
-                                        setErrorMsg('Image failed to load.');
+                                        setErrorMsg(t('preview.imageFailed'));
                                     }
                                 }}
                             />
@@ -115,26 +117,17 @@ export default function DocumentPreviewModal({ doc, onClose }: {
                             // never leave our own infrastructure. PDFs/images still render inline above.
                             <div className="text-center py-20">
                                 <FileText className="w-24 h-24 text-gray-300 mx-auto mb-4" />
-                                <p className="text-gray-600 font-bold mb-2">Open this document to review it</p>
+                                <p className="text-gray-600 font-bold mb-2">{t('preview.openToReview')}</p>
                                 <a href={signedUrl} target="_blank" rel="noopener noreferrer" className="text-teal hover:underline font-bold">
-                                    Download to review
+                                    {t('preview.downloadToReview')}
                                 </a>
                             </div>
                         )
                     ) : (
                         <div className="text-center py-20">
                             <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-                            <p className="text-gray-600 font-bold">Could not load document preview</p>
+                            <p className="text-gray-600 font-bold">{t('preview.couldNotLoad')}</p>
                             {errorMsg && <p className="text-red-500 text-sm mt-2 bg-red-50 p-2 rounded border border-red-100">{errorMsg}</p>}
-
-                            {/* DEBUG PANEL */}
-                            <div className="mt-8 mx-auto max-w-md bg-black text-green-400 p-4 font-mono text-xs text-left rounded overflow-auto max-h-40 shadow-lg">
-                                <p className="font-bold border-b border-green-900 mb-2">DEBUG DIAGNOSTICS:</p>
-                                <p>DOC URL: {doc.url}</p>
-                                <p>SIGNED URL: {signedUrl || 'null'}</p>
-                                <p>ERROR: {errorMsg || 'null'}</p>
-                                <p>IS LOADING: {isLoadingUrl ? 'YES' : 'NO'}</p>
-                            </div>
                         </div>
                     )}
                 </div>
@@ -145,7 +138,7 @@ export default function DocumentPreviewModal({ doc, onClose }: {
                         onClick={onClose}
                         className="px-6 py-2 bg-midnight text-white font-bold rounded-lg hover:bg-midnight/90 transition-colors shadow-lg"
                     >
-                        Close Preview
+                        {t('preview.closeBtn')}
                     </button>
                 </div>
             </div>
