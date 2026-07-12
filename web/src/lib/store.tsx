@@ -303,6 +303,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         fetchData();
 
+        // Failsafe: pages gated on `isInitialized` (e.g. the deal view) must never
+        // spin forever. fetchData() sets it on every normal path, but a hung bulk
+        // read would otherwise strand it — release after a few seconds so the UI
+        // renders (empty if need be) and the focus/auth re-fetch can fill it in.
+        const initFailsafe = setTimeout(() => {
+            setIsInitialized((prev) => {
+                if (!prev) console.warn('⏱️ Store init failsafe fired — releasing isInitialized');
+                return true;
+            });
+        }, 7000);
+
         // Listen for auth state changes to re-fetch data when session becomes available.
         // This fixes the race condition during invite callback flow where fetchData()
         // runs before the session is established (verifyOtp hasn't completed yet).
@@ -323,7 +334,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
             }
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            clearTimeout(initFailsafe);
+            subscription.unsubscribe();
+        };
     }, []);
 
     // Compute Enriched Global Participants (contracts attached)

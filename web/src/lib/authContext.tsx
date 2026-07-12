@@ -11,6 +11,18 @@ import { User } from './types';
 
 import { useRouter } from 'next/navigation';
 
+// Races a Supabase request against a timer so a hung/stalled call can never
+// strand the UI on a loading spinner. The query builder is a thenable, so
+// Promise.resolve adopts it without executing it twice.
+function withTimeout<T>(op: PromiseLike<T>, ms: number, label: string): Promise<T> {
+    return Promise.race([
+        Promise.resolve(op),
+        new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+        ),
+    ]);
+}
+
 interface AuthContextType {
     user: User | null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,6 +39,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const router = useRouter();
 
     useEffect(() => {
+        // Failsafe: the loading spinner must never be permanent. If the session
+        // check or the profile fetch stalls (e.g. a request cancelled/hung during
+        // the auth-refresh churn), release the loading state after a few seconds so
+        // the app renders instead of spinning forever. A later auth event or the
+        // DB fetch completing still repopulates the real profile.
+        const loadingFailsafe = setTimeout(() => {
+            setIsLoading((prev) => {
+                if (prev) console.warn('⏱️ Auth loading failsafe fired — releasing spinner');
+                return false;
+            });
+        }, 7000);
+
         // 1. Check active session
         const initSession = async () => {
             try {
@@ -129,7 +153,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
         }
 
-        return () => subscription.unsubscribe();
+        return () => {
+            clearTimeout(loadingFailsafe);
+            subscription.unsubscribe();
+        };
     }, []);
 
     const lastFetchRef = React.useRef<number>(0);
@@ -162,11 +189,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
         for (let attempt = 0; attempt < 2 && !dbData; attempt++) {
             try {
-                const { data, error } = await db
-                    .from('users')
-                    .select('*')
-                    .eq('id', userId)
-                    .single();
+                const { data, error } = await withTimeout(
+                    db.from('users').select('*').eq('id', userId).single(),
+                    4000,
+                    'Profile fetch'
+                );
 
                 if (error) throw error;
                 if (data) {
@@ -174,10 +201,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
             } catch (error: any) {
                 const aborted = error.name === 'AbortError' || error.message?.includes('AbortError');
+                const timedOut = error.message?.includes('timed out');
                 if (aborted && attempt === 0) {
                     console.warn('⚠️ Profile fetch aborted — retrying once after brief settle...');
                     await new Promise((r) => setTimeout(r, 300));
                     continue;
+                }
+                if (timedOut) {
+                    // Don't retry a timeout (it will likely just time out again and
+                    // keep the spinner up) — fall through to the fast metadata fallback.
+                    console.warn('⚠️ Profile fetch timed out — falling back without blocking the UI.');
+                    break;
                 }
                 if (aborted) {
                     console.warn('⚠️ Profile fetch aborted again — falling back to session metadata.');
