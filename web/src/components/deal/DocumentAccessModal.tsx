@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { X, Lock, ShieldCheck, UploadCloud, Eye, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation, type TranslationKey } from '@/lib/useTranslation';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import {
     getDocumentAccess,
     setDocumentAccess,
@@ -101,6 +102,13 @@ export default function DocumentAccessModal({ documentId, onClose }: {
                     <div>
                         <h2 className="text-lg font-bold text-navy-primary flex items-center gap-2">
                             <Lock className="w-4 h-4 text-teal" /> {t('docAccess.title')}
+                            <InfoTooltip
+                                text={
+                                    <>
+                                        {t('docAccess.infoPrefix')} <strong>{t('docAccess.levelView')}</strong> {t('docAccess.infoMid')} <strong>{t('docAccess.levelDownload')}</strong> {t('docAccess.infoSuffix')}
+                                    </>
+                                }
+                            />
                         </h2>
                         <p className="text-xs text-text-light mt-0.5 truncate max-w-[26rem]">{title}</p>
                     </div>
@@ -118,10 +126,6 @@ export default function DocumentAccessModal({ documentId, onClose }: {
                         <div className="text-center py-10 text-danger text-sm">{error}</div>
                     ) : (
                         <>
-                            <p className="text-xs text-text-secondary bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 mb-4">
-                                {t('docAccess.infoPrefix')} <strong>{t('docAccess.levelView')}</strong> {t('docAccess.infoMid')} <strong>{t('docAccess.levelDownload')}</strong> {t('docAccess.infoSuffix')}
-                            </p>
-
                             {rows.filter((r) => r.isHostParticipant || r.isUploader).map((r) => (
                                 <div key={r.participantId} className="flex items-center justify-between py-2.5 px-2 opacity-70">
                                     <div className="flex items-center gap-3 min-w-0">

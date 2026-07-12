@@ -97,6 +97,19 @@ export const translations = {
         "role.N/A": "N/A",
         "role.attorney": "Attorney", // Alias for lawyer if data varies
 
+        // Duplicate participant detection
+        "duplicate.title": "Existing Participant Found",
+        "duplicate.existsPrefix": "A participant with email",
+        "duplicate.existsSuffix": " already exists:",
+        "duplicate.dealsCount": "Currently in {count} {noun}:",
+        "duplicate.dealSingular": "deal",
+        "duplicate.dealPlural": "deals",
+        "duplicate.usePrompt": "Would you like to use this participant?",
+        "duplicate.warning": "Creating a new participant will result in duplicate entries",
+        "duplicate.confirmCreate": "Are you sure? This will create a duplicate entry for the same email address.",
+        "duplicate.useExisting": "Use Existing",
+        "duplicate.createNew": "Create New",
+
         // Deal Room
         "deal.requiredDocs": "Required Documents",
         "deal.addRequirement": "Add Requirement",
@@ -324,6 +337,7 @@ export const translations = {
 
         // Common
         "common.loading": "Loading...",
+        "common.moreInfo": "More information",
         "common.back": "Back",
         "common.save": "Save",
         "common.cancel": "Cancel",
@@ -544,6 +558,19 @@ export const translations = {
         "role.bank_representative": "Банков Представител",
         "role.N/A": "N/A",
         "role.attorney": "Адвокат", // Alias for lawyer
+
+        // Duplicate participant detection
+        "duplicate.title": "Намерен съществуващ участник",
+        "duplicate.existsPrefix": "Вече съществува участник с имейл",
+        "duplicate.existsSuffix": ":",
+        "duplicate.dealsCount": "Участва в {count} {noun}:",
+        "duplicate.dealSingular": "сделка",
+        "duplicate.dealPlural": "сделки",
+        "duplicate.usePrompt": "Искате ли да използвате този участник?",
+        "duplicate.warning": "Създаването на нов участник ще доведе до дублирани записи",
+        "duplicate.confirmCreate": "Сигурни ли сте? Това ще създаде дублиран запис за същия имейл адрес.",
+        "duplicate.useExisting": "Използвай съществуващия",
+        "duplicate.createNew": "Създай нов",
 
         // Deal Room
         "deal.requiredDocs": "Необходими документи",
@@ -773,6 +800,7 @@ export const translations = {
 
         // Common
         "common.loading": "Зареждане...",
+        "common.moreInfo": "Повече информация",
         "common.back": "Назад",
         "common.save": "Запази",
         "common.cancel": "Отказ",

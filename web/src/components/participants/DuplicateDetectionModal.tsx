@@ -5,6 +5,7 @@ import { GlobalParticipant } from '@/lib/types';
 import { Modal, ModalHeader, ModalContent, ModalFooter } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { useTranslation, type TranslationKey } from '@/lib/useTranslation';
 
 interface DuplicateDetectionModalProps {
     existingParticipant: GlobalParticipant;
@@ -23,8 +24,10 @@ export default function DuplicateDetectionModal({
     onUseExisting,
     onCreateNew
 }: DuplicateDetectionModalProps) {
+    const { t } = useTranslation();
+
     const handleCreateNew = () => {
-        if (confirm('Are you sure? This will create a duplicate entry for the same email address.')) {
+        if (confirm(t('duplicate.confirmCreate'))) {
             onCreateNew();
         }
     };
@@ -34,12 +37,12 @@ export default function DuplicateDetectionModal({
             <ModalHeader className="bg-orange-50 border-orange-100 text-orange-800" onClose={onCancel}>
                 <div className="flex items-center gap-2">
                     <AlertTriangle className="w-5 h-5 text-orange-600" />
-                    Existing Participant Found
+                    {t('duplicate.title')}
                 </div>
             </ModalHeader>
             <ModalContent>
                 <p className="text-gray-700 mb-4">
-                    A participant with email <strong>{email}</strong> already exists:
+                    {t('duplicate.existsPrefix')} <strong>{email}</strong>{t('duplicate.existsSuffix')}
                 </p>
 
                 {/* Existing Participant Info */}
@@ -60,7 +63,10 @@ export default function DuplicateDetectionModal({
                     {deals.length > 0 && (
                         <div className="pt-3 border-t border-gray-200">
                             <div className="text-xs font-bold text-gray-700 uppercase mb-2">
-                                Currently in {deals.length} {deals.length === 1 ? 'deal' : 'deals'}:
+                                {t('duplicate.dealsCount', {
+                                    count: deals.length,
+                                    noun: t(deals.length === 1 ? 'duplicate.dealSingular' : 'duplicate.dealPlural'),
+                                })}
                             </div>
                             <ul className="space-y-1">
                                 {deals.map((deal, index) => (
@@ -68,7 +74,7 @@ export default function DuplicateDetectionModal({
                                         <span className="w-1.5 h-1.5 rounded-full bg-teal shrink-0"></span>
                                         <span className="truncate max-w-[150px]">{deal.dealName}</span>
                                         <Badge variant="outline" className="text-teal bg-teal/5 border-teal/20 text-[10px] px-1.5 py-0">
-                                            {deal.role}
+                                            {t(`role.${deal.role}` as TranslationKey)}
                                         </Badge>
                                     </li>
                                 ))}
@@ -78,22 +84,22 @@ export default function DuplicateDetectionModal({
                 </div>
 
                 <p className="text-gray-700 font-medium mb-4">
-                    Would you like to use this participant?
+                    {t('duplicate.usePrompt')}
                 </p>
 
                 <p className="text-xs text-gray-500 text-center">
-                    Creating a new participant will result in duplicate entries
+                    {t('duplicate.warning')}
                 </p>
             </ModalContent>
             <ModalFooter className="flex-col sm:flex-row gap-2">
                 <Button onClick={onCancel} variant="outline" className="w-full sm:w-auto">
-                    Cancel
+                    {t('common.cancel')}
                 </Button>
                 <Button onClick={onUseExisting} variant="primary" className="w-full sm:w-auto">
-                    Use Existing
+                    {t('duplicate.useExisting')}
                 </Button>
                 <Button onClick={handleCreateNew} variant="danger" className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 border-none text-white">
-                    Create New
+                    {t('duplicate.createNew')}
                 </Button>
             </ModalFooter>
         </Modal>
