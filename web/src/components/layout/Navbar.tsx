@@ -6,7 +6,7 @@ import { Bell, Search, X, Check, Info, AlertTriangle, Menu } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { User } from '@/lib/types';
-import { useTranslation } from '@/lib/useTranslation';
+import { useTranslation, type TranslationKey } from '@/lib/useTranslation';
 import Link from 'next/link';
 
 interface NavbarProps {
@@ -143,7 +143,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                                                         </div>
                                                         {matchingParticipant && (
                                                             <div className="mt-2 text-xs text-teal font-bold bg-teal/10 px-2 py-1 rounded inline-block">
-                                                                👤 {matchingParticipant.fullName} • {matchingParticipant.role}
+                                                                👤 {matchingParticipant.fullName} • {t(`role.${matchingParticipant.role}` as TranslationKey)}
                                                             </div>
                                                         )}
                                                     </div>
@@ -318,7 +318,7 @@ function UserMenu({ user }: { user: User }) {
             >
                 <div className="text-right hidden sm:block">
                     <div className="text-sm font-bold text-navy-primary group-hover:text-teal transition-colors">{user.name || t('navbar.userFallback')}</div>
-                    <div className="text-xs text-text-light font-medium capitalize">{user.role}</div>
+                    <div className="text-xs text-text-light font-medium capitalize">{t(`role.${user.role}` as TranslationKey)}</div>
                 </div>
                 <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-teal to-gold flex items-center justify-center text-white font-bold shadow-sm">
                     {(user.name || 'U').charAt(0)}

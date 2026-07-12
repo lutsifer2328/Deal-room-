@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 import { X, Lock, ShieldCheck, UploadCloud, Eye, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useTranslation } from '@/lib/useTranslation';
+import { useTranslation, type TranslationKey } from '@/lib/useTranslation';
 import {
     getDocumentAccess,
     setDocumentAccess,
@@ -130,7 +130,7 @@ export default function DocumentAccessModal({ documentId, onClose }: {
                                         </div>
                                         <div className="min-w-0">
                                             <div className="text-sm font-medium text-navy-primary truncate">{r.name}</div>
-                                            <div className="text-[11px] text-text-light uppercase tracking-wide">{r.role}</div>
+                                            <div className="text-[11px] text-text-light uppercase tracking-wide">{t(`role.${r.role}` as TranslationKey)}</div>
                                         </div>
                                     </div>
                                     <span className="text-[11px] font-bold text-gray-400 whitespace-nowrap">
@@ -149,7 +149,7 @@ export default function DocumentAccessModal({ documentId, onClose }: {
                                         </div>
                                         <div className="min-w-0">
                                             <div className="text-sm font-medium text-navy-primary truncate">{r.name}</div>
-                                            <div className="text-[11px] text-text-light uppercase tracking-wide">{r.role}</div>
+                                            <div className="text-[11px] text-text-light uppercase tracking-wide">{t(`role.${r.role}` as TranslationKey)}</div>
                                         </div>
                                     </div>
                                     {/* Segmented 3-state control */}

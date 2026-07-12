@@ -10,9 +10,11 @@ import {
 import { useState, useMemo } from 'react';
 import DealStatusBadge from '@/components/deal/DealStatusBadge';
 import CreateDealWizard from '@/components/deal/CreateDealWizard';
-import { useTranslation } from '@/lib/useTranslation';
+import { useTranslation, type TranslationKey } from '@/lib/useTranslation';
 import { Deal } from '@/lib/types';
 import PullToRefresh from 'react-simple-pull-to-refresh';
+
+const KNOWN_PHASES = ['onboarding', 'documents', 'preliminary_contract', 'final_review', 'closing'];
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
@@ -22,9 +24,6 @@ function formatCurrency(value: number) {
     return `€${value.toLocaleString('en-US')}`;
 }
 
-function getStepLabel(step: string) {
-    return step?.replace(/_/g, ' ').toUpperCase() || 'UNKNOWN';
-}
 
 // ─── Executive Pulse Card ─────────────────────────────────────────────────────
 
@@ -85,6 +84,13 @@ export default function DashboardProPage() {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+    const getStepLabel = (step: string) => {
+        const label = KNOWN_PHASES.includes(step)
+            ? t(`dashboard.phase.${step}` as TranslationKey)
+            : (step?.replace(/_/g, ' ') || '');
+        return (label || 'UNKNOWN').toUpperCase();
+    };
+
     // ── Computed Stats ────────────────────────────────────────────────────────
 
     const stats = useMemo(() => {
@@ -120,7 +126,7 @@ export default function DashboardProPage() {
     const filteredDeals = deals.filter(d => d.status === statusFilter);
 
     if (isLoading) {
-        return <div className="p-20 text-center text-gray-500">Loading...</div>;
+        return <div className="p-20 text-center text-gray-500">{t('common.loading')}</div>;
     }
 
     return (

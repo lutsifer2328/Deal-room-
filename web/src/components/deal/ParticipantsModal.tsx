@@ -844,7 +844,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                             <div>
                                                 <div className="font-bold text-midnight">{participant.fullName}</div>
                                                 <Badge className={getRoleColor(participant.role)}>
-                                                    {participant.role.replace('_', ' ')}
+                                                    {t(`role.${participant.role}` as TranslationKey)}
                                                 </Badge>
                                             </div>
                                         </div>

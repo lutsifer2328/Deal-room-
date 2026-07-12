@@ -9,8 +9,10 @@ import CreateDealWizard from '@/components/deal/CreateDealWizard';
 import DealStatusBadge from '@/components/deal/DealStatusBadge';
 import ParticipantDealsGrid from '@/components/dashboard/ParticipantDealsGrid';
 import { DealStatus } from '@/lib/types';
-import { useTranslation } from '@/lib/useTranslation';
+import { useTranslation, type TranslationKey } from '@/lib/useTranslation';
 import { supabase } from '@/lib/supabase';
+
+const KNOWN_PHASES = ['onboarding', 'documents', 'preliminary_contract', 'final_review', 'closing'];
 
 type StatusFilter = 'active' | 'on_hold' | 'closed';
 type ViewMode = 'my-deals' | 'global-index';
@@ -112,11 +114,14 @@ export default function DashboardPage() {
     };
 
     const getStepLabel = (step: string) => {
-        return step?.replace(/_/g, ' ').toUpperCase() || 'UNKNOWN';
+        const label = KNOWN_PHASES.includes(step)
+            ? t(`dashboard.phase.${step}` as TranslationKey)
+            : (step?.replace(/_/g, ' ') || '');
+        return (label || 'UNKNOWN').toUpperCase();
     };
 
     if (isLoading) {
-        return <div className="p-20 text-center text-gray-500">Loading...</div>;
+        return <div className="p-20 text-center text-gray-500">{t('common.loading')}</div>;
     }
 
     if (!user) {
