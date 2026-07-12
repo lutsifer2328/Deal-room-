@@ -36,11 +36,20 @@ export async function middleware(request: NextRequest) {
         }
     )
 
-    const { data: { user } } = await supabase.auth.getUser()
+    // Use getClaims() instead of getUser(). getUser() makes a network round-trip to
+    // Supabase on EVERY matched request (every navigation + RSC prefetch), which was the
+    // main source of the site feeling laggy once signed in. getClaims() verifies the
+    // access-token JWT locally against the project's asymmetric (ES256) signing key —
+    // no network call on the hot path. It still calls getSession() internally, which
+    // refreshes an expired token and writes the new cookies via setAll, so session
+    // refresh keeps working exactly as before.
+    const { data: claimsData } = await supabase.auth.getClaims()
+    const claims = claimsData?.claims
 
     // FORCE PASSWORD CHANGE CHECK
-    // If user is logged in AND has data.requires_password_change === true
-    if (user && user.user_metadata?.requires_password_change) {
+    // If user is logged in AND has requires_password_change === true.
+    // user_metadata is carried inside the JWT payload, so it's available in the claims.
+    if (claims && claims.user_metadata?.requires_password_change) {
         const isUpdatePage = request.nextUrl.pathname.startsWith('/auth/update-password')
         const isSignOut = request.nextUrl.pathname.startsWith('/auth/signout')
         const isApi = request.nextUrl.pathname.startsWith('/api') || request.nextUrl.pathname.startsWith('/auth/v1')
@@ -54,7 +63,7 @@ export async function middleware(request: NextRequest) {
 
     // PROTECTED ROUTES CHECK (Optional - currently handled by Layout/Context but good to have here)
     // If no user and trying to access protected routes
-    if (!user && (request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/settings'))) {
+    if (!claims && (request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/settings'))) {
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
