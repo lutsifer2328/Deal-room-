@@ -2,6 +2,7 @@
 
 import { X, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from '@/lib/useTranslation';
 
 const REASONS = [
     { label: 'Unreadable copy / Нечетливо копие', en: 'Unreadable copy', bg: 'Нечетливо копие' },
@@ -11,6 +12,7 @@ const REASONS = [
 ];
 
 export default function RejectionModal({ onClose, onConfirm }: { onClose: () => void, onConfirm: (en: string, bg: string) => void }) {
+    const { t } = useTranslation();
     const [reasonEn, setReasonEn] = useState(REASONS[0].en);
     const [reasonBg, setReasonBg] = useState(REASONS[0].bg);
     const [isCustom, setIsCustom] = useState(false);
@@ -34,7 +36,7 @@ export default function RejectionModal({ onClose, onConfirm }: { onClose: () => 
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-red-600 text-white">
                     <h2 className="text-lg font-bold flex items-center gap-2">
                         <AlertTriangle className="w-5 h-5" />
-                        Reject Document
+                        {t('reject.title')}
                     </h2>
                     <button onClick={onClose} className="text-white/80 hover:text-white">
                         <X className="w-5 h-5" />
@@ -44,7 +46,7 @@ export default function RejectionModal({ onClose, onConfirm }: { onClose: () => 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Common Reasons</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('reject.commonReasons')}</label>
                         <div className="grid grid-cols-1 gap-2">
                             {REASONS.map((r, i) => (
                                 <button
@@ -63,7 +65,7 @@ export default function RejectionModal({ onClose, onConfirm }: { onClose: () => 
                                 className={`flex items-center justify-between px-3 py-2 text-sm border rounded-lg transition-colors ${isCustom ? 'border-red-500 bg-red-50 text-red-700 font-medium' : 'border-gray-200 hover:bg-gray-50'
                                     }`}
                             >
-                                Other (Custom)
+                                {t('reject.otherCustom')}
                             </button>
                         </div>
                     </div>
@@ -71,7 +73,7 @@ export default function RejectionModal({ onClose, onConfirm }: { onClose: () => 
                     {isCustom && (
                         <div className="space-y-3 pt-2 border-t border-gray-100">
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">English Reason</label>
+                                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">{t('reject.enReason')}</label>
                                 <input
                                     type="text"
                                     required
@@ -81,7 +83,7 @@ export default function RejectionModal({ onClose, onConfirm }: { onClose: () => 
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Bulgarian Reason</label>
+                                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">{t('reject.bgReason')}</label>
                                 <input
                                     type="text"
                                     required
@@ -99,13 +101,13 @@ export default function RejectionModal({ onClose, onConfirm }: { onClose: () => 
                             onClick={onClose}
                             className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg"
                         >
-                            Cancel
+                            {t('common.cancel')}
                         </button>
                         <button
                             type="submit"
                             className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-lg hover:bg-red-700 transition-all"
                         >
-                            Reject Document
+                            {t('reject.title')}
                         </button>
                     </div>
                 </form>

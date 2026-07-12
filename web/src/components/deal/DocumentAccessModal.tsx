@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 import { X, Lock, ShieldCheck, UploadCloud, Eye, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslation } from '@/lib/useTranslation';
 import {
     getDocumentAccess,
     setDocumentAccess,
@@ -23,6 +24,7 @@ export default function DocumentAccessModal({ documentId, onClose }: {
     documentId: string;
     onClose: () => void;
 }) {
+    const { t } = useTranslation();
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export default function DocumentAccessModal({ documentId, onClose }: {
         setBusyId(null);
         if (!res.ok) {
             setRows((p) => p.map((x) => x.participantId === r.participantId ? { ...x, level: prev } : x));
-            toast.error(res.error || 'Could not update access');
+            toast.error(res.error || t('docAccess.toastUpdateError'));
         }
     };
 
@@ -71,7 +73,7 @@ export default function DocumentAccessModal({ documentId, onClose }: {
         const res = await setDocumentAccessBulk(documentId, ids, level);
         setBulkBusy(false);
         if (!res.ok) { setRows(prev); toast.error(res.error || 'Could not update access'); }
-        else toast.success(level === 'none' ? 'Closed to everyone' : 'Opened to everyone');
+        else toast.success(level === 'none' ? t('docAccess.toastClosedAll') : t('docAccess.toastOpenedAll'));
     };
 
     if (!mounted) return null;
@@ -98,11 +100,11 @@ export default function DocumentAccessModal({ documentId, onClose }: {
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-start">
                     <div>
                         <h2 className="text-lg font-bold text-navy-primary flex items-center gap-2">
-                            <Lock className="w-4 h-4 text-teal" /> Who can open this document
+                            <Lock className="w-4 h-4 text-teal" /> {t('docAccess.title')}
                         </h2>
                         <p className="text-xs text-text-light mt-0.5 truncate max-w-[26rem]">{title}</p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-700" title="Close">
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-700" title={t('docAccess.close')}>
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -117,7 +119,7 @@ export default function DocumentAccessModal({ documentId, onClose }: {
                     ) : (
                         <>
                             <p className="text-xs text-text-secondary bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 mb-4">
-                                Closed by default. <strong>View</strong> lets them read the document in-app; <strong>Download</strong> also lets them save a copy (e.g. for a bank or their own lawyer).
+                                {t('docAccess.infoPrefix')} <strong>{t('docAccess.levelView')}</strong> {t('docAccess.infoMid')} <strong>{t('docAccess.levelDownload')}</strong> {t('docAccess.infoSuffix')}
                             </p>
 
                             {rows.filter((r) => r.isHostParticipant || r.isUploader).map((r) => (
@@ -132,7 +134,7 @@ export default function DocumentAccessModal({ documentId, onClose }: {
                                         </div>
                                     </div>
                                     <span className="text-[11px] font-bold text-gray-400 whitespace-nowrap">
-                                        {r.isUploader ? 'Uploader — full' : 'Agenzia — full'}
+                                        {r.isUploader ? t('docAccess.uploaderFull') : t('docAccess.agenziaFull')}
                                     </span>
                                 </div>
                             ))}
@@ -153,20 +155,20 @@ export default function DocumentAccessModal({ documentId, onClose }: {
                                     {/* Segmented 3-state control */}
                                     <div className="flex rounded-lg overflow-hidden flex-shrink-0" style={{ opacity: busyId === r.participantId || bulkBusy ? 0.5 : 1 }}>
                                         <SegBtn tone="gray" active={r.level === 'none'} disabled={busyId === r.participantId || bulkBusy} onClick={() => setLevel(r, 'none')}>
-                                            <Lock className="w-3 h-3" /> Closed
+                                            <Lock className="w-3 h-3" /> {t('docAccess.levelClosed')}
                                         </SegBtn>
                                         <SegBtn tone="teal" active={r.level === 'view'} disabled={busyId === r.participantId || bulkBusy} onClick={() => setLevel(r, 'view')}>
-                                            <Eye className="w-3 h-3" /> View
+                                            <Eye className="w-3 h-3" /> {t('docAccess.levelView')}
                                         </SegBtn>
                                         <SegBtn tone="navy" active={r.level === 'download'} disabled={busyId === r.participantId || bulkBusy} onClick={() => setLevel(r, 'download')}>
-                                            <Download className="w-3 h-3" /> Download
+                                            <Download className="w-3 h-3" /> {t('docAccess.levelDownload')}
                                         </SegBtn>
                                     </div>
                                 </div>
                             ))}
 
                             {guests.length === 0 && (
-                                <div className="text-center py-8 text-sm text-text-light">No other participants to grant access to yet.</div>
+                                <div className="text-center py-8 text-sm text-text-light">{t('docAccess.noGuests')}</div>
                             )}
                         </>
                     )}
@@ -176,16 +178,16 @@ export default function DocumentAccessModal({ documentId, onClose }: {
                     <div className="px-4 py-3 border-t border-gray-100 flex justify-between items-center gap-2">
                         <button onClick={() => bulk('none')} disabled={bulkBusy}
                             className="text-xs font-bold text-gray-500 hover:text-danger disabled:opacity-50">
-                            Close to everyone
+                            {t('docAccess.closeAll')}
                         </button>
                         <div className="flex gap-2">
                             <button onClick={() => bulk('view')} disabled={bulkBusy}
                                 className="text-xs font-bold text-teal border border-teal/30 hover:bg-teal/5 px-3 py-2 rounded-lg disabled:opacity-50">
-                                View for everyone
+                                {t('docAccess.viewAll')}
                             </button>
                             <button onClick={() => bulk('download')} disabled={bulkBusy}
                                 className="text-xs font-bold text-white bg-navy-primary hover:bg-navy-secondary px-3 py-2 rounded-lg disabled:opacity-50">
-                                Allow download for everyone
+                                {t('docAccess.downloadAll')}
                             </button>
                         </div>
                     </div>

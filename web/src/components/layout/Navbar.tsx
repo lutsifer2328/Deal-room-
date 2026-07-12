@@ -6,6 +6,7 @@ import { Bell, Search, X, Check, Info, AlertTriangle, Menu } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { User } from '@/lib/types';
+import { useTranslation } from '@/lib/useTranslation';
 import Link from 'next/link';
 
 interface NavbarProps {
@@ -16,6 +17,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
     const { user } = useAuth();
     const { deals, notifications, markAsRead, markAllAsRead } = useData();
     const router = useRouter();
+    const { t } = useTranslation();
     const [searchQuery, setSearchQuery] = useState('');
     const [showResults, setShowResults] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
@@ -78,7 +80,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                 <button
                     onClick={onMenuClick}
                     className="md:hidden p-2 -ml-2 text-navy-primary hover:bg-gray-100 rounded-lg transition-colors"
-                    title="Menu"
+                    title={t('navbar.menu')}
                 >
                     <Menu className="w-6 h-6" />
                 </button>
@@ -95,7 +97,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                                 setShowResults(true);
                             }}
                             onFocus={() => setShowResults(true)}
-                            placeholder="Search deals..."
+                            placeholder={t('navbar.searchPlaceholder')}
                             className="w-full pl-14 pr-10 py-3 bg-white border-2 border-border-light rounded-2xl focus:border-teal/50 focus:ring-4 focus:ring-teal/10 outline-none text-base font-medium shadow-sm transition-all text-text-main placeholder:text-text-light/70"
                         />
                         {(searchQuery || showMobileSearch) && (
@@ -105,7 +107,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                                     setShowMobileSearch(false);
                                 }}
                                 className="absolute right-4 top-1/2 -translate-y-1/2 text-text-light hover:text-text-secondary"
-                                title="Clear Search"
+                                title={t('navbar.clearSearch')}
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -137,7 +139,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                                                             {deal.title}
                                                         </div>
                                                         <div className="text-sm text-text-secondary flex items-center gap-2">
-                                                            {deal.propertyAddress || 'No address'}
+                                                            {deal.propertyAddress || t('deals.noAddress')}
                                                         </div>
                                                         {matchingParticipant && (
                                                             <div className="mt-2 text-xs text-teal font-bold bg-teal/10 px-2 py-1 rounded inline-block">
@@ -158,8 +160,8 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                             ) : (
                                 <div className="px-4 py-12 text-center text-text-light">
                                     <Search className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                                    <p className="font-medium text-text-secondary">No deals found for &quot;{searchQuery}&quot;</p>
-                                    <p className="text-sm mt-1">Try searching by deal name, client, phone, or email</p>
+                                    <p className="font-medium text-text-secondary">{t('navbar.noResults', { query: searchQuery })}</p>
+                                    <p className="text-sm mt-1">{t('navbar.searchHint')}</p>
                                 </div>
                             )}
                         </div>
@@ -170,7 +172,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                 <button
                     onClick={() => setShowMobileSearch(true)}
                     className={`md:hidden p-2 mr-2 text-navy-primary hover:bg-gray-100 rounded-lg ${showMobileSearch ? 'hidden' : ''}`}
-                    title="Search Deals"
+                    title={t('navbar.searchDeals')}
                 >
                     <Search className="w-6 h-6" />
                 </button>
@@ -187,7 +189,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                                 ? 'bg-teal text-white border-teal shadow-md'
                                 : 'bg-white border-border-light text-text-secondary hover:text-teal hover:border-teal hover:shadow-md'
                                 }`}
-                            title="Notifications"
+                            title={t('navbar.notifications')}
                         >
                             <Bell className="w-5 h-5" />
                             {unreadCount > 0 && (
@@ -198,13 +200,13 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                         {showNotifications && (
                             <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-border-light z-50 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
                                 <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between bg-navy-primary/5">
-                                    <h3 className="font-bold text-navy-primary">Notifications</h3>
+                                    <h3 className="font-bold text-navy-primary">{t('navbar.notifications')}</h3>
                                     {unreadCount > 0 && (
                                         <button
                                             onClick={markAllAsRead}
                                             className="text-xs font-bold text-teal hover:text-teal/80 transition-colors"
                                         >
-                                            Mark all as read
+                                            {t('navbar.markAllRead')}
                                         </button>
                                     )}
                                 </div>
@@ -251,7 +253,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                                                                         }}
                                                                         className="text-xs font-bold text-teal hover:underline flex items-center gap-1"
                                                                     >
-                                                                        View Details →
+                                                                        {t('navbar.viewDetails')}
                                                                     </Link>
                                                                 )}
                                                                 {!notification.read && (
@@ -259,7 +261,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                                                                         onClick={() => markAsRead(notification.id)}
                                                                         className="text-xs font-medium text-gray-400 hover:text-navy-primary transition-colors"
                                                                     >
-                                                                        Mark as read
+                                                                        {t('navbar.markRead')}
                                                                     </button>
                                                                 )}
                                                             </div>
@@ -271,7 +273,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                                     ) : (
                                         <div className="p-8 text-center text-gray-400">
                                             <Bell className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                                            <p className="text-sm">No notifications yet</p>
+                                            <p className="text-sm">{t('navbar.noNotifications')}</p>
                                         </div>
                                     )}
                                 </div>
@@ -289,6 +291,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
 function UserMenu({ user }: { user: User }) {
     const { logout } = useAuth();
     const router = useRouter();
+    const { t } = useTranslation();
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -314,7 +317,7 @@ function UserMenu({ user }: { user: User }) {
                 className="flex items-center gap-3 bg-white pl-4 pr-2 py-2 rounded-xl border border-border-light hover:border-teal hover:shadow-md transition-all group"
             >
                 <div className="text-right hidden sm:block">
-                    <div className="text-sm font-bold text-navy-primary group-hover:text-teal transition-colors">{user.name || 'User'}</div>
+                    <div className="text-sm font-bold text-navy-primary group-hover:text-teal transition-colors">{user.name || t('navbar.userFallback')}</div>
                     <div className="text-xs text-text-light font-medium capitalize">{user.role}</div>
                 </div>
                 <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-teal to-gold flex items-center justify-center text-white font-bold shadow-sm">
@@ -325,14 +328,14 @@ function UserMenu({ user }: { user: User }) {
             {showMenu && (
                 <div className="absolute right-0 mt-3 w-56 bg-white rounded-xl shadow-xl border border-border-light py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="px-5 py-3 border-b border-gray-50 mb-1">
-                        <p className="text-sm font-bold text-navy-primary">{user.name || 'User'}</p>
+                        <p className="text-sm font-bold text-navy-primary">{user.name || t('navbar.userFallback')}</p>
                         <p className="text-xs text-text-light">{user.email}</p>
                     </div>
                     <button
                         onClick={handleLogout}
                         className="w-full text-left px-5 py-3 text-sm font-medium text-danger hover:bg-danger/5 transition-colors flex items-center gap-2"
                     >
-                        <span>Sign Out</span>
+                        <span>{t('navbar.signOut')}</span>
                     </button>
                 </div>
             )}

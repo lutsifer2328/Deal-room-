@@ -406,7 +406,48 @@ export const translations = {
         "preview.openToReview": "Open this document to review it",
         "preview.downloadToReview": "Download to review",
         "preview.couldNotLoad": "Could not load document preview",
-        "preview.closeBtn": "Close Preview"
+        "preview.closeBtn": "Close Preview",
+
+        // Document access modal (Manage access)
+        "docAccess.title": "Who can open this document",
+        "docAccess.close": "Close",
+        "docAccess.infoPrefix": "Closed by default.",
+        "docAccess.infoMid": "lets them read the document in-app;",
+        "docAccess.infoSuffix": "also lets them save a copy (e.g. for a bank or their own lawyer).",
+        "docAccess.levelClosed": "Closed",
+        "docAccess.levelView": "View",
+        "docAccess.levelDownload": "Download",
+        "docAccess.uploaderFull": "Uploader — full",
+        "docAccess.agenziaFull": "Agenzia — full",
+        "docAccess.noGuests": "No other participants to grant access to yet.",
+        "docAccess.closeAll": "Close to everyone",
+        "docAccess.viewAll": "View for everyone",
+        "docAccess.downloadAll": "Allow download for everyone",
+        "docAccess.toastUpdateError": "Could not update access",
+        "docAccess.toastClosedAll": "Closed to everyone",
+        "docAccess.toastOpenedAll": "Opened to everyone",
+
+        // Reject document modal
+        "reject.title": "Reject Document",
+        "reject.commonReasons": "Common Reasons",
+        "reject.otherCustom": "Other (Custom)",
+        "reject.enReason": "English Reason",
+        "reject.bgReason": "Bulgarian Reason",
+
+        // Navbar
+        "navbar.menu": "Menu",
+        "navbar.searchPlaceholder": "Search deals...",
+        "navbar.clearSearch": "Clear Search",
+        "navbar.searchDeals": "Search Deals",
+        "navbar.noResults": "No deals found for \"{query}\"",
+        "navbar.searchHint": "Try searching by deal name, client, phone, or email",
+        "navbar.notifications": "Notifications",
+        "navbar.markAllRead": "Mark all as read",
+        "navbar.viewDetails": "View Details →",
+        "navbar.markRead": "Mark as read",
+        "navbar.noNotifications": "No notifications yet",
+        "navbar.signOut": "Sign Out",
+        "navbar.userFallback": "User"
     },
     bg: {
         // Sidebar & Layout
@@ -814,6 +855,47 @@ export const translations = {
         "preview.openToReview": "Отворете този документ, за да го прегледате",
         "preview.downloadToReview": "Изтегли за преглед",
         "preview.couldNotLoad": "Прегледът на документа не можа да се зареди",
-        "preview.closeBtn": "Затвори прегледа"
+        "preview.closeBtn": "Затвори прегледа",
+
+        // Document access modal (Manage access)
+        "docAccess.title": "Кой може да отвори този документ",
+        "docAccess.close": "Затвори",
+        "docAccess.infoPrefix": "Затворено по подразбиране.",
+        "docAccess.infoMid": "им позволява да четат документа в приложението;",
+        "docAccess.infoSuffix": "им позволява и да запазят копие (напр. за банка или собствения им адвокат).",
+        "docAccess.levelClosed": "Затворен",
+        "docAccess.levelView": "Преглед",
+        "docAccess.levelDownload": "Изтегляне",
+        "docAccess.uploaderFull": "Качил — пълен достъп",
+        "docAccess.agenziaFull": "Agenzia — пълен достъп",
+        "docAccess.noGuests": "Все още няма други участници, на които да дадете достъп.",
+        "docAccess.closeAll": "Затвори за всички",
+        "docAccess.viewAll": "Преглед за всички",
+        "docAccess.downloadAll": "Разреши изтегляне за всички",
+        "docAccess.toastUpdateError": "Достъпът не можа да бъде обновен",
+        "docAccess.toastClosedAll": "Затворено за всички",
+        "docAccess.toastOpenedAll": "Отворено за всички",
+
+        // Reject document modal
+        "reject.title": "Отхвърляне на документ",
+        "reject.commonReasons": "Чести причини",
+        "reject.otherCustom": "Друга (по избор)",
+        "reject.enReason": "Причина на английски",
+        "reject.bgReason": "Причина на български",
+
+        // Navbar
+        "navbar.menu": "Меню",
+        "navbar.searchPlaceholder": "Търсене на сделки...",
+        "navbar.clearSearch": "Изчисти търсенето",
+        "navbar.searchDeals": "Търсене на сделки",
+        "navbar.noResults": "Няма намерени сделки за „{query}“",
+        "navbar.searchHint": "Опитайте по име на сделка, клиент, телефон или имейл",
+        "navbar.notifications": "Известия",
+        "navbar.markAllRead": "Маркирай всички като прочетени",
+        "navbar.viewDetails": "Виж детайли →",
+        "navbar.markRead": "Маркирай като прочетено",
+        "navbar.noNotifications": "Все още няма известия",
+        "navbar.signOut": "Изход",
+        "navbar.userFallback": "Потребител"
     }
 };
