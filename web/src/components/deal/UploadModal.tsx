@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Upload as UploadIcon, FileText } from 'lucide-react';
+import { Upload as UploadIcon, FileText, Camera } from 'lucide-react';
 import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
 import { useTranslation } from '@/lib/useTranslation';
@@ -92,6 +92,26 @@ export default function UploadModal({ taskId, taskTitle, dealId, onClose, isOpen
                                 )}
                             </label>
                         </div>
+
+                        {/* Camera capture — phones open the camera directly; hidden on
+                            desktop where the regular picker already covers everything */}
+                        <input
+                            type="file"
+                            onChange={handleFileSelect}
+                            className="hidden"
+                            id="file-upload-camera"
+                            accept="image/*"
+                            capture="environment"
+                            title={t('upload.takePhoto')}
+                            aria-label={t('upload.takePhoto')}
+                        />
+                        <label
+                            htmlFor="file-upload-camera"
+                            className="sm:hidden mt-3 flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-teal/30 bg-teal/5 text-teal font-bold cursor-pointer active:scale-[0.98] transition-transform"
+                        >
+                            <Camera className="w-5 h-5" />
+                            {t('upload.takePhoto')}
+                        </label>
                     </div>
 
                     <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex gap-2 items-start">

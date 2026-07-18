@@ -7,6 +7,7 @@ import { useState, useRef } from 'react';
 import { Participant, Role, GlobalParticipant } from '@/lib/types';
 import DuplicateDetectionModal from '@/components/participants/DuplicateDetectionModal';
 import { useTranslation, TranslationKey } from '@/lib/useTranslation';
+import { DEAL_TEMPLATES, DealTemplateId } from '@/lib/dealTemplates';
 
 export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () => void, onSuccess?: (dealId: string) => void }) {
     const { createDeal, checkDuplicateEmail, getParticipantDeals } = useData();
@@ -19,6 +20,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
     const [title, setTitle] = useState('');
     const [propertyAddress, setPropertyAddress] = useState('');
     const [price, setPrice] = useState('');
+    const [templateId, setTemplateId] = useState<DealTemplateId | ''>('');
 
     // Step 2: Participants
     const [participants, setParticipants] = useState<Omit<Participant, 'id' | 'addedAt'>[]>([]);
@@ -166,7 +168,10 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
             if (!user?.id) throw new Error('User not authenticated');
             console.log('🔨 Creating deal with participants:', finalParticipants.map(p => ({ email: p.email, role: p.role })));
             const parsedPrice = price ? Number(price.replace(/,/g, '')) : undefined;
-            const dealId = await createDeal(title, propertyAddress, finalParticipants, user.id, dealNumber || undefined, parsedPrice);
+            const dealId = await createDeal(
+                title, propertyAddress, finalParticipants, user.id, dealNumber || undefined, parsedPrice,
+                templateId ? DEAL_TEMPLATES[templateId] : undefined
+            );
             if (onSuccess) {
                 onSuccess(dealId);
             } else {
@@ -256,6 +261,35 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                                     placeholder={t('wizard.placeholder.address')}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none"
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('wizard.template.label')}</label>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    {([
+                                        { id: '' as const, label: t('wizard.template.none') },
+                                        { id: 'purchase' as const, label: t('wizard.template.purchase') },
+                                        { id: 'sale' as const, label: t('wizard.template.sale') },
+                                        { id: 'rental' as const, label: t('wizard.template.rental') },
+                                    ]).map(opt => (
+                                        <button
+                                            key={opt.id || 'none'}
+                                            type="button"
+                                            onClick={() => setTemplateId(opt.id)}
+                                            className={`px-3 py-2 rounded-lg border text-sm font-bold transition-all ${templateId === opt.id
+                                                ? 'bg-teal text-white border-teal shadow-sm'
+                                                : 'bg-white text-gray-600 border-gray-300 hover:border-teal hover:text-teal'
+                                                }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                {templateId && (
+                                    <p className="text-xs text-teal font-medium mt-2">
+                                        ✓ {t('wizard.template.hint', { count: DEAL_TEMPLATES[templateId].length })}
+                                    </p>
+                                )}
                             </div>
 
                             <div>

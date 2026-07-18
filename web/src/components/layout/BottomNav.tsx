@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/lib/authContext';
 import { useTranslation } from '@/lib/useTranslation';
+import { useNeedsAttention } from '@/lib/useNeedsAttention';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { LayoutDashboard, ClipboardCheck, Settings } from 'lucide-react';
@@ -10,12 +11,13 @@ export default function BottomNav() {
     const { user } = useAuth();
     const pathname = usePathname();
     const { t } = useTranslation();
+    const { pendingReviewTotal } = useNeedsAttention();
 
     if (!user) return null;
 
     const navItems = [
         { icon: LayoutDashboard, label: t('nav.dealRoom'), href: user.role === 'admin' ? '/dashboard-pro' : '/dashboard', roles: ['admin', 'lawyer', 'staff', 'broker', 'agent', 'buyer', 'seller', 'notary', 'bank_representative', 'viewer', 'attorney', 'user'] },
-        { icon: ClipboardCheck, label: t('nav.archive'), href: '/archive', roles: ['admin', 'lawyer', 'staff', 'broker', 'agent'] },
+        { icon: ClipboardCheck, label: t('nav.archive'), href: '/archive', roles: ['admin', 'lawyer', 'staff', 'broker', 'agent'], badge: pendingReviewTotal },
         { icon: Settings, label: t('nav.settings'), href: '/settings', roles: ['admin'] },
     ];
 
@@ -40,6 +42,11 @@ export default function BottomNav() {
                         >
                             <div className={`relative flex items-center justify-center w-10 h-10 rounded-full transition-colors ${isActive ? 'bg-teal/10' : ''}`}>
                                 <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+                                {'badge' in item && (item.badge ?? 0) > 0 && (
+                                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-bold ring-2 ring-white">
+                                        {(item.badge ?? 0) > 99 ? '99+' : item.badge}
+                                    </span>
+                                )}
                             </div>
                             <span className={`text-[10px] font-bold tracking-wide transition-colors ${isActive ? 'text-teal' : 'text-gray-500'}`}>
                                 {item.label}

@@ -14,7 +14,7 @@ import { useTranslation } from '@/lib/useTranslation';
 import { TranslationKey } from '@/lib/translations';
 
 export default function ParticipantsModal({ deal, onClose, isOpen = true }: { deal: Deal, onClose: () => void, isOpen?: boolean }) {
-    const { removeParticipant, updateParticipant, deals, getParticipantDeals, users, refreshData } = useData();
+    const { removeParticipant, updateParticipant, deals, getParticipantDeals, users, refreshParticipants } = useData();
     const { t } = useTranslation();
 
     // Get fresh deal data from store to see newly added participants
@@ -41,9 +41,8 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
 
     useEffect(() => {
         if (isOpen) {
-            // DEBUG: User reported empty list - forcing refresh
-            console.log('🔄 ParticipantsModal Opened - Refreshing Data...');
-            refreshData();
+            // Sync participant data on open (scoped — no need to reload deals/tasks/docs)
+            refreshParticipants();
         }
 
         if (!isOpen) {
@@ -233,9 +232,8 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                 documentPermissions: { canViewRoles: [] }
             });
 
-            // Force refresh in background (non-blocking) to prevent UI hangs
-            refreshData().catch(e => console.warn('Background refresh error:', e));
-            console.log('🔄 Background data refresh triggered after adding participant');
+            // Sync participant data in background (non-blocking, scoped to participants)
+            refreshParticipants().catch(e => console.warn('Background refresh error:', e));
 
         } catch (error: unknown) {
             clearTimeout(timeoutId);

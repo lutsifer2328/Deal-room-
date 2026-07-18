@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/authContext';
 import { useTranslation } from '@/lib/useTranslation';
+import { useNeedsAttention } from '@/lib/useNeedsAttention';
 import { useState } from 'react';
 
 
@@ -19,13 +20,14 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     const { user, logout } = useAuth();
     const pathname = usePathname();
     const { t, language, setLanguage } = useTranslation();
+    const { pendingReviewTotal } = useNeedsAttention();
     const [showUserMenu, setShowUserMenu] = useState(false);
 
     if (!user) return null;
 
     const navItems = [
         { icon: LayoutDashboard, label: t('nav.dealRoom'), href: user.role === 'admin' ? '/dashboard-pro' : '/dashboard', roles: ['admin', 'lawyer', 'staff', 'broker', 'agent', 'buyer', 'seller', 'notary', 'bank_representative', 'viewer', 'attorney', 'user'] },
-        { icon: ClipboardCheck, label: t('nav.archive'), href: '/archive', roles: ['admin', 'lawyer', 'staff', 'broker', 'agent'] },
+        { icon: ClipboardCheck, label: t('nav.archive'), href: '/archive', roles: ['admin', 'lawyer', 'staff', 'broker', 'agent'], badge: pendingReviewTotal },
         { icon: Users, label: t('nav.participants'), href: '/participants', roles: ['admin', 'lawyer', 'staff', 'broker'] },
         { icon: CreditCard, label: t('nav.finances'), href: '/finances', roles: ['admin', 'lawyer'] },
         { icon: Settings, label: t('nav.settings'), href: '/settings', roles: ['admin'] },
@@ -85,6 +87,14 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                                 >
                                     <Icon className={`w-5 h-5 ${isActive ? 'opacity-100' : 'opacity-80'}`} />
                                     <span className="tracking-wide">{item.label}</span>
+                                    {'badge' in item && (item.badge ?? 0) > 0 && (
+                                        <span
+                                            className="ml-auto min-w-[22px] h-[22px] px-1.5 flex items-center justify-center rounded-full bg-amber-500 text-white text-xs font-bold shadow-sm"
+                                            title={t('nav.pendingBadge', { count: item.badge ?? 0 })}
+                                        >
+                                            {(item.badge ?? 0) > 99 ? '99+' : item.badge}
+                                        </span>
+                                    )}
                                 </Link>
                             );
                         })}

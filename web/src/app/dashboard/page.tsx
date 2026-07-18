@@ -10,6 +10,7 @@ import DealStatusBadge from '@/components/deal/DealStatusBadge';
 import ParticipantDealsGrid from '@/components/dashboard/ParticipantDealsGrid';
 import { DealStatus } from '@/lib/types';
 import { useTranslation, type TranslationKey } from '@/lib/useTranslation';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { supabase } from '@/lib/supabase';
 
 const KNOWN_PHASES = ['onboarding', 'documents', 'preliminary_contract', 'final_review', 'closing'];
@@ -121,7 +122,7 @@ export default function DashboardPage() {
     };
 
     if (isLoading) {
-        return <div className="p-20 text-center text-gray-500">{t('common.loading')}</div>;
+        return <DashboardSkeleton />;
     }
 
     if (!user) {

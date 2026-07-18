@@ -10,7 +10,9 @@ import {
 import { useState, useMemo } from 'react';
 import DealStatusBadge from '@/components/deal/DealStatusBadge';
 import CreateDealWizard from '@/components/deal/CreateDealWizard';
+import NeedsAttentionStrip from '@/components/dashboard/NeedsAttentionStrip';
 import { useTranslation, type TranslationKey } from '@/lib/useTranslation';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { Deal } from '@/lib/types';
 import PullToRefresh from 'react-simple-pull-to-refresh';
 
@@ -126,7 +128,7 @@ export default function DashboardProPage() {
     const filteredDeals = deals.filter(d => d.status === statusFilter);
 
     if (isLoading) {
-        return <div className="p-20 text-center text-gray-500">{t('common.loading')}</div>;
+        return <DashboardSkeleton />;
     }
 
     return (
@@ -210,6 +212,9 @@ export default function DashboardProPage() {
                             accentColor="text-purple-500"
                         />
                     </div>
+
+                    {/* ── Needs Attention ──────────────────────────────────────────── */}
+                    <NeedsAttentionStrip />
 
                     {/* ── Deal Registry ─────────────────────────────────────────────── */}
 

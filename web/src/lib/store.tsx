@@ -5,6 +5,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { supabase } from './supabase';
 import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, DealStatus, Role, StandardDocument, GlobalParticipant, DealParticipant, Notification, AgencyContract, DealDocument } from './types';
 import { createDefaultTimeline } from './defaultTimeline';
+import { DealTemplateTask } from './dealTemplates';
 import { MOCK_STANDARD_DOCUMENTS } from './mockStandardDocuments';
 import { getPermissionsForRole } from './permissions';
 import toast from 'react-hot-toast';
@@ -25,7 +26,7 @@ interface DataContextType {
     downloadableDocIds: Set<string>;
 
     // Actions
-    createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number) => Promise<string>;
+    createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number, templateTasks?: DealTemplateTask[]) => Promise<string>;
     updateDeal: (dealId: string, updates: { title?: string; propertyAddress?: string; price?: number }) => Promise<void>;
     addTask: (dealId: string, title: string, assignedToEmail: string, assignedParticipantId: string, standardDocumentId?: string, expirationDate?: string, customId?: string) => Promise<void>;
     deleteTask: (taskId: string, actorId: string) => void;
@@ -85,9 +86,62 @@ interface DataContextType {
     markAsRead: (id: string) => void;
     markAllAsRead: () => void;
     refreshData: () => Promise<void>;
+    // Scoped refreshes — prefer these over refreshData when you know what changed
+    refreshParticipants: () => Promise<void>;
+    refreshDeal: (dealId: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
+
+// --- Row mappers (DB snake_case → store camelCase) ---
+// Shared by the bulk fetch and the targeted refetches so both produce identical shapes.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mapUserRow = (u: any): User => ({
+    id: u.id,
+    email: u.email,
+    name: u.name || 'Unknown User',
+    role: u.role,
+    permissions: getPermissionsForRole(u.role),
+    avatarUrl: u.avatar_url,
+    isActive: u.is_active !== false,
+    createdAt: u.created_at,
+    lastLogin: u.last_login
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mapGpRow = (gp: any): GlobalParticipant => ({
+    id: gp.id,
+    userId: gp.user_id,
+    email: gp.email,
+    name: gp.name,
+    phone: gp.phone,
+    agency: gp.agency,
+    internalNotes: gp.internal_notes,
+    invitationStatus: gp.invitation_status,
+    invitationSentAt: gp.invitation_sent_at,
+    createdAt: gp.created_at,
+    updatedAt: gp.updated_at
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mapDpRow = (dp: any): DealParticipant => ({
+    id: dp.id,
+    dealId: dp.deal_id,
+    participantId: dp.participant_id,
+    role: dp.role,
+    agency: dp.agency,
+    permissions: dp.permissions,
+    joinedAt: dp.joined_at,
+    isActive: dp.is_active !== false, // Default to true if null/undefined
+    createdAt: dp.created_at,
+    updatedAt: dp.updated_at
+});
+
+// Snapshot of raw store data persisted to localStorage so a returning user sees
+// their deal room instantly (skeleton→content) instead of a blank spinner while
+// the bulk network fetch runs. Keyed to the auth user id; cleared on sign-out.
+const DATA_CACHE_KEY = 'dealroom-data-cache-v1';
+const DATA_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function DataProvider({ children }: { children: ReactNode }) {
     const [isInitialized, setIsInitialized] = useState(false);
@@ -115,6 +169,47 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     // Fetch Data
     const isFetchingRef = useRef<boolean>(false);
+    const hasHydratedFromCacheRef = useRef<boolean>(false);
+
+    // Instantly restore the last known snapshot for this user so gated pages can
+    // render content (not a spinner) while the network fetch reconciles in the
+    // background. Safe to call repeatedly; only the first call does work.
+    const hydrateFromCache = (uid: string) => {
+        if (hasHydratedFromCacheRef.current) return;
+        hasHydratedFromCacheRef.current = true;
+        try {
+            const raw = localStorage.getItem(DATA_CACHE_KEY);
+            if (!raw) return;
+            const cache = JSON.parse(raw);
+            if (cache.uid !== uid) {
+                localStorage.removeItem(DATA_CACHE_KEY);
+                return;
+            }
+            if (!cache.savedAt || Date.now() - cache.savedAt > DATA_CACHE_MAX_AGE_MS) {
+                localStorage.removeItem(DATA_CACHE_KEY);
+                return;
+            }
+            // Only hydrate when there is real content to show. An empty snapshot
+            // must not flip isInitialized early — the root page treats
+            // "initialized with 0 deals" as a signal to retry/redirect.
+            if (!Array.isArray(cache.rawDeals) || cache.rawDeals.length === 0) return;
+            console.log('[Store] Hydrated from local cache — reconciling with server in background');
+            setRawUsers(cache.rawUsers || []);
+            setRawDeals(cache.rawDeals || []);
+            setRawTasks(cache.rawTasks || []);
+            setRawDocuments(cache.rawDocuments || []);
+            setRawGlobalParticipants(cache.rawGlobalParticipants || []);
+            setRawDealParticipants(cache.rawDealParticipants || []);
+            if (Array.isArray(cache.standardDocuments) && cache.standardDocuments.length > 0) {
+                setStandardDocuments(cache.standardDocuments);
+            }
+            setDownloadableDocIds(new Set(cache.downloadableDocIds || []));
+            setIsInitialized(true);
+        } catch (e) {
+            console.warn('Could not hydrate from cache (non-critical):', e);
+        }
+    };
+
     const fetchData = async () => {
         if (isFetchingRef.current) return;
         isFetchingRef.current = true;
@@ -139,6 +234,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 return;
             }
 
+            // getSession() is a local read, so this runs in milliseconds — cached
+            // data paints before the network requests below even start.
+            hydrateFromCache(sessionData.session.user.id);
+
             const [
                 { data: fetchedUsers },
                 { data: fetchedDeals },
@@ -161,17 +260,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 db.from('documents').select('*') // Direct fetch
             ]);
 
-            if (fetchedUsers) setRawUsers(fetchedUsers.map(u => ({
-                id: u.id,
-                email: u.email,
-                name: u.name || 'Unknown User',
-                role: u.role,
-                permissions: getPermissionsForRole(u.role),
-                avatarUrl: u.avatar_url,
-                isActive: u.is_active !== false,
-                createdAt: u.created_at,
-                lastLogin: u.last_login
-            })));
+            const mappedUsers = fetchedUsers ? fetchedUsers.map(mapUserRow) : null;
+            const mappedGPs = fetchedGPs ? fetchedGPs.map(mapGpRow) : null;
+            const mappedDPs = fetchedDPs ? fetchedDPs.map(mapDpRow) : null;
+
+            if (mappedUsers) setRawUsers(mappedUsers);
             if (fetchedDeals) setRawDeals(fetchedDeals);
             if (fetchedTasks) setRawTasks(fetchedTasks);
             if (fetchedDocuments) {
@@ -182,43 +275,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
             // Which of these documents may the current user DOWNLOAD?
             // = ones they uploaded + ones granted to them with can_download.
             // (document_grants RLS returns the caller's own grants; hosts see all.)
+            let dlSet: Set<string> | null = null;
             try {
                 const uid = sessionData.session.user.id;
                 const { data: myGrants } = await db.from('document_grants').select('document_id, can_download');
-                const dlSet = new Set<string>();
-                (fetchedDocuments || []).forEach((d: any) => { if (d.uploaded_by === uid) dlSet.add(d.id); });
-                (myGrants || []).forEach((g: any) => { if (g.can_download) dlSet.add(g.document_id); });
+                dlSet = new Set<string>();
+                (fetchedDocuments || []).forEach((d: any) => { if (d.uploaded_by === uid) dlSet!.add(d.id); });
+                (myGrants || []).forEach((g: any) => { if (g.can_download) dlSet!.add(g.document_id); });
                 setDownloadableDocIds(dlSet);
             } catch (e) {
                 console.warn('Could not load download grants (non-critical):', e);
             }
-            if (fetchedGPs) setRawGlobalParticipants(fetchedGPs.map(gp => ({
-                id: gp.id,
-                userId: gp.user_id,
-                email: gp.email,
-                name: gp.name,
-                phone: gp.phone,
-                agency: gp.agency,
-                internalNotes: gp.internal_notes,
-                invitationStatus: gp.invitation_status,
-                invitationSentAt: gp.invitation_sent_at,
-                createdAt: gp.created_at,
-                updatedAt: gp.updated_at
-            })));
-            if (fetchedDPs) {
-                setRawDealParticipants(fetchedDPs.map(dp => ({
-                    id: dp.id,
-                    dealId: dp.deal_id,
-                    participantId: dp.participant_id,
-                    role: dp.role,
-                    agency: dp.agency,
-                    permissions: dp.permissions,
-                    joinedAt: dp.joined_at,
-                    isActive: dp.is_active !== false, // Default to true if null/undefined
-                    createdAt: dp.created_at,
-                    updatedAt: dp.updated_at
-                })));
-            }
+            if (mappedGPs) setRawGlobalParticipants(mappedGPs);
+            if (mappedDPs) setRawDealParticipants(mappedDPs);
             // Don't filter by is_active for now to ensure visibility
             const validFetchedDocs = (fetchedStdDocs || []).map(d => ({
                 id: d.id,
@@ -285,6 +354,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 uploadedAt: c.uploaded_at
             })));
 
+            // Persist the snapshot for instant hydration on the next visit.
+            // Logs and contracts are deliberately excluded to keep the payload small;
+            // they load with the background fetch.
+            try {
+                localStorage.setItem(DATA_CACHE_KEY, JSON.stringify({
+                    uid: sessionData.session.user.id,
+                    savedAt: Date.now(),
+                    rawUsers: mappedUsers || [],
+                    rawDeals: fetchedDeals || [],
+                    rawTasks: fetchedTasks || [],
+                    rawDocuments: fetchedDocuments || [],
+                    rawGlobalParticipants: mappedGPs || [],
+                    rawDealParticipants: mappedDPs || [],
+                    standardDocuments: validFetchedDocs.length > 0 ? validFetchedDocs : MOCK_STANDARD_DOCUMENTS,
+                    downloadableDocIds: dlSet ? Array.from(dlSet) : []
+                }));
+            } catch (e) {
+                console.warn('Could not persist data cache (non-critical):', e);
+            }
+
             setIsInitialized(true);
         } catch (error: any) {
             // Gracefully handle signal abortions (common in React Strict Mode or on navigation)
@@ -318,6 +407,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // This fixes the race condition during invite callback flow where fetchData()
         // runs before the session is established (verifyOtp hasn't completed yet).
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_OUT') {
+                // Don't leave the previous user's deal data on this device.
+                try { localStorage.removeItem(DATA_CACHE_KEY); } catch { /* ignore */ }
+                return;
+            }
             if (
                 (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') &&
                 session
@@ -459,6 +553,69 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setTasks(computedTasks);
 
     }, [rawUsers, rawDeals, rawTasks, rawDealParticipants, activeDealId, enrichedGlobalParticipants, rawDocuments]);
+
+    // --- Targeted Refetches ---
+    // Scoped alternatives to fetchData(): reload only the tables an action could
+    // have changed, instead of every deal/task/document in the account. These keep
+    // post-action syncs cheap (2-4 small queries vs. the 10-query bulk read).
+
+    const getIsolatedDb = () => createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const refetchUsers = async () => {
+        try {
+            const db = getIsolatedDb();
+            const { data } = await db.from('users').select('*').order('created_at', { ascending: false });
+            if (data) setRawUsers(data.map(mapUserRow));
+        } catch (e) {
+            console.warn('Targeted users refetch failed:', e);
+        }
+    };
+
+    const refetchParticipants = async () => {
+        try {
+            const db = getIsolatedDb();
+            const [{ data: gps }, { data: dps }] = await Promise.all([
+                db.from('participants').select('*'),
+                db.from('deal_participants').select('*')
+            ]);
+            if (gps) setRawGlobalParticipants(gps.map(mapGpRow));
+            if (dps) setRawDealParticipants(dps.map(mapDpRow));
+        } catch (e) {
+            console.warn('Targeted participants refetch failed:', e);
+        }
+    };
+
+    const refetchDeal = async (dealId: string) => {
+        if (!dealId) {
+            // No deal context to scope to — fall back to the bulk read.
+            return fetchData();
+        }
+        try {
+            const db = getIsolatedDb();
+            const [{ data: dealRow }, { data: dealTasks }, { data: dealDocs }, { data: dps }] = await Promise.all([
+                db.from('deals').select('*').eq('id', dealId).maybeSingle(),
+                db.from('tasks').select('*').eq('deal_id', dealId),
+                db.from('documents').select('*').eq('deal_id', dealId),
+                db.from('deal_participants').select('*').eq('deal_id', dealId)
+            ]);
+            if (dealRow) {
+                setRawDeals(prev => prev.some(d => d.id === dealId)
+                    ? prev.map(d => d.id === dealId ? dealRow : d)
+                    : [...prev, dealRow]);
+            } else {
+                // Deal no longer visible to this user (deleted or access revoked).
+                setRawDeals(prev => prev.filter(d => d.id !== dealId));
+            }
+            if (dealTasks) setRawTasks(prev => [...prev.filter(t => t.deal_id !== dealId), ...dealTasks]);
+            if (dealDocs) setRawDocuments(prev => [...prev.filter(d => d.deal_id !== dealId), ...dealDocs]);
+            if (dps) setRawDealParticipants(prev => [...prev.filter(dp => dp.dealId !== dealId), ...dps.map(mapDpRow)]);
+        } catch (e) {
+            console.warn(`Targeted deal refetch failed for ${dealId}:`, e);
+        }
+    };
 
     // --- Realtime Subscriptions ---
     useEffect(() => {
@@ -604,7 +761,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     // DEBUG: Raw Fetch fallback to bypass client library issues
-    const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number) => {
+    const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number, templateTasks?: DealTemplateTask[]) => {
         try {
             const dealId = crypto.randomUUID();
             const defaultTimeline = createDefaultTimeline();
@@ -641,6 +798,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
             // (Function continues below)
 
             // 2. Process Participants sequentially to avoid race conditions
+            // Track resolved participant ids so template tasks can be assigned below.
+            const resolvedParticipants: Array<{ email: string; role: Role; gpId: string }> = [];
             for (const p of participantsInput) {
                 try {
                     // Ensure Global Participant Exists
@@ -741,6 +900,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     };
                     setRawDealParticipants(prev => [...prev, optimisticDP as any]);
 
+                    resolvedParticipants.push({ email: p.email, role: p.role, gpId });
+
                     const { error: dpError } = await supabase.from('deal_participants').insert(dpPayload);
                     if (dpError) {
                         console.warn('⚠️ FAILED TO LINK PARTICIPANT TO DEAL ⚠️', {
@@ -765,6 +926,42 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         errorMessage: err?.message,
                         stack: err?.stack
                     });
+                }
+            }
+
+            // 3. Seed template tasks (deal-type checklist picked in the wizard).
+            // Assign each to the first participant holding the item's role; if that
+            // side isn't in the deal yet, assign by role string (the deal page's
+            // legacy role-matching picks it up once the participant joins).
+            if (templateTasks && templateTasks.length > 0) {
+                const nowIso = new Date().toISOString();
+                const taskRows = templateTasks.map(tt => {
+                    const match = resolvedParticipants.find(rp => rp.role === tt.role);
+                    return {
+                        id: crypto.randomUUID(),
+                        deal_id: dealId,
+                        title_en: tt.titleEn,
+                        title_bg: tt.titleBg,
+                        assigned_to: match ? match.email.toLowerCase().trim() : tt.role,
+                        assigned_participant_id: match ? match.gpId : null,
+                        status: 'pending',
+                        required: true,
+                        standard_document_id: tt.standardDocumentId || null,
+                        created_at: nowIso
+                    };
+                });
+
+                const { error: seedError } = await supabase.from('tasks').insert(taskRows);
+                if (seedError) {
+                    console.warn('Template task seeding failed (deal still created):', seedError);
+                    addNotification('warning', 'Checklist not created | Чеклистът не е създаден',
+                        'The deal was created, but the document checklist could not be added. You can add tasks manually.');
+                } else {
+                    setRawTasks(prev => [
+                        ...taskRows.map(r => ({ ...r, documents: [], comments: [] })),
+                        ...prev
+                    ]);
+                    logAction(dealId, actorId || 'system', 'ADDED_TASK', `Seeded ${taskRows.length} tasks from checklist template`);
                 }
             }
 
@@ -1005,7 +1202,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         } catch (error: any) {
             console.error('Failed to update deal:', error);
             addNotification('error', 'Update Failed', error.message);
-            fetchData(); // Revert by refetching
+            refetchDeal(dealId); // Revert by refetching just this deal
         }
     };
 
@@ -1065,8 +1262,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 throw new Error(data.error || 'Failed to invite user');
             }
 
-            // Sync with backend immediately to ensure accurate state
-            await fetchData();
+            // Sync with backend immediately to ensure accurate state (users only —
+            // inviting a user can't change deals/tasks/documents)
+            await refetchUsers();
 
             addNotification('success', 'User Invited', `${newUser.name} has been invited as a ${newUser.role}.`);
             toast.success(`${newUser.name} has been invited as ${newUser.role}`);
@@ -1135,7 +1333,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             if (data.deactivated) {
                 // User was auto-deactivated instead of deleted (has deal associations)
                 setRawUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: false } : u));
-                await fetchData(); // Refresh to show updated status
+                await refetchUsers(); // Refresh to show updated status
                 addNotification('info', 'User Deactivated', data.message);
                 toast.success('User deactivated — access revoked. They appear as "Former Staff" in their deals.');
             } else {
@@ -1470,6 +1668,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     const deleteDocument = async (taskId: string, docId: string, filePath: string) => {
+        // Resolve the deal before the optimistic removal so an error can revert
+        // by refetching just that deal.
+        const docDealId = rawTasks.find(t => t.id === taskId)?.deal_id || activeDealId;
+
         // Optimistic: remove doc and revert task if no docs remain
         setRawDocuments(prev => {
             const remaining = prev.filter(d => d.id !== docId);
@@ -1494,7 +1696,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
             addNotification('success', 'Document removed | Документът е премахнат', '');
         } catch (error: any) {
-            await fetchData();
+            await refetchDeal(docDealId);
             addNotification('error', 'Delete failed | Неуспешно изтриване', error.message);
         }
     };
@@ -1510,8 +1712,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         } catch (error: any) {
             console.error('Verify failed:', error);
             addNotification('error', 'Verify Failed', error.message);
-            // Revert? (Ideally yes, but let's rely on refresh/realtime correction for now)
-            fetchData();
+            // Revert by refetching just this deal
+            refetchDeal(activeDealId);
         }
     };
 
@@ -1526,7 +1728,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         } catch (error: any) {
             console.error('Release failed:', error);
             addNotification('error', 'Release Failed', error.message);
-            fetchData();
+            refetchDeal(activeDealId);
         }
     };
 
@@ -1544,7 +1746,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         } catch (error: any) {
             console.error('Reject failed:', error);
             addNotification('error', 'Reject Failed', error.message);
-            fetchData();
+            refetchDeal(activeDealId);
         }
     };
 
@@ -1753,7 +1955,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
             }));
 
             // Then asynchronously fetch true data from server to guarantee sync
-            fetchData();
+            // (participants + deal links only — the invite can't change anything else)
+            refetchParticipants();
 
             return true;
         } catch (error: any) {
@@ -1938,7 +2141,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addNotification,
         markAsRead,
         markAllAsRead,
-        refreshData: fetchData
+        refreshData: fetchData,
+        refreshParticipants: refetchParticipants,
+        refreshDeal: refetchDeal
     };
 
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

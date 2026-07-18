@@ -19,12 +19,18 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "Agenzia Deal Room",
   description: "Secure Real Estate Transaction Portal",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Deal Room",
+  },
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover" as const,
+  themeColor: "#0f172a",
 };
 
 export default function RootLayout({

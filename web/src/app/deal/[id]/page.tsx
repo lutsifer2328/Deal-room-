@@ -16,7 +16,9 @@ import DocumentPreviewModal from '@/components/deal/DocumentPreviewModal';
 import DeleteDocumentModal from '@/components/deal/DeleteDocumentModal';
 import DocumentAccessModal from '@/components/deal/DocumentAccessModal';
 import TaskComments from '@/components/deal/TaskComments';
+import ClientTodoBanner from '@/components/deal/ClientTodoBanner';
 import { useTranslation, TranslationKey } from '@/lib/useTranslation';
+import { DealPageSkeleton } from '@/components/ui/Skeleton';
 import { supabase } from '@/lib/supabase';
 import { getDocumentSignedUrl } from '@/app/actions/documents';
 
@@ -39,7 +41,7 @@ export default function DealDetailPage() {
 
     const deal = deals.find(d => d.id === dealId);
 
-    if (!isInitialized || !user) return <div className="p-10 text-center">{t('common.loading')}</div>;
+    if (!isInitialized || !user) return <DealPageSkeleton />;
     if (!deal) return <div className="p-10 text-center">Deal not found</div>;
 
     const currentUserParticipant = deal.participants.find(p => p.userId === user.id);
@@ -104,7 +106,16 @@ export default function DealDetailPage() {
         return acc;
     }, {});
 
-    // currentUserParticipant already found above
+    // Tasks the current user must act on RIGHT NOW: assigned to them, not done,
+    // and either nothing uploaded yet or everything they uploaded was rejected.
+    // Feeds the "what do I need to do" banner for clients.
+    const myActionTasks = isStaff ? [] : relevantTasks.filter(tk => {
+        const isMine = tk.assignedTo === currentUserParticipant?.id
+            || tk.assignedTo === currentDealParticipantRecord?.role
+            || tk.assignedTo?.toLowerCase() === user.email.toLowerCase();
+        if (!isMine || tk.status === 'completed') return false;
+        return tk.documents.length === 0 || tk.documents.every(d => d.status === 'rejected');
+    });
 
     return (
         <div className="max-w-5xl mx-auto pb-20">
@@ -120,6 +131,11 @@ export default function DealDetailPage() {
 
             <DealHeader deal={deal} />
             <SingleProgressBar deal={deal} />
+
+            {/* "What do I need to do" — client (non-staff) view only */}
+            {!isStaff && !user.permissions.canViewAllDeals && (
+                <ClientTodoBanner actionTasks={myActionTasks} />
+            )}
 
             {/* Warm Welcome Banner — client (non-staff) view only */}
             {!user.permissions.canViewAllDeals && (
@@ -294,7 +310,7 @@ function TaskItem({ task, userRole, dealId, onDelete, currentDealParticipantReco
     };
 
     return (
-        <div className="p-6 hover:bg-teal/[0.02] transition-all duration-300 group relative">
+        <div id={`task-${task.id}`} className="p-6 hover:bg-teal/[0.02] transition-all duration-300 group relative scroll-mt-24">
             {(isLawyer || isAdmin) && (
                 <button
                     onClick={(e) => {
