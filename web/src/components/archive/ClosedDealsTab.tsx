@@ -199,8 +199,8 @@ export default function ClosedDealsTab() {
 
                                 {/* Documents Table (Expanded) */}
                                 {isExpanded && dealDocuments.length > 0 && (
-                                    <div className="border-t border-gray-100 bg-gray-50/30">
-                                        <table className="w-full">
+                                    <div className="border-t border-gray-100 bg-gray-50/30 overflow-x-auto">
+                                        <table className="w-full min-w-[600px]">
                                             <thead>
                                                 <tr className="border-b border-gray-100">
                                                     <th className="text-left py-3 px-6 text-xs font-bold text-text-light uppercase tracking-wider">Document</th>

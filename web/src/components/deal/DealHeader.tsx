@@ -70,7 +70,7 @@ export default function DealHeader({ deal }: { deal: Deal }) {
     };
 
     return (
-        <div className="bg-white rounded-3xl p-8 shadow-xl shadow-navy-primary/5 border border-white/20 mb-8 backdrop-blur-xl relative overflow-hidden">
+        <div className="bg-white rounded-3xl p-5 sm:p-8 shadow-xl shadow-navy-primary/5 border border-white/20 mb-8 backdrop-blur-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-teal/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
             <div className="flex flex-col md:flex-row justify-between items-start relative z-10 gap-6">
@@ -95,7 +95,7 @@ export default function DealHeader({ deal }: { deal: Deal }) {
                         <DealStatusBadge status={deal.status} />
                     </div>
 
-                    <h1 className="text-4xl font-serif font-bold text-navy-primary mb-2 tracking-tight flex items-center gap-3">
+                    <h1 className="text-2xl sm:text-4xl font-serif font-bold text-navy-primary mb-2 tracking-tight flex items-center gap-3">
                         {deal.title}
                         {canEdit && (
                             <button

@@ -24,7 +24,7 @@ export default function BottomNav() {
     if (visibleItems.length === 0) return null;
 
     return (
-        <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] env(safe-area-inset-bottom)">
+        <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]">
             <div className="flex items-center justify-around h-16 sm:h-20 px-4">
                 {visibleItems.map((item) => {
                     const Icon = item.icon;

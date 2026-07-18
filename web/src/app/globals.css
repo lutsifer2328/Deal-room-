@@ -93,3 +93,24 @@ body {
   overflow-y: unset !important;
   overflow-x: clip !important;
 }
+
+/* Hide scrollbars on horizontally scrollable strips (progress steps, chip rows)
+   while keeping them scrollable. Referenced across dashboard and modal headers. */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile input hygiene: iOS zooms the viewport when focusing an input whose
+   font-size is < 16px. Force a 16px minimum on touch/small screens so form
+   fields never trigger that zoom. Desktop keeps the design's smaller sizes. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}

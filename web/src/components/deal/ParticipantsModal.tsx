@@ -489,10 +489,10 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                 </label>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                                 {isInternalUser ? (
                                     // INTERNAL USER SELECTION
-                                    <div className="col-span-2 space-y-3">
+                                    <div className="sm:col-span-2 space-y-3">
                                         <div>
                                             <label htmlFor="teamMemberSelect" className="block text-xs font-medium text-gray-700 mb-1">Select Team Member</label>
                                             <select
@@ -611,7 +611,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                             <motion.div
                                                 initial={{ opacity: 0, height: 0 }}
                                                 animate={{ opacity: 1, height: 'auto' }}
-                                                className="col-span-2"
+                                                className="sm:col-span-2"
                                             >
                                                 <label className="block text-xs font-bold text-navy-primary mb-1">Agency Name</label>
                                                 <input
@@ -744,7 +744,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                     animate={{ opacity: 1 }}
                                     className="space-y-4"
                                 >
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
                                             <label className="block text-xs font-medium text-gray-700 mb-1">Full Name *</label>
                                             <input

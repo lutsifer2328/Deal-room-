@@ -186,8 +186,8 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+            <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[92vh] sm:max-h-[90vh]">
 
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-midnight text-white">
@@ -198,7 +198,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                 </div>
 
                 {/* Progress Indicator */}
-                <div className="px-6 py-4 bg-gray-50 flex items-center gap-4">
+                <div className="px-4 sm:px-6 py-4 bg-gray-50 flex items-center gap-2 sm:gap-4 overflow-x-auto no-scrollbar flex-shrink-0">
                     <div className={`flex items-center gap-2 ${step === 1 ? 'text-teal font-bold' : 'text-gray-400'}`}>
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 1 ? 'bg-teal text-white' : 'bg-gray-200'}`}>
                             1
@@ -215,7 +215,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                 </div>
 
                 {/* Content */}
-                <div className="p-6 max-h-[60vh] overflow-y-auto">
+                <div className="p-4 sm:p-6 flex-1 min-h-0 overflow-y-auto">
                     {step === 1 && (
                         <div className="space-y-4">
                             <div>
@@ -307,7 +307,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                                 <h3 className="text-sm font-bold text-teal uppercase mb-3 flex items-center gap-2">
                                     <UserPlus className="w-4 h-4" /> {t('wizard.section.add')}
                                 </h3>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-medium text-gray-700 mb-1">{t('wizard.label.name')}</label>
                                         <input
@@ -373,7 +373,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between">
+                <div className="px-4 sm:px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4 bg-gray-50 border-t border-gray-100 flex justify-between flex-shrink-0">
                     {step === 1 ? (
                         <>
                             <button onClick={onClose} className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg">

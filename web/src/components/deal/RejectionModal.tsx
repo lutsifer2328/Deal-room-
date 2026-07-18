@@ -29,8 +29,8 @@ export default function RejectionModal({ onClose, onConfirm }: { onClose: () => 
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+            <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[92vh] sm:max-h-[90vh]">
 
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-red-600 text-white">
@@ -44,7 +44,7 @@ export default function RejectionModal({ onClose, onConfirm }: { onClose: () => 
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="p-4 sm:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-6 space-y-4 overflow-y-auto flex-1 min-h-0">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('reject.commonReasons')}</label>
                         <div className="grid grid-cols-1 gap-2">
@@ -95,17 +95,17 @@ export default function RejectionModal({ onClose, onConfirm }: { onClose: () => 
                         </div>
                     )}
 
-                    <div className="pt-4 flex justify-end gap-3">
+                    <div className="pt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg"
+                            className="w-full sm:w-auto px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg"
                         >
                             {t('common.cancel')}
                         </button>
                         <button
                             type="submit"
-                            className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-lg hover:bg-red-700 transition-all"
+                            className="w-full sm:w-auto px-6 py-2 bg-red-600 text-white font-bold rounded-lg shadow-lg hover:bg-red-700 transition-all"
                         >
                             {t('reject.title')}
                         </button>
