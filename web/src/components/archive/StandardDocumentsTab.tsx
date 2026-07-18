@@ -113,7 +113,7 @@ export default function StandardDocumentsTab() {
                 </div>
             ) : (
                 <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto hidden md:block">
                         <table className="w-full">
                             <thead>
                                 <tr className="bg-gray-50/50 border-b border-gray-100">
@@ -175,6 +175,45 @@ export default function StandardDocumentsTab() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Card list (mobile) */}
+                    <div className="md:hidden divide-y divide-gray-100">
+                        {sortedDocuments.map((doc) => (
+                            <div key={doc.id} className="p-4">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                        <div className="font-bold text-navy-primary">{doc.name}</div>
+                                        <div className="text-text-secondary text-sm mt-0.5">
+                                            {doc.description || <span className="italic text-text-light opacity-60">No description</span>}
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-1 flex-shrink-0">
+                                        <button
+                                            onClick={() => handleEdit(doc)}
+                                            disabled={isLoading}
+                                            className="p-2 text-text-light hover:text-teal hover:bg-teal/10 rounded-lg transition-colors disabled:opacity-30"
+                                            title="Edit"
+                                        >
+                                            <Pencil className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(doc)}
+                                            disabled={isLoading}
+                                            className="p-2 text-text-light hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30"
+                                            title="Delete"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="mt-2">
+                                    <span className="bg-gray-100 text-text-light px-2.5 py-1 rounded-md text-xs font-bold border border-gray-200 inline-flex items-center gap-1">
+                                        Used {doc.usageCount}x
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}

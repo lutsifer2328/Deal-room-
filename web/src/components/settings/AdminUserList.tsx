@@ -72,10 +72,12 @@ export default function AdminUserList() {
                 </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div>
                 {loading ? (
                     <div className="p-8 text-center text-gray-500">Loading users...</div>
                 ) : (
+                  <>
+                    <div className="overflow-x-auto hidden md:block">
                     <table className="w-full">
                         <thead className="bg-gray-50/80 border-b border-gray-100">
                             <tr>
@@ -139,6 +141,57 @@ export default function AdminUserList() {
                             ))}
                         </tbody>
                     </table>
+                    </div>
+
+                    {/* Card list (mobile) */}
+                    <div className="md:hidden divide-y divide-gray-50">
+                        {users.map(user => (
+                            <div key={user.id} className="p-4">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                        <div className="text-sm font-bold text-navy-primary truncate">{user.name || 'No Name'}</div>
+                                        <div className="text-xs text-text-secondary truncate">{user.email}</div>
+                                    </div>
+                                    {user.is_active ? (
+                                        <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full flex-shrink-0">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                            Active
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center gap-1.5 text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded-full flex-shrink-0">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                                            Inactive
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="mt-2">
+                                    <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded border ${user.role === 'admin' ? 'bg-navy-primary/10 text-navy-primary border-navy-primary/20' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                                        {user.role}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-50">
+                                    <button
+                                        onClick={() => handleSendPasswordReset(user.email)}
+                                        className="text-teal-600 hover:text-teal-700 font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50 text-sm"
+                                        disabled={!user.email.includes('@')}
+                                    >
+                                        <Key className="w-4 h-4" />
+                                        Изпрати линк за парола
+                                    </button>
+                                    {selectedUserForAnonymize?.id !== user.id && (
+                                        <button
+                                            onClick={() => setSelectedUserForAnonymize(user)}
+                                            className="text-red-500 hover:text-red-700 font-medium transition-colors flex items-center gap-1.5 ml-auto"
+                                            title="Заличи потребителя"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                  </>
                 )}
             </div>
 

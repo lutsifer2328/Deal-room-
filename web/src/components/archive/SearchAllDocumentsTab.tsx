@@ -242,7 +242,7 @@ export default function SearchAllDocumentsTab() {
                 </div>
             ) : (
                 <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto hidden md:block">
                         <table className="w-full">
                             <thead>
                                 <tr className="bg-gray-50/50 border-b border-gray-100">
@@ -313,6 +313,57 @@ export default function SearchAllDocumentsTab() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Card list (mobile) */}
+                    <div className="md:hidden divide-y divide-gray-100">
+                        {filteredDocuments.map((item) => (
+                            <div key={`${item.taskId}-${item.doc.id}`} className="p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="p-2 bg-gray-50 rounded-lg text-gray-400 flex-shrink-0">
+                                        <FileText className="w-5 h-5" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="font-bold text-navy-primary truncate">{item.doc.title_en}</div>
+                                        <div className="text-xs text-text-light font-medium truncate">{item.taskTitle}</div>
+                                    </div>
+                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-md shadow-sm border ${getStatusBadge(item.doc.status)} border-opacity-20 flex-shrink-0`}>
+                                        {getStatusLabel(item.doc.status)}
+                                    </span>
+                                </div>
+                                <div className="mt-2">
+                                    <div className="font-bold text-navy-primary text-sm">{item.dealTitle}</div>
+                                    <div className="text-xs text-text-light font-medium">{item.dealAddress}</div>
+                                    {item.dealStatus === 'closed' && (
+                                        <span className="inline-block mt-1.5 px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-wider rounded border border-gray-200">
+                                            CLOSED
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-gray-50">
+                                    <div className="text-xs text-text-secondary min-w-0">
+                                        <span className="font-medium">{item.participantName}</span>
+                                        <span className="text-text-light"> · {formatDate(item.doc.uploadedAt)}</span>
+                                    </div>
+                                    <div className="flex gap-1 flex-shrink-0">
+                                        <button
+                                            onClick={() => setPreviewDoc(item.doc)}
+                                            className="p-2 text-text-light hover:text-teal hover:bg-teal/10 rounded-lg transition-colors"
+                                            title="View Document"
+                                        >
+                                            <Eye className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleViewDeal(item.dealId)}
+                                            className="p-2 text-text-light hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            title="View Deal"
+                                        >
+                                            <ExternalLink className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}

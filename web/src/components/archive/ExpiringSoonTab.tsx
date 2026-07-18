@@ -137,7 +137,7 @@ export default function ExpiringSoonTab() {
                 </div>
             ) : (
                 <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto hidden md:block">
                         <table className="w-full">
                             <thead>
                                 <tr className="bg-gray-50/50 border-b border-gray-100">
@@ -209,6 +209,51 @@ export default function ExpiringSoonTab() {
                                 })}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Card list (mobile) */}
+                    <div className="md:hidden divide-y divide-gray-100">
+                        {expiringTasks.map((item) => {
+                            const badge = getUrgencyBadge(item.daysUntilExpiry);
+                            let borderColor = 'border-l-yellow-500';
+                            if (item.daysUntilExpiry <= 7) borderColor = 'border-l-red-500';
+                            else if (item.daysUntilExpiry <= 14) borderColor = 'border-l-orange-500';
+                            return (
+                                <div key={item.taskId} className={`p-4 border-l-4 ${borderColor}`}>
+                                    <div className="flex items-center justify-between gap-2 mb-2">
+                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 ${badge.color} text-white text-xs font-bold rounded-md shadow-sm`}>
+                                            {badge.text}
+                                        </span>
+                                        {item.hasDocument ? (
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-md border border-green-200">
+                                                ✓ Uploaded
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-bold rounded-md border border-gray-200">
+                                                ⚠ Missing
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="font-bold text-navy-primary">{item.dealTitle}</div>
+                                    <div className="text-xs text-text-light font-medium">{item.dealAddress}</div>
+                                    <div className="text-sm font-medium text-navy-primary mt-2">{item.taskTitle}</div>
+                                    <div className="text-xs text-text-secondary mt-0.5">{item.participantName}</div>
+                                    <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-gray-50">
+                                        <div>
+                                            <div className="font-bold text-navy-primary text-sm">{new Date(item.expirationDate).toLocaleDateString()}</div>
+                                            <div className="text-xs text-text-light font-medium">{item.daysUntilExpiry} day{item.daysUntilExpiry !== 1 ? 's' : ''} remaining</div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleViewDeal(item.dealId)}
+                                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-navy-primary text-white text-xs font-bold rounded-lg hover:bg-navy-secondary transition-colors shadow-sm flex-shrink-0"
+                                        >
+                                            View Deal
+                                            <ExternalLink className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}

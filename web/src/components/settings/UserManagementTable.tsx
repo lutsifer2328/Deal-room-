@@ -82,8 +82,8 @@ export default function UserManagementTable() {
                     </button>
                 </div>
 
-                {/* Table */}
-                <div className="overflow-x-auto">
+                {/* Table (desktop) */}
+                <div className="overflow-x-auto hidden md:block">
                     <table className="w-full">
                         <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
@@ -187,6 +187,75 @@ export default function UserManagementTable() {
                             ))}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Card list (mobile) */}
+                <div className="md:hidden divide-y divide-gray-100">
+                    {organizationalUsers.map((user) => (
+                        <div key={user.id} className={`p-4 ${!user.isActive ? 'opacity-50' : ''}`}>
+                            <div className="flex items-start gap-3">
+                                <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-teal to-navy-primary flex items-center justify-center text-white font-bold shadow-md">
+                                    {user.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <div className="text-sm font-bold text-navy-primary truncate">{user.name}</div>
+                                    <div className="text-xs text-text-light truncate">{user.email}</div>
+                                </div>
+                                {user.isActive ? (
+                                    <span className="px-2.5 py-1 inline-flex text-[11px] leading-4 font-bold rounded-full bg-success/10 text-success border border-success/20 flex-shrink-0">
+                                        Active
+                                    </span>
+                                ) : (
+                                    <span className="px-2.5 py-1 inline-flex text-[11px] leading-4 font-bold rounded-full bg-gray-100 text-gray-500 border border-gray-200 line-through flex-shrink-0">
+                                        Deactivated
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-2 mt-3 flex-wrap">
+                                <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-lg border ${getRoleBadgeColor(user.role)}`}>
+                                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                </span>
+                                <span className="text-xs text-text-light">Created {formatDate(user.createdAt)}</span>
+                            </div>
+
+                            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-50">
+                                <button
+                                    onClick={() => setEditingUser(user)}
+                                    className="text-teal hover:text-teal/80 font-bold transition-colors text-sm"
+                                >
+                                    Edit
+                                </button>
+                                {user.id !== currentUser?.id && (
+                                    <>
+                                        {user.isActive ? (
+                                            <button
+                                                onClick={() => setPendingAction({ type: 'deactivate', userId: user.id, userName: user.name })}
+                                                className="text-amber-500 hover:text-amber-700 font-bold transition-colors text-sm"
+                                            >
+                                                Deactivate
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => setPendingAction({ type: 'activate', userId: user.id, userName: user.name })}
+                                                className="text-teal hover:text-teal/80 font-bold transition-colors text-sm"
+                                            >
+                                                Activate
+                                            </button>
+                                        )}
+                                        {user.isActive && (
+                                            <button
+                                                onClick={() => setPendingAction({ type: 'delete', userId: user.id, userName: user.name })}
+                                                className="text-red-500 hover:text-red-700 font-bold transition-colors text-sm ml-auto"
+                                            >
+                                                Delete
+                                            </button>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 

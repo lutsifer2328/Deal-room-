@@ -46,7 +46,7 @@ export default function AuditLogsPage() {
     };
 
     return (
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-8 max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-2xl font-bold text-navy-primary font-serif flex items-center gap-2">
@@ -65,7 +65,7 @@ export default function AuditLogsPage() {
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                 {/* Filters / Search could go here */}
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto hidden md:block">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-text-light font-bold">
@@ -133,6 +133,50 @@ export default function AuditLogsPage() {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Card list (mobile) */}
+                <div className="md:hidden divide-y divide-gray-50">
+                    {loading ? (
+                        <div className="px-6 py-12 flex flex-col items-center justify-center text-teal">
+                            <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                            <span className="font-bold">Loading logs...</span>
+                        </div>
+                    ) : error ? (
+                        <div className="px-6 py-12 text-center text-red-500">
+                            <div className="font-bold mb-1">Error Loading Logs</div>
+                            <div className="text-xs bg-red-50 p-2 rounded inline-block border border-red-100">{error}</div>
+                        </div>
+                    ) : logs.length === 0 ? (
+                        <div className="px-6 py-12 text-center text-text-light">No audit logs found.</div>
+                    ) : (
+                        logs.map((log) => (
+                            <div key={log.id} className="p-4">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                        <div className="font-bold text-navy-primary truncate">{log.actor_name}</div>
+                                        <div className="text-[10px] text-text-light font-mono truncate" title={log.actor_id}>{log.actor_id}</div>
+                                    </div>
+                                    <div className="text-[10px] text-text-light whitespace-nowrap pt-0.5">
+                                        {new Date(log.created_at).toLocaleString()}
+                                    </div>
+                                </div>
+                                <div className="mt-2">
+                                    <span className="px-2 py-1 rounded bg-teal/10 text-teal text-xs font-bold border border-teal/20">
+                                        {log.action}
+                                    </span>
+                                </div>
+                                <div className="mt-2 text-xs font-mono text-text-secondary break-words line-clamp-3">
+                                    {JSON.stringify(log.details)}
+                                </div>
+                                {log.deal_id && (
+                                    <div className="mt-2 text-xs text-text-light font-mono">
+                                        Deal: <Link href={`/app/deals/${log.deal_id}`} className="hover:text-teal hover:underline">{log.deal_id.slice(0, 8)}...</Link>
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                    )}
                 </div>
 
                 {/* Pagination */}

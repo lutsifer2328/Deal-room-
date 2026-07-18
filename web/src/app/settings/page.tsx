@@ -28,7 +28,7 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="p-8">
+        <div className="p-4 sm:p-8">
             <div className="mb-8">
                 <h1 className="text-3xl font-serif font-bold text-navy-primary">{t('settings.title')}</h1>
                 <p className="text-text-secondary mt-2">{t('settings.subtitle')}</p>
@@ -36,7 +36,7 @@ export default function SettingsPage() {
 
             {/* Tabs */}
             <div className="border-b border-gray-200 mb-6">
-                <nav className="-mb-px flex space-x-8">
+                <nav className="-mb-px flex space-x-6 sm:space-x-8 overflow-x-auto no-scrollbar [&>button]:whitespace-nowrap [&>button]:flex-shrink-0">
                     <button
                         onClick={() => setActiveTab('users')}
                         className={`py-4 px-1 border-b-2 font-bold text-sm transition-colors ${activeTab === 'users'
