@@ -6,6 +6,7 @@ import { supabase } from './supabase';
 import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, DealStatus, Role, StandardDocument, GlobalParticipant, DealParticipant, Notification, AgencyContract, DealDocument } from './types';
 import { createDefaultTimeline } from './defaultTimeline';
 import { DealTemplateTask } from './dealTemplates';
+import { generateId } from './id';
 import { MOCK_STANDARD_DOCUMENTS } from './mockStandardDocuments';
 import { getPermissionsForRole } from './permissions';
 import toast from 'react-hot-toast';
@@ -732,7 +733,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const logAction = async (dealId: string, actorId: string, action: AuditLogEntry['action'], details: string) => {
         const actor = users[actorId];
         const newLog: AuditLogEntry = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             dealId,
             actorId,
             actorName: actor ? actor.name : 'Unknown User',
@@ -763,7 +764,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // DEBUG: Raw Fetch fallback to bypass client library issues
     const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number, templateTasks?: DealTemplateTask[]) => {
         try {
-            const dealId = crypto.randomUUID();
+            const dealId = generateId();
             const defaultTimeline = createDefaultTimeline();
             const validCreatorId = actorId && actorId !== 'unknown' && actorId.length > 20 ? actorId : null;
 
@@ -803,7 +804,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             for (const p of participantsInput) {
                 try {
                     // Ensure Global Participant Exists
-                    let gpId = crypto.randomUUID();
+                    let gpId = generateId();
                     let gpUserId = p.userId;
 
                     // Check existing by email in current state (or fetch fresh if critical)
@@ -872,7 +873,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
                     // Create Deal Participant Link
                     const dpPayload = {
-                        id: crypto.randomUUID(),
+                        id: generateId(),
                         deal_id: dealId,
                         participant_id: gpId,
                         role: p.role,
@@ -938,7 +939,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 const taskRows = templateTasks.map(tt => {
                     const match = resolvedParticipants.find(rp => rp.role === tt.role);
                     return {
-                        id: crypto.randomUUID(),
+                        id: generateId(),
                         deal_id: dealId,
                         title_en: tt.titleEn,
                         title_bg: tt.titleBg,
@@ -976,7 +977,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const addTask = async (dealId: string, title: string, assignedToEmail: string, assignedParticipantId: string, standardDocumentId?: string, expirationDate?: string, customId?: string) => {
         const normalizedAssignedTo = assignedToEmail.toLowerCase().trim();
-        const taskId = customId || crypto.randomUUID();
+        const taskId = customId || generateId();
 
         // No need to lookup participant, we have it explicitly
         // Logic simplified to use passed ID directly
@@ -1210,7 +1211,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const task = rawTasks.find(t => t.id === taskId);
         if (!task) return;
         const newComment = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             authorId,
             authorName,
             text,
@@ -1227,7 +1228,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     const addUser = async (fullName: string, email: string, role: Role) => {
-        const tempId = crypto.randomUUID();
+        const tempId = generateId();
         const newUser: User = {
             id: tempId,
             name: fullName,
@@ -1353,7 +1354,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const addParticipant = async (dealId: string, participantData: Omit<Participant, 'id' | 'addedAt'>) => {
         try {
             // 1. Check if exists globally
-            let participantId = crypto.randomUUID();
+            let participantId = generateId();
             const { data: existing } = await supabase.from('participants').select('id').eq('email', participantData.email).single();
 
             if (existing) {
@@ -1426,7 +1427,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             };
 
             const newDealParticipant: DealParticipant = {
-                id: crypto.randomUUID(), // Local mock ID until refresh
+                id: generateId(), // Local mock ID until refresh
                 dealId: dealId,
                 participantId: participantId,
                 role: participantData.role,
@@ -1610,7 +1611,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
             // 2. Insert into 'documents' table (Required for Signed URLs)
-            const docId = crypto.randomUUID();
+            const docId = generateId();
             const now = new Date().toISOString();
 
             // Create Document Object (Optimistic)
@@ -1751,7 +1752,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     const addStandardDocument = async (name: string, description: string, createdBy: string) => {
-        const id = crypto.randomUUID();
+        const id = generateId();
         const newDoc: StandardDocument = {
             id,
             name,
@@ -1866,7 +1867,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     const createGlobalParticipant = async (participantInput: Omit<GlobalParticipant, 'id' | 'createdAt' | 'updatedAt' | 'invitationStatus'>) => {
-        const newId = crypto.randomUUID();
+        const newId = generateId();
         const newParticipant: GlobalParticipant = {
             id: newId,
             name: participantInput.name,
@@ -2028,7 +2029,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
     const addParticipantContract = async (participantId: string, title: string, uploadedBy: string, file: File) => {
         try {
-            const contractId = crypto.randomUUID();
+            const contractId = generateId();
             const filePath = `contracts/${participantId}/${Date.now()}_${file.name}`;
 
             // 1. Upload file to Storage
@@ -2083,7 +2084,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     // Notifications - Local only for now
     const addNotification = (type: 'info' | 'success' | 'warning' | 'error', title: string, message: string, link?: string) => {
-        const n: Notification = { id: crypto.randomUUID(), type, title, message, link, timestamp: new Date().toISOString(), read: false };
+        const n: Notification = { id: generateId(), type, title, message, link, timestamp: new Date().toISOString(), read: false };
         setNotifications(prev => [n, ...prev]);
     };
     const markAsRead = (id: string) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));

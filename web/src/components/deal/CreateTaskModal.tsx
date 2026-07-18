@@ -7,6 +7,7 @@ import { useState, useMemo, useRef } from 'react';
 import { Deal, Participant } from '@/lib/types';
 import AutocompleteInput from '@/components/common/AutocompleteInput';
 import { useTranslation, TranslationKey } from '@/lib/useTranslation';
+import { generateId } from '@/lib/id';
 
 export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose: () => void }) {
     const { addTask, standardDocuments, tasks } = useData();
@@ -71,7 +72,7 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
         setIsSubmitting(true);
 
         // Generate ID here to ensure idempotency (if user clicks twice or network retry happens)
-        const newTaskId = crypto.randomUUID();
+        const newTaskId = generateId();
 
         try {
             await addTask(
