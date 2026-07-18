@@ -29,7 +29,9 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
         email: '',
         phone: '',
         role: 'buyer' as Role,
-        canViewDocuments: true,
+        // Restricted by default — participants added at deal creation see only
+        // their own assigned documents; grant full access later per participant.
+        canViewDocuments: false,
         canDownload: true,
         hasAcceptedInvite: false,
         isActive: true
@@ -92,7 +94,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
             email: '',
             phone: '',
             role: 'buyer',
-            canViewDocuments: true,
+            canViewDocuments: false,
             canDownload: true,
             hasAcceptedInvite: false,
             isActive: true

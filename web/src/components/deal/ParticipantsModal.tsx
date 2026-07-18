@@ -1,7 +1,7 @@
 'use client';
 
 import { Deal, Participant, Role, GlobalParticipant } from '@/lib/types';
-import { UserPlus, Trash2, Mail, Phone, User, Edit2, Check, XCircle, Eye, Download, Send, Copy, CheckCheck } from 'lucide-react';
+import { UserPlus, Trash2, Mail, Phone, User, Edit2, Check, XCircle, Eye, Send, Copy, CheckCheck } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal, ModalHeader, ModalContent, ModalFooter } from '@/components/ui/Modal';
@@ -31,7 +31,10 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
         agency: '',
         role: 'buyer' as Role,
         userId: undefined as string | undefined,
-        canViewDocuments: true,
+        // Privacy-preserving default: a new participant sees only what's assigned
+        // to them (canViewDocuments=false). Staff switch this to full access
+        // explicitly for co-agents/managers.
+        canViewDocuments: false,
         canDownload: true,
         canViewAllTasks: false,
         canViewAllDocuments: false,
@@ -218,19 +221,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
             // Close the add form and reset
             setIsAddingNew(false);
             setSmartUser(null);
-            setNewParticipant({
-                fullName: '',
-                email: '',
-                phone: '',
-                agency: '',
-                role: 'buyer',
-                userId: undefined,
-                canViewDocuments: true,
-                canDownload: true,
-                canViewAllTasks: false,
-                canViewAllDocuments: false,
-                documentPermissions: { canViewRoles: [] }
-            });
+            setNewParticipant(defaultParticipantState);
 
             // Sync participant data in background (non-blocking, scoped to participants)
             refreshParticipants().catch(e => console.warn('Background refresh error:', e));
@@ -625,65 +616,47 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                 )}
                             </div>
 
-                            {/* Permissions for new participant */}
+                            {/* Access level for new participant — a single, honest choice.
+                                'Everything' maps to canViewDocuments=true (the one flag the
+                                deal page actually reads); 'Only assigned' = false. Downloads
+                                are a separate per-document grant (Manage access). */}
                             <div className="border-t border-gray-100 pt-3 mb-3">
                                 <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                    <Eye className="w-4 h-4" /> Deal Visibility
+                                    <Eye className="w-4 h-4" /> What can this person see?
                                 </h4>
                                 <div className="space-y-2">
-                                    <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
+                                    <label className="flex items-start gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
                                         <input
-                                            type="checkbox"
-                                            checked={newParticipant.canViewAllTasks ?? false}
-                                            onChange={(e) => setNewParticipant({ ...newParticipant, canViewAllTasks: e.target.checked })}
-                                            className="w-4 h-4"
+                                            type="radio"
+                                            name="new-access-level"
+                                            checked={!newParticipant.canViewDocuments}
+                                            onChange={() => setNewParticipant({ ...newParticipant, canViewDocuments: false })}
+                                            className="w-4 h-4 mt-0.5"
                                         />
-                                        <span className="font-medium">Can see all tasks in this deal</span>
+                                        <span>
+                                            <span className="font-medium">Only their assigned documents</span>
+                                            <span className="block text-xs text-gray-500">They see just the tasks assigned to them. Best for buyers and sellers.</span>
+                                        </span>
                                     </label>
-
-                                    <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
+                                    <label className="flex items-start gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
                                         <input
-                                            type="checkbox"
-                                            checked={newParticipant.canViewAllDocuments ?? false}
-                                            onChange={(e) => setNewParticipant({ ...newParticipant, canViewAllDocuments: e.target.checked })}
-                                            className="w-4 h-4"
+                                            type="radio"
+                                            name="new-access-level"
+                                            checked={!!newParticipant.canViewDocuments}
+                                            onChange={() => setNewParticipant({ ...newParticipant, canViewDocuments: true })}
+                                            className="w-4 h-4 mt-0.5"
                                         />
-                                        <span className="font-medium">Can see all documents in this deal</span>
+                                        <span>
+                                            <span className="font-medium">Everything in this deal</span>
+                                            <span className="block text-xs text-gray-500">They see all tasks and documents. Best for a co-agent or manager.</span>
+                                        </span>
                                     </label>
                                 </div>
                             </div>
 
-                            <div className="border-t border-gray-100 pt-3 mb-3">
-                                <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                    <Download className="w-4 h-4" /> Document Access Permissions
-                                </h4>
-                                <div className="space-y-2">
-                                    <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
-                                    <input
-                                        type="checkbox"
-                                        checked={newParticipant.canViewDocuments}
-                                        onChange={(e) => setNewParticipant({ ...newParticipant, canViewDocuments: e.target.checked })}
-                                        className="w-4 h-4"
-                                    />
-                                    <span className="font-medium">Can view ALL documents</span>
-                                </label>
-
-                                <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
-                                    <input
-                                        type="checkbox"
-                                        checked={newParticipant.canDownload}
-                                        onChange={(e) => setNewParticipant({ ...newParticipant, canDownload: e.target.checked })}
-                                        className="w-4 h-4"
-                                    />
-                                    <Download className="w-4 h-4" />
-                                    <span className="font-medium">Can download documents</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        {!newParticipant.canViewDocuments && availableRoles.length > 0 && (
+                            {!newParticipant.canViewDocuments && availableRoles.length > 0 && (
                                 <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-3">
-                                    <p className="text-xs font-medium text-blue-800 mb-2">Select which roles&apos; documents this person CAN view:</p>
+                                    <p className="text-xs font-medium text-blue-800 mb-2">Optionally, also let them see these roles&apos; documents:</p>
                                     <div className="space-y-1">
                                         {availableRoles.map(role => (
                                             <label key={role} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-blue-100 p-2 rounded">
@@ -693,7 +666,7 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                     onChange={() => toggleNewParticipantRole(role)}
                                                     className="w-4 h-4"
                                                 />
-                                                <span className={`text - xs font - bold px - 2 py - 0.5 rounded uppercase ${getRoleColor(role)} `}>
+                                                <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase ${getRoleColor(role)}`}>
                                                     {role.replace('_', ' ')}
                                                 </span>
                                                 documents
@@ -702,6 +675,10 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                     </div>
                                 </div>
                             )}
+
+                            <div className="mb-3 bg-teal/5 border border-teal/20 rounded-lg p-3 text-xs text-navy-primary leading-relaxed">
+                                <strong>Downloads</strong> are controlled per document — use <strong>&ldquo;Manage access&rdquo;</strong> on each document to allow view-only or view + download.
+                            </div>
 
                             <div className="flex justify-end gap-2">
                                 <Button
@@ -789,26 +766,64 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                         </div>
                                     </div>
 
-                                    {/* Permissions Section */}
+                                    {/* Access level — same single choice as the add form */}
                                     <div className="border-t pt-3 mb-3">
                                         <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                            <Eye className="w-4 h-4" /> Deal Visibility
+                                            <Eye className="w-4 h-4" /> What can this person see?
                                         </h4>
                                         <div className="space-y-2 mb-3">
-                                            <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
+                                            <label className="flex items-start gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
                                                 <input
-                                                    type="checkbox"
-                                                    checked={editForm.canViewAllTasks ?? false}
-                                                    onChange={(e) => setEditForm({ ...editForm, canViewAllTasks: e.target.checked })}
-                                                    className="w-4 h-4"
+                                                    type="radio"
+                                                    name={`edit-access-level-${editingId}`}
+                                                    checked={!editForm.canViewDocuments}
+                                                    onChange={() => setEditForm({ ...editForm, canViewDocuments: false })}
+                                                    className="w-4 h-4 mt-0.5"
                                                 />
-                                                <span className="font-medium">Can see all tasks in this deal</span>
+                                                <span>
+                                                    <span className="font-medium">Only their assigned documents</span>
+                                                    <span className="block text-xs text-gray-500">They see just the tasks assigned to them.</span>
+                                                </span>
                                             </label>
-
+                                            <label className="flex items-start gap-2 text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
+                                                <input
+                                                    type="radio"
+                                                    name={`edit-access-level-${editingId}`}
+                                                    checked={!!editForm.canViewDocuments}
+                                                    onChange={() => setEditForm({ ...editForm, canViewDocuments: true })}
+                                                    className="w-4 h-4 mt-0.5"
+                                                />
+                                                <span>
+                                                    <span className="font-medium">Everything in this deal</span>
+                                                    <span className="block text-xs text-gray-500">They see all tasks and documents.</span>
+                                                </span>
+                                            </label>
                                         </div>
 
+                                        {!editForm.canViewDocuments && availableRoles.length > 0 && (
+                                            <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-3">
+                                                <p className="text-xs font-medium text-blue-800 mb-2">Optionally, also let them see these roles&apos; documents:</p>
+                                                <div className="space-y-1">
+                                                    {availableRoles.map(role => (
+                                                        <label key={role} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-blue-100 p-2 rounded">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={editForm.documentPermissions?.canViewRoles?.includes(role) ?? false}
+                                                                onChange={() => toggleRolePermission(role)}
+                                                                className="w-4 h-4"
+                                                            />
+                                                            <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase ${getRoleColor(role)}`}>
+                                                                {role.replace('_', ' ')}
+                                                            </span>
+                                                            documents
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="bg-teal/5 border border-teal/20 rounded-lg p-3 text-xs text-navy-primary leading-relaxed">
-                                            <strong>Document content</strong> (view / download) is controlled <strong>per document</strong>. Use the <strong>&ldquo;Manage access&rdquo;</strong> button on each document in the deal to open it — view only, or with download — for each participant.
+                                            <strong>Downloads</strong> are controlled <strong>per document</strong>. Use the <strong>&ldquo;Manage access&rdquo;</strong> button on each document to allow view-only or view + download for each participant.
                                         </div>
                                     </div>
 
@@ -858,10 +873,12 @@ export default function ParticipantsModal({ deal, onClose, isOpen = true }: { de
                                                 </div>
                                             )}
                                             <div className="text-xs space-y-0.5 mt-2">
-                                                {participant.canViewAllTasks && (
-                                                    <div className="text-green-600 font-medium">✓ Can see all tasks</div>
+                                                {participant.canViewDocuments ? (
+                                                    <div className="text-green-600 font-medium">✓ Sees everything in this deal</div>
+                                                ) : (
+                                                    <div className="text-gray-500">Sees only their assigned documents</div>
                                                 )}
-                                                <div className="text-gray-400 italic">Document access is set per document (Manage access)</div>
+                                                <div className="text-gray-400 italic">Downloads are set per document (Manage access)</div>
                                             </div>
                                         </div>
                                     </div>
