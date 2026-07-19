@@ -51,11 +51,23 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { dealId, participantEmail, participantName } = body;
+        const { dealId, participantEmail, participantName, tasks } = body;
 
         if (!dealId || !participantEmail) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
+
+        // Digest of everything currently outstanding for this participant.
+        // Sanitised here so a malformed client payload can't reach the template.
+        const digestTasks = Array.isArray(tasks)
+            ? tasks
+                .filter((t: any) => t && typeof t.title === 'string' && t.title.trim())
+                .slice(0, 25) // keep the email readable
+                .map((t: any) => ({
+                    title: String(t.title).trim().slice(0, 200),
+                    dueDate: typeof t.dueDate === 'string' ? t.dueDate : undefined
+                }))
+            : [];
 
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dealroom.online';
         const actionLink = `${siteUrl}/deal/${dealId}`;
@@ -64,7 +76,8 @@ export async function POST(request: Request) {
         const result = await sendTaskNotificationEmail(
             participantEmail,
             participantName || participantEmail.split('@')[0],
-            actionLink
+            actionLink,
+            digestTasks
         );
 
         if (!result.success) {

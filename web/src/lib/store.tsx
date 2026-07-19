@@ -179,6 +179,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const [downloadableDocIds, setDownloadableDocIds] = useState<Set<string>>(new Set());
 
     // Refs
+    // Mirrors rawTasks so debounced digest emails read the current task list
+    // rather than the snapshot captured when the timer was scheduled.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawTasksRef = useRef<any[]>([]);
+    // Pending debounced task-digest emails, keyed by `${dealId}|${email}`.
+    const digestTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
     const lastFetchRef = useRef<number>(0);
     const channelRef = useRef<any>(null);
     const [users, setUsers] = useState<Record<string, User>>({});
@@ -458,6 +464,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
             clearTimeout(initFailsafe);
             subscription.unsubscribe();
         };
+    }, []);
+
+    useEffect(() => { rawTasksRef.current = rawTasks; }, [rawTasks]);
+
+    // Flush any pending digest timers on unmount so they don't fire after teardown.
+    useEffect(() => {
+        const timers = digestTimersRef;
+        return () => { Object.values(timers.current).forEach(clearTimeout); };
     }, []);
 
     // Compute Enriched Global Participants (contracts attached)
@@ -787,6 +801,54 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     // DEBUG: Raw Fetch fallback to bypass client library issues
+    // --- Task digest emails ---
+    // One email per participant listing everything they still owe, instead of one
+    // email per task: adding 8 requirements used to send 8 separate emails.
+    // Adds are debounced so a burst of addTask calls collapses into one send.
+    const DIGEST_DEBOUNCE_MS = 6000;
+
+    const sendTaskDigest = async (dealId: string, email: string, name: string, participantId?: string | null) => {
+        const normalized = email.toLowerCase().trim();
+        // Read the freshest task list (the optimistic insert may not have
+        // re-rendered yet when this was queued).
+        const outstanding = rawTasksRef.current.filter((t: any) =>
+            t.deal_id === dealId &&
+            t.status !== 'completed' &&
+            (
+                (participantId && t.assigned_participant_id === participantId) ||
+                (typeof t.assigned_to === 'string' && t.assigned_to.toLowerCase() === normalized)
+            )
+        );
+        if (outstanding.length === 0) return;
+
+        try {
+            await fetch('/api/notify/task', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    dealId,
+                    participantEmail: normalized,
+                    participantName: name,
+                    tasks: outstanding.map((t: any) => ({
+                        title: t.title_en,
+                        dueDate: t.expiration_date || undefined
+                    }))
+                })
+            });
+        } catch (err) {
+            console.error('Failed to send task digest (non-critical):', err);
+        }
+    };
+
+    const queueTaskDigest = (dealId: string, email: string, name: string, participantId?: string | null) => {
+        const key = `${dealId}|${email.toLowerCase().trim()}`;
+        if (digestTimersRef.current[key]) clearTimeout(digestTimersRef.current[key]);
+        digestTimersRef.current[key] = setTimeout(() => {
+            delete digestTimersRef.current[key];
+            sendTaskDigest(dealId, email, name, participantId);
+        }, DIGEST_DEBOUNCE_MS);
+    };
+
     const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number, templateItems?: DealTemplateItem[]) => {
         try {
             const dealId = generateId();
@@ -825,7 +887,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
             // 2. Process Participants sequentially to avoid race conditions
             // Track resolved participant ids so template tasks can be assigned below.
-            const resolvedParticipants: Array<{ email: string; role: Role; gpId: string }> = [];
+            const resolvedParticipants: Array<{ email: string; role: Role; gpId: string; name: string; hasAccount: boolean }> = [];
             for (const p of participantsInput) {
                 try {
                     // Ensure Global Participant Exists
@@ -926,7 +988,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     };
                     setRawDealParticipants(prev => [...prev, optimisticDP as any]);
 
-                    resolvedParticipants.push({ email: p.email, role: p.role, gpId });
+                    resolvedParticipants.push({
+                        email: p.email,
+                        role: p.role,
+                        gpId,
+                        name: p.fullName,
+                        // Only people who already have a login can act on a digest;
+                        // brand-new participants get an invitation email first.
+                        hasAccount: !!gpUserId
+                    });
 
                     const { error: dpError } = await supabase.from('deal_participants').insert(dpPayload);
                     if (dpError) {
@@ -992,6 +1062,33 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         ...prev
                     ]);
                     logAction(dealId, actorId || 'system', 'ADDED_TASK', `Seeded ${taskRows.length} tasks from checklist template`);
+
+                    // One digest per participant for the whole seeded checklist.
+                    // Built from taskRows directly (state hasn't re-rendered yet), and
+                    // only for participants who already have a login — everyone else
+                    // gets their invitation first, so a document list would be a dead end.
+                    const digestByParticipant = new Map<string, { name: string; titles: string[] }>();
+                    taskRows.forEach(row => {
+                        if (!row.assigned_participant_id) return;
+                        const rp = resolvedParticipants.find(p => p.gpId === row.assigned_participant_id);
+                        if (!rp || !rp.hasAccount) return;
+                        const entry = digestByParticipant.get(rp.email) || { name: rp.name, titles: [] };
+                        entry.titles.push(row.title_en);
+                        digestByParticipant.set(rp.email, entry);
+                    });
+
+                    digestByParticipant.forEach((entry, email) => {
+                        fetch('/api/notify/task', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                dealId,
+                                participantEmail: email.toLowerCase().trim(),
+                                participantName: entry.name,
+                                tasks: entry.titles.map(title => ({ title }))
+                            })
+                        }).catch(err => console.error('Failed to send checklist digest (non-critical):', err));
+                    });
                 }
             }
 
@@ -1088,18 +1185,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 const matchedParticipant = enrichedGlobalParticipants.find((p: any) => p.id === finalParticipantId);
                 const participantName = matchedParticipant?.name || normalizedAssignedTo.split('@')[0];
 
-                // Trigger task notification email
-                fetch('/api/notify/task', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        dealId,
-                        participantEmail: normalizedAssignedTo,
-                        participantName: participantName
-                    })
-                }).catch(err => console.error('Failed to trigger task notification:', err));
+                // Queue a digest instead of emailing per task — adding several
+                // requirements in a row now results in one email listing them all.
+                queueTaskDigest(dealId, normalizedAssignedTo, participantName, finalParticipantId);
             }
         } catch (error: any) {
             console.error('Failed to add task (FULL ERROR):', JSON.stringify(error, null, 2));

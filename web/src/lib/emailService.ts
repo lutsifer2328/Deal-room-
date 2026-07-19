@@ -280,10 +280,16 @@ export function getStaffEmailHtml({
 /**
  * Task Assigned Notification
  */
+export interface DigestTask {
+  title: string;
+  dueDate?: string; // ISO date
+}
+
 export async function sendTaskNotificationEmail(
   to: string,
   name: string,
-  actionLink: string
+  actionLink: string,
+  tasks: DigestTask[] = []
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
 
   if (!resend) {
@@ -299,7 +305,9 @@ export async function sendTaskNotificationEmail(
 
   console.log(`\n===== 📨 SENDING TASK NOTIFICATION VIA RESEND (${to}) =====`);
 
-  const subject = "New Task: Action Required | Нова задача: Изисква се действие";
+  const subject = tasks.length > 0
+    ? `${tasks.length} document${tasks.length === 1 ? '' : 's'} needed | Необходими документи: ${tasks.length}`
+    : "New Task: Action Required | Нова задача: Изисква се действие";
 
   try {
     const { data, error } = await resend.emails.send({
@@ -309,6 +317,7 @@ export async function sendTaskNotificationEmail(
       html: getTaskNotificationHtml({
         name: name,
         actionLink: actionLink,
+        tasks: tasks,
       }),
       tags: [{ name: 'privacy', value: 'zero-trace' }]
     });
@@ -327,13 +336,56 @@ export async function sendTaskNotificationEmail(
   }
 }
 
+/** Document titles come from user-entered standard documents — escape them. */
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export function getTaskNotificationHtml({
   name,
   actionLink,
+  tasks = [],
 }: {
   name: string;
   actionLink: string;
+  tasks?: DigestTask[];
 }) {
+  // Inline styles: Gmail/Outlook strip or ignore <style> blocks inconsistently.
+  const renderList = (locale: 'en-GB' | 'bg-BG', dueLabel: string) => {
+    if (tasks.length === 0) return '';
+    const rows = tasks.map(task => {
+      let due = '';
+      if (task.dueDate) {
+        const d = new Date(task.dueDate);
+        if (!isNaN(d.getTime())) {
+          due = `<span style="color:#b45309;font-size:13px;white-space:nowrap;">— ${dueLabel} ${d.toLocaleDateString(locale, { day: 'numeric', month: 'long' })}</span>`;
+        }
+      }
+      return `<li style="font-size:15px;color:#0f172a;margin-bottom:10px;line-height:1.5;">${escapeHtml(task.title)} ${due}</li>`;
+    }).join('');
+    return `<ul style="margin:0 0 24px 0;padding-left:22px;">${rows}</ul>`;
+  };
+
+  const countLineEn = tasks.length === 1
+    ? `Your deal needs <strong>1 document</strong> from you:`
+    : `Your deal needs <strong>${tasks.length} documents</strong> from you:`;
+  const countLineBg = tasks.length === 1
+    ? `За Вашата сделка е необходим <strong>1 документ</strong>:`
+    : `За Вашата сделка са необходими <strong>${tasks.length} документа</strong>:`;
+
+  const bodyEn = tasks.length > 0
+    ? `<p>Hello <strong>${escapeHtml(name)}</strong>,</p><p>${countLineEn}</p>${renderList('en-GB', 'due')}<p>You can photograph documents directly with your phone camera when uploading.</p>`
+    : `<p>Hello <strong>${escapeHtml(name)}</strong>,</p><p>You have a new task requiring your attention. Please log in to your secure Deal Room to review the requirements and upload the necessary documents.</p>`;
+
+  const bodyBg = tasks.length > 0
+    ? `<p>Здравейте, <strong>${escapeHtml(name)}</strong>,</p><p>${countLineBg}</p>${renderList('bg-BG', 'срок')}<p>Можете да снимате документите директно с камерата на телефона си при качване.</p>`
+    : `<p>Здравейте, <strong>${escapeHtml(name)}</strong>,</p><p>Имате нова задача, която изисква Вашето внимание. Моля, влезте във Вашата защитена Deal Room, за да прегледате изискванията и да качите необходимите документи.</p>`;
+
   return `
 <!DOCTYPE html>
 <html>
@@ -363,21 +415,19 @@ export function getTaskNotificationHtml({
       </div>
       <div class="content">
         <h1>Action Required</h1>
-        
-        <p>Hello <strong>${name}</strong>,</p>
-        <p>You have a new task requiring your attention. Please log in to your secure Deal Room to review the requirements and upload the necessary documents.</p>
+
+        ${bodyEn}
 
         <div class="button-container">
-          <a href="${actionLink}" class="button">View Task</a>
+          <a href="${actionLink}" class="button">${tasks.length > 0 ? 'Upload Documents' : 'View Task'}</a>
         </div>
 
         <div class="dual-lang">
           <h1>Изисква се действие</h1>
-          <p>Здравейте, <strong>${name}</strong>,</p>
-          <p>Имате нова задача, която изисква Вашето внимание. Моля, влезте във Вашата защитена Deal Room, за да прегледате изискванията и да качите необходимите документи.</p>
-          
+          ${bodyBg}
+
           <div class="button-container">
-            <a href="${actionLink}" class="button">Вижте задачата</a>
+            <a href="${actionLink}" class="button">${tasks.length > 0 ? 'Качете документите' : 'Вижте задачата'}</a>
           </div>
         </div>
       </div>
