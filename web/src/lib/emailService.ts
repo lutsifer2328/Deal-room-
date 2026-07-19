@@ -101,7 +101,7 @@ export function getEliteEmailHtml({
   <div class="wrapper">
     <div class="container">
       <div style="background-color: #11141b; padding: 40px 20px; text-align: center;">
-        <img src="https://dealroom.online/email-badge.png" alt="DEAL ROOM - POWERED BY AGENZIA" style="height: 180px; width: auto; display: inline-block;">
+        <img src="https://dealroom.online/email-badge-sm.png" alt="DEAL ROOM - POWERED BY AGENZIA" width="188" style="width: 188px; max-width: 100%; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;">
       </div>
       <div class="content">
         <h1>Private Deal Room Invitation</h1>
@@ -231,7 +231,7 @@ export function getStaffEmailHtml({
   <div class="wrapper">
     <div class="container">
       <div style="background-color: #11141b; padding: 40px 20px; text-align: center;">
-        <img src="https://dealroom.online/email-badge.png" alt="DEAL ROOM - POWERED BY AGENZIA" style="height: 180px; width: auto; display: inline-block;">
+        <img src="https://dealroom.online/email-badge-sm.png" alt="DEAL ROOM - POWERED BY AGENZIA" width="188" style="width: 188px; max-width: 100%; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;">
       </div>
       <div class="content">
         <h1>Private Deal Room Invitation</h1>
@@ -411,7 +411,7 @@ export function getTaskNotificationHtml({
   <div class="wrapper">
     <div class="container">
       <div style="background-color: #11141b; padding: 40px 20px; text-align: center;">
-        <img src="https://dealroom.online/email-badge.png" alt="DEAL ROOM - POWERED BY AGENZIA" style="height: 180px; width: auto; display: inline-block;">
+        <img src="https://dealroom.online/email-badge-sm.png" alt="DEAL ROOM - POWERED BY AGENZIA" width="188" style="width: 188px; max-width: 100%; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;">
       </div>
       <div class="content">
         <h1>Action Required</h1>
@@ -525,7 +525,7 @@ export function getTimelineNotificationHtml({
   <div class="wrapper">
     <div class="container">
       <div style="background-color: #11141b; padding: 40px 20px; text-align: center;">
-        <img src="https://dealroom.online/email-badge.png" alt="DEAL ROOM - POWERED BY AGENZIA" style="height: 180px; width: auto; display: inline-block;">
+        <img src="https://dealroom.online/email-badge-sm.png" alt="DEAL ROOM - POWERED BY AGENZIA" width="188" style="width: 188px; max-width: 100%; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;">
       </div>
       <div class="content">
         <h1>Timeline Progressed</h1>
