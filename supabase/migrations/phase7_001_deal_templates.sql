@@ -71,8 +71,13 @@ create policy deal_templates_manager_delete on public.deal_templates
 grant select on public.deal_templates to authenticated;
 grant insert, update, delete on public.deal_templates to authenticated;
 
+-- search_path is pinned (advisor: function_search_path_mutable), matching
+-- is_template_manager() and the other hardened helpers.
 create or replace function public.touch_deal_templates_updated_at()
-returns trigger language plpgsql as $$
+returns trigger
+language plpgsql
+set search_path = public
+as $$
 begin new.updated_at = now(); return new; end; $$;
 
 drop trigger if exists deal_templates_touch_updated_at on public.deal_templates;
