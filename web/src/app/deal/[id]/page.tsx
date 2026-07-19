@@ -17,6 +17,7 @@ import DeleteDocumentModal from '@/components/deal/DeleteDocumentModal';
 import DocumentAccessModal from '@/components/deal/DocumentAccessModal';
 import TaskComments from '@/components/deal/TaskComments';
 import ClientTodoBanner from '@/components/deal/ClientTodoBanner';
+import { isOutstandingForParticipant } from '@/lib/taskOutstanding';
 import { useTranslation, TranslationKey } from '@/lib/useTranslation';
 import { DealPageSkeleton } from '@/components/ui/Skeleton';
 import { supabase } from '@/lib/supabase';
@@ -113,8 +114,8 @@ export default function DealDetailPage() {
         const isMine = tk.assignedTo === currentUserParticipant?.id
             || tk.assignedTo === currentDealParticipantRecord?.role
             || tk.assignedTo?.toLowerCase() === user.email.toLowerCase();
-        if (!isMine || tk.status === 'completed') return false;
-        return tk.documents.length === 0 || tk.documents.every(d => d.status === 'rejected');
+        if (!isMine) return false;
+        return isOutstandingForParticipant(tk.status, tk.documents.map(d => d.status));
     });
 
     return (

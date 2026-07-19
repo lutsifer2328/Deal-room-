@@ -6,6 +6,7 @@ import { supabase } from './supabase';
 import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, DealStatus, Role, StandardDocument, GlobalParticipant, DealParticipant, Notification, AgencyContract, DealDocument, DealTemplate, DealTemplateItem } from './types';
 import { createDefaultTimeline } from './defaultTimeline';
 import { generateId } from './id';
+import { isOutstandingForParticipant } from './taskOutstanding';
 import { MOCK_STANDARD_DOCUMENTS } from './mockStandardDocuments';
 import { getPermissionsForRole } from './permissions';
 import toast from 'react-hot-toast';
@@ -183,6 +184,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // rather than the snapshot captured when the timer was scheduled.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rawTasksRef = useRef<any[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawDocumentsRef = useRef<any[]>([]);
     // Pending debounced task-digest emails, keyed by `${dealId}|${email}`.
     const digestTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
     const lastFetchRef = useRef<number>(0);
@@ -467,6 +470,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => { rawTasksRef.current = rawTasks; }, [rawTasks]);
+    useEffect(() => { rawDocumentsRef.current = rawDocuments; }, [rawDocuments]);
 
     // Flush any pending digest timers on unmount so they don't fire after teardown.
     useEffect(() => {
@@ -809,16 +813,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const sendTaskDigest = async (dealId: string, email: string, name: string, participantId?: string | null) => {
         const normalized = email.toLowerCase().trim();
-        // Read the freshest task list (the optimistic insert may not have
+        // Read the freshest lists (the optimistic insert may not have
         // re-rendered yet when this was queued).
-        const outstanding = rawTasksRef.current.filter((t: any) =>
-            t.deal_id === dealId &&
-            t.status !== 'completed' &&
-            (
+        const outstanding = rawTasksRef.current.filter((t: any) => {
+            if (t.deal_id !== dealId || t.status === 'completed') return false;
+
+            const isTheirs =
                 (participantId && t.assigned_participant_id === participantId) ||
-                (typeof t.assigned_to === 'string' && t.assigned_to.toLowerCase() === normalized)
-            )
-        );
+                (typeof t.assigned_to === 'string' && t.assigned_to.toLowerCase() === normalized);
+            if (!isTheirs) return false;
+
+            // Only chase what they still have to DO — shared with the client
+            // banner so the two can't disagree.
+            const docStatuses = rawDocumentsRef.current
+                .filter((d: any) => d.task_id === t.id)
+                .map((d: any) => d.status);
+            return isOutstandingForParticipant(t.status, docStatuses);
+        });
         if (outstanding.length === 0) return;
 
         try {
