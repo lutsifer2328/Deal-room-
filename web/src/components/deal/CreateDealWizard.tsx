@@ -7,12 +7,11 @@ import { useState, useRef } from 'react';
 import { Participant, Role, GlobalParticipant } from '@/lib/types';
 import DuplicateDetectionModal from '@/components/participants/DuplicateDetectionModal';
 import { useTranslation, TranslationKey } from '@/lib/useTranslation';
-import { DEAL_TEMPLATES, DealTemplateId } from '@/lib/dealTemplates';
 
 export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () => void, onSuccess?: (dealId: string) => void }) {
-    const { createDeal, checkDuplicateEmail, getParticipantDeals } = useData();
+    const { createDeal, checkDuplicateEmail, getParticipantDeals, dealTemplates } = useData();
     const { user } = useAuth();
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
     const [step, setStep] = useState(1);
 
     // Step 1: Deal Info
@@ -20,7 +19,11 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
     const [title, setTitle] = useState('');
     const [propertyAddress, setPropertyAddress] = useState('');
     const [price, setPrice] = useState('');
-    const [templateId, setTemplateId] = useState<DealTemplateId | ''>('');
+    // Template id from the lawyer-managed checklists ('' = none)
+    const [templateId, setTemplateId] = useState<string>('');
+
+    const activeTemplates = dealTemplates.filter(tpl => tpl.isActive);
+    const selectedTemplate = activeTemplates.find(tpl => tpl.id === templateId) || null;
 
     // Step 2: Participants
     const [participants, setParticipants] = useState<Omit<Participant, 'id' | 'addedAt'>[]>([]);
@@ -172,7 +175,7 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
             const parsedPrice = price ? Number(price.replace(/,/g, '')) : undefined;
             const dealId = await createDeal(
                 title, propertyAddress, finalParticipants, user.id, dealNumber || undefined, parsedPrice,
-                templateId ? DEAL_TEMPLATES[templateId] : undefined
+                selectedTemplate ? selectedTemplate.items : undefined
             );
             if (onSuccess) {
                 onSuccess(dealId);
@@ -267,30 +270,44 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('wizard.template.label')}</label>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                    {([
-                                        { id: '' as const, label: t('wizard.template.none') },
-                                        { id: 'purchase' as const, label: t('wizard.template.purchase') },
-                                        { id: 'sale' as const, label: t('wizard.template.sale') },
-                                        { id: 'rental' as const, label: t('wizard.template.rental') },
-                                    ]).map(opt => (
-                                        <button
-                                            key={opt.id || 'none'}
-                                            type="button"
-                                            onClick={() => setTemplateId(opt.id)}
-                                            className={`px-3 py-2 rounded-lg border text-sm font-bold transition-all ${templateId === opt.id
-                                                ? 'bg-teal text-white border-teal shadow-sm'
-                                                : 'bg-white text-gray-600 border-gray-300 hover:border-teal hover:text-teal'
-                                                }`}
-                                        >
-                                            {opt.label}
-                                        </button>
-                                    ))}
-                                </div>
-                                {templateId && (
-                                    <p className="text-xs text-teal font-medium mt-2">
-                                        ✓ {t('wizard.template.hint', { count: DEAL_TEMPLATES[templateId].length })}
+                                {activeTemplates.length === 0 ? (
+                                    <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                        {t('wizard.template.empty')}
                                     </p>
+                                ) : (
+                                    <>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setTemplateId('')}
+                                                className={`px-3 py-2 rounded-lg border text-sm font-bold transition-all ${templateId === ''
+                                                    ? 'bg-teal text-white border-teal shadow-sm'
+                                                    : 'bg-white text-gray-600 border-gray-300 hover:border-teal hover:text-teal'
+                                                    }`}
+                                            >
+                                                {t('wizard.template.none')}
+                                            </button>
+                                            {activeTemplates.map(tpl => (
+                                                <button
+                                                    key={tpl.id}
+                                                    type="button"
+                                                    onClick={() => setTemplateId(tpl.id)}
+                                                    className={`px-3 py-2 rounded-lg border text-sm font-bold transition-all ${templateId === tpl.id
+                                                        ? 'bg-teal text-white border-teal shadow-sm'
+                                                        : 'bg-white text-gray-600 border-gray-300 hover:border-teal hover:text-teal'
+                                                        }`}
+                                                    title={tpl.description || undefined}
+                                                >
+                                                    {language === 'bg' && tpl.nameBg ? tpl.nameBg : tpl.nameEn}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {selectedTemplate && (
+                                            <p className="text-xs text-teal font-medium mt-2">
+                                                ✓ {t('wizard.template.hint', { count: selectedTemplate.items.length })}
+                                            </p>
+                                        )}
+                                    </>
                                 )}
                             </div>
 

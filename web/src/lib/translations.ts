@@ -221,6 +221,7 @@ export const translations = {
         "archive.title": "Archive",
         "archive.subtitle": "Manage standard documents, search across deals, and access historical records",
         "archive.tab.standard": "Standard Documents",
+        "archive.tab.templates": "Checklists",
         "archive.tab.search": "Search All Documents",
         "archive.tab.pending": "Pending Review",
         "archive.tab.expiring": "Expiring Soon",
@@ -346,9 +347,7 @@ export const translations = {
         "nav.pendingBadge": "{count} documents waiting for review",
         "wizard.template.label": "Document checklist",
         "wizard.template.none": "None",
-        "wizard.template.purchase": "Purchase",
-        "wizard.template.sale": "Sale",
-        "wizard.template.rental": "Rental",
+        "wizard.template.empty": "No checklists yet. An admin or lawyer can create them in Archive → Checklists.",
         "wizard.template.hint": "{count} standard document tasks will be created automatically",
 
         // Soft Rejection Labels
@@ -706,6 +705,7 @@ export const translations = {
         "archive.title": "Архив",
         "archive.subtitle": "Управление на стандартни документи, търсене и история",
         "archive.tab.standard": "Стандартни документи",
+        "archive.tab.templates": "Чеклисти",
         "archive.tab.search": "Търсене на документи",
         "archive.tab.pending": "Чакащи преглед",
         "archive.tab.expiring": "Изтичащи скоро",
@@ -831,9 +831,7 @@ export const translations = {
         "nav.pendingBadge": "{count} документа чакат преглед",
         "wizard.template.label": "Чеклист с документи",
         "wizard.template.none": "Без",
-        "wizard.template.purchase": "Покупка",
-        "wizard.template.sale": "Продажба",
-        "wizard.template.rental": "Наем",
+        "wizard.template.empty": "Все още няма чеклисти. Администратор или юрист може да ги създаде в Архив → Чеклисти.",
         "wizard.template.hint": "{count} стандартни задачи за документи ще бъдат създадени автоматично",
 
         // Soft Rejection Labels

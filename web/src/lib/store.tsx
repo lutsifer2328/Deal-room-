@@ -3,9 +3,8 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { supabase } from './supabase';
-import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, DealStatus, Role, StandardDocument, GlobalParticipant, DealParticipant, Notification, AgencyContract, DealDocument } from './types';
+import { Deal, Task, User, AuditLogEntry, Participant, DealStep, TimelineStep, DealStatus, Role, StandardDocument, GlobalParticipant, DealParticipant, Notification, AgencyContract, DealDocument, DealTemplate, DealTemplateItem } from './types';
 import { createDefaultTimeline } from './defaultTimeline';
-import { DealTemplateTask } from './dealTemplates';
 import { generateId } from './id';
 import { MOCK_STANDARD_DOCUMENTS } from './mockStandardDocuments';
 import { getPermissionsForRole } from './permissions';
@@ -27,7 +26,7 @@ interface DataContextType {
     downloadableDocIds: Set<string>;
 
     // Actions
-    createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number, templateTasks?: DealTemplateTask[]) => Promise<string>;
+    createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number, templateItems?: DealTemplateItem[]) => Promise<string>;
     updateDeal: (dealId: string, updates: { title?: string; propertyAddress?: string; price?: number }) => Promise<void>;
     addTask: (dealId: string, title: string, assignedToEmail: string, assignedParticipantId: string, standardDocumentId?: string, expirationDate?: string, customId?: string) => Promise<void>;
     deleteTask: (taskId: string, actorId: string) => void;
@@ -56,6 +55,12 @@ interface DataContextType {
     releaseDocument: (actorId: string, taskId: string, docId: string) => void;
     rejectDocument: (actorId: string, taskId: string, docId: string, reasonEn: string, reasonBg: string) => void;
     deleteDocument: (taskId: string, docId: string, filePath: string) => Promise<void>;
+
+    // Deal Templates (lawyer-managed checklists)
+    dealTemplates: DealTemplate[];
+    createDealTemplate: (input: { nameEn: string; nameBg?: string; description?: string; items: DealTemplateItem[] }, createdBy: string) => Promise<string | null>;
+    updateDealTemplate: (id: string, updates: Partial<Pick<DealTemplate, 'nameEn' | 'nameBg' | 'description' | 'items' | 'isActive'>>) => Promise<void>;
+    deleteDealTemplate: (id: string) => Promise<void>;
 
     // Standard Documents Actions
     standardDocuments: StandardDocument[];
@@ -138,6 +143,19 @@ const mapDpRow = (dp: any): DealParticipant => ({
     updatedAt: dp.updated_at
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mapTemplateRow = (t: any): DealTemplate => ({
+    id: t.id,
+    nameEn: t.name_en,
+    nameBg: t.name_bg || undefined,
+    description: t.description || undefined,
+    items: Array.isArray(t.items) ? t.items : [],
+    isActive: t.is_active !== false,
+    createdAt: t.created_at,
+    updatedAt: t.updated_at,
+    createdBy: t.created_by || undefined
+});
+
 // Snapshot of raw store data persisted to localStorage so a returning user sees
 // their deal room instantly (skeleton→content) instead of a blank spinner while
 // the bulk network fetch runs. Keyed to the auth user id; cleared on sign-out.
@@ -154,6 +172,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const [rawGlobalParticipants, setRawGlobalParticipants] = useState<GlobalParticipant[]>([]);
     const [rawDealParticipants, setRawDealParticipants] = useState<DealParticipant[]>([]);
     const [standardDocuments, setStandardDocuments] = useState<StandardDocument[]>(MOCK_STANDARD_DOCUMENTS);
+    const [dealTemplates, setDealTemplates] = useState<DealTemplate[]>([]);
     const [logs, setLogs] = useState<AuditLogEntry[]>([]);
     const [agencyContracts, setAgencyContracts] = useState<AgencyContract[]>([]);
     const [rawDocuments, setRawDocuments] = useState<any[]>([]);
@@ -248,7 +267,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 { data: fetchedStdDocs },
                 { data: fetchedLogs },
                 { data: fetchedContracts },
-                { data: fetchedDocuments }
+                { data: fetchedDocuments },
+                { data: fetchedTemplates }
             ] = await Promise.all([
                 db.from('users').select('*').order('created_at', { ascending: false }),
                 db.from('deals').select('*'),
@@ -258,8 +278,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 db.from('standard_documents').select('*'),
                 db.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(100),
                 db.from('agency_contracts').select('*'),
-                db.from('documents').select('*') // Direct fetch
+                db.from('documents').select('*'), // Direct fetch
+                // Fails soft to [] when phase7_001 hasn't been applied yet — the
+                // rest of the app must keep working before the migration runs.
+                db.from('deal_templates').select('*').order('name_en')
             ]);
+
+            if (fetchedTemplates) setDealTemplates(fetchedTemplates.map(mapTemplateRow));
 
             const mappedUsers = fetchedUsers ? fetchedUsers.map(mapUserRow) : null;
             const mappedGPs = fetchedGPs ? fetchedGPs.map(mapGpRow) : null;
@@ -762,7 +787,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     // DEBUG: Raw Fetch fallback to bypass client library issues
-    const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number, templateTasks?: DealTemplateTask[]) => {
+    const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number, templateItems?: DealTemplateItem[]) => {
         try {
             const dealId = generateId();
             const defaultTimeline = createDefaultTimeline();
@@ -930,24 +955,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 }
             }
 
-            // 3. Seed template tasks (deal-type checklist picked in the wizard).
+            // 3. Seed template tasks (checklist picked in the wizard).
+            // Titles are resolved from standard_documents at creation time, so a
+            // template always reflects the lawyer's current document names.
             // Assign each to the first participant holding the item's role; if that
             // side isn't in the deal yet, assign by role string (the deal page's
             // legacy role-matching picks it up once the participant joins).
-            if (templateTasks && templateTasks.length > 0) {
+            if (templateItems && templateItems.length > 0) {
                 const nowIso = new Date().toISOString();
-                const taskRows = templateTasks.map(tt => {
-                    const match = resolvedParticipants.find(rp => rp.role === tt.role);
+                const taskRows = templateItems.map(item => {
+                    const match = resolvedParticipants.find(rp => rp.role === item.role);
+                    const stdDoc = standardDocuments.find(d => d.id === item.standardDocumentId);
+                    const title = stdDoc?.name || 'Document';
                     return {
                         id: generateId(),
                         deal_id: dealId,
-                        title_en: tt.titleEn,
-                        title_bg: tt.titleBg,
-                        assigned_to: match ? match.email.toLowerCase().trim() : tt.role,
+                        title_en: title,
+                        title_bg: title,
+                        assigned_to: match ? match.email.toLowerCase().trim() : item.role,
                         assigned_participant_id: match ? match.gpId : null,
                         status: 'pending',
-                        required: true,
-                        standard_document_id: tt.standardDocumentId || null,
+                        required: item.required !== false,
+                        standard_document_id: item.standardDocumentId || null,
                         created_at: nowIso
                     };
                 });
@@ -1751,6 +1780,86 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    // --- Deal Templates (admin/lawyer manage; all staff read + apply) ---
+
+    const createDealTemplate = async (
+        input: { nameEn: string; nameBg?: string; description?: string; items: DealTemplateItem[] },
+        createdBy: string
+    ) => {
+        const id = generateId();
+        const now = new Date().toISOString();
+        const optimistic: DealTemplate = {
+            id,
+            nameEn: input.nameEn,
+            nameBg: input.nameBg,
+            description: input.description,
+            items: input.items,
+            isActive: true,
+            createdAt: now,
+            updatedAt: now,
+            createdBy
+        };
+        try {
+            setDealTemplates(prev => [...prev, optimistic]);
+            const { error } = await supabase.from('deal_templates').insert({
+                id,
+                name_en: input.nameEn,
+                name_bg: input.nameBg || null,
+                description: input.description || null,
+                items: input.items,
+                is_active: true,
+                created_by: createdBy && createdBy.length > 20 ? createdBy : null
+            });
+            if (error) throw error;
+            addNotification('success', 'Checklist created', `"${input.nameEn}" is ready to use.`);
+            return id;
+        } catch (error: any) {
+            setDealTemplates(prev => prev.filter(t => t.id !== id)); // rollback
+            console.warn('Error creating deal template:', error);
+            addNotification('error', 'Failed to create checklist', error.message || 'Database error');
+            return null;
+        }
+    };
+
+    const updateDealTemplate = async (
+        id: string,
+        updates: Partial<Pick<DealTemplate, 'nameEn' | 'nameBg' | 'description' | 'items' | 'isActive'>>
+    ) => {
+        const previous = dealTemplates.find(t => t.id === id);
+        try {
+            setDealTemplates(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const dbUpdates: any = {};
+            if (updates.nameEn !== undefined) dbUpdates.name_en = updates.nameEn;
+            if (updates.nameBg !== undefined) dbUpdates.name_bg = updates.nameBg || null;
+            if (updates.description !== undefined) dbUpdates.description = updates.description || null;
+            if (updates.items !== undefined) dbUpdates.items = updates.items;
+            if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+
+            const { error } = await supabase.from('deal_templates').update(dbUpdates).eq('id', id);
+            if (error) throw error;
+        } catch (error: any) {
+            if (previous) setDealTemplates(prev => prev.map(t => t.id === id ? previous : t)); // rollback
+            console.warn('Error updating deal template:', error);
+            addNotification('error', 'Update failed', error.message || 'Database error');
+        }
+    };
+
+    const deleteDealTemplate = async (id: string) => {
+        const previous = dealTemplates;
+        try {
+            setDealTemplates(prev => prev.filter(t => t.id !== id));
+            const { error } = await supabase.from('deal_templates').delete().eq('id', id);
+            if (error) throw error;
+            addNotification('success', 'Checklist deleted', 'The template has been removed.');
+        } catch (error: any) {
+            setDealTemplates(previous); // rollback
+            console.warn('Error deleting deal template:', error);
+            addNotification('error', 'Failed to delete', error.message || 'Database error');
+        }
+    };
+
     const addStandardDocument = async (name: string, description: string, createdBy: string) => {
         const id = generateId();
         const newDoc: StandardDocument = {
@@ -2120,6 +2229,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         releaseDocument,
         rejectDocument,
         deleteDocument,
+        dealTemplates,
+        createDealTemplate,
+        updateDealTemplate,
+        deleteDealTemplate,
         standardDocuments,
         addStandardDocument,
         updateStandardDocument,

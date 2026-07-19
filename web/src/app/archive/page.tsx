@@ -4,17 +4,19 @@ import { useState, Suspense } from 'react';
 import { useAuth } from '@/lib/authContext';
 import { useSearchParams } from 'next/navigation';
 import StandardDocumentsTab from '@/components/archive/StandardDocumentsTab';
+import DealTemplatesTab from '@/components/archive/DealTemplatesTab';
 import PendingReviewTab from '@/components/archive/PendingReviewTab';
 import ExpiringSoonTab from '@/components/archive/ExpiringSoonTab';
 import SearchAllDocumentsTab from '@/components/archive/SearchAllDocumentsTab';
 import ClosedDealsTab from '@/components/archive/ClosedDealsTab';
 import { useTranslation } from '@/lib/useTranslation';
 
-type TabType = 'standard' | 'search' | 'pending' | 'expiring' | 'closed';
+type TabType = 'standard' | 'templates' | 'search' | 'pending' | 'expiring' | 'closed';
 
 // Map URL ?tab= slugs to internal tab IDs
 const TAB_SLUG_MAP: Record<string, TabType> = {
     standard: 'standard',
+    templates: 'templates',
     search: 'search',
     pending: 'pending',
     expiring: 'expiring',
@@ -65,6 +67,7 @@ function ArchiveContent() {
                 <div className="flex flex-wrap gap-3">
                     {[
                         { id: 'standard', label: t('archive.tab.standard') },
+                        { id: 'templates', label: t('archive.tab.templates') },
                         { id: 'search', label: t('archive.tab.search') },
                         { id: 'pending', label: t('archive.tab.pending') },
                         { id: 'expiring', label: t('archive.tab.expiring') },
@@ -87,6 +90,7 @@ function ArchiveContent() {
                 {/* Tab Content */}
                 <div className="bg-white rounded-3xl shadow-xl shadow-navy-primary/5 border border-white/20 p-6 backdrop-blur-xl min-h-[500px]">
                     {activeTab === 'standard' && <StandardDocumentsTab />}
+                    {activeTab === 'templates' && <DealTemplatesTab />}
                     {activeTab === 'search' && <SearchAllDocumentsTab />}
                     {activeTab === 'pending' && <PendingReviewTab />}
                     {activeTab === 'expiring' && <ExpiringSoonTab />}

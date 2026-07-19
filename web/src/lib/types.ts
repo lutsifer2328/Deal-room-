@@ -133,6 +133,29 @@ export interface StandardDocument {
   isActive: boolean;
 }
 
+/**
+ * A lawyer-managed deal checklist. Items reference a StandardDocument by id
+ * rather than copying its title, so renaming the standard document updates
+ * every template that uses it. Stored as JSONB on deal_templates.items.
+ */
+export interface DealTemplateItem {
+  standardDocumentId: string;
+  role: Role;
+  required: boolean;
+}
+
+export interface DealTemplate {
+  id: string;
+  nameEn: string;
+  nameBg?: string;
+  description?: string;
+  items: DealTemplateItem[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+}
+
 export interface Comment {
   id: string;
   authorId: string;
