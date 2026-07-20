@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import { useAuth } from '@/lib/authContext';
+import { useData } from '@/lib/store';
 import { useSearchParams } from 'next/navigation';
+import { collectPendingDocuments, collectExpiringTasks, hasUrgentExpiry } from '@/lib/archiveSelectors';
 import StandardDocumentsTab from '@/components/archive/StandardDocumentsTab';
 import DealTemplatesTab from '@/components/archive/DealTemplatesTab';
 import PendingReviewTab from '@/components/archive/PendingReviewTab';
@@ -33,6 +35,7 @@ export default function ArchivePage() {
 
 function ArchiveContent() {
     const { user } = useAuth();
+    const { deals, tasks } = useData();
     const { t } = useTranslation();
     const searchParams = useSearchParams();
 
@@ -42,13 +45,12 @@ function ArchiveContent() {
 
     const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
+    // Counts come from the same selectors the tabs render, so a badge can never
+    // disagree with the list behind it.
+    const pendingCount = useMemo(() => collectPendingDocuments(deals, tasks).length, [deals, tasks]);
+    const expiring = useMemo(() => collectExpiringTasks(deals, tasks), [deals, tasks]);
 
     if (!user) return <div className="p-10 text-center">Loading...</div>;
-
-    // Access Control: Everyone can access archive, but content varies by role
-    if (!user) {
-        return <div className="p-10 text-center">Loading...</div>;
-    }
 
     return (
         <div className="flex-1 overflow-y-auto bg-gray-50/50 p-6 md:p-8">
@@ -69,20 +71,32 @@ function ArchiveContent() {
                         { id: 'standard', label: t('archive.tab.standard') },
                         { id: 'templates', label: t('archive.tab.templates') },
                         { id: 'search', label: t('archive.tab.search') },
-                        { id: 'pending', label: t('archive.tab.pending') },
-                        { id: 'expiring', label: t('archive.tab.expiring') },
+                        { id: 'pending', label: t('archive.tab.pending'), count: pendingCount },
+                        { id: 'expiring', label: t('archive.tab.expiring'), count: expiring.length, urgent: hasUrgentExpiry(expiring) },
                         { id: 'closed', label: t('archive.tab.closed') },
                     ].map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as TabType)}
-                            className={`px-6 py-3 rounded-xl font-bold transition-all duration-300 ${activeTab === tab.id
+                            className={`px-6 py-3 rounded-xl font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === tab.id
                                 ? 'bg-teal text-white shadow-lg shadow-teal/20 scale-105'
                                 : 'bg-white text-text-secondary hover:bg-gray-50 hover:text-navy-primary border border-gray-100'
                                 }`}
-                            title={tab.label}
+                            title={tab.count ? `${tab.label} (${tab.count})` : tab.label}
                         >
                             {tab.label}
+                            {!!tab.count && (
+                                <span
+                                    className={`inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 rounded-full text-xs font-bold tabular-nums ${activeTab === tab.id
+                                        ? 'bg-white/25 text-white'
+                                        : tab.urgent
+                                            ? 'bg-red-100 text-red-700'
+                                            : 'bg-gray-100 text-text-secondary'
+                                        }`}
+                                >
+                                    {tab.count}
+                                </span>
+                            )}
                         </button>
                     ))}
                 </div>

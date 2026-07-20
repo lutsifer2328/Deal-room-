@@ -5,10 +5,12 @@ import { User } from '@/lib/types';
 import { useAuth } from '@/lib/authContext';
 import { useTranslation } from '@/lib/useTranslation';
 import { FileText, Eye, CheckCircle, ExternalLink } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DocumentPreviewModal from '@/components/deal/DocumentPreviewModal';
+import RejectionModal from '@/components/deal/RejectionModal';
 import { DealDocument } from '@/lib/types';
+import { collectPendingDocuments } from '@/lib/archiveSelectors';
 
 export default function PendingReviewTab() {
     const { deals, tasks, users, verifyDocument, rejectDocument, releaseDocument } = useData();
@@ -16,6 +18,9 @@ export default function PendingReviewTab() {
     const { t } = useTranslation();
     const router = useRouter();
     const [previewDoc, setPreviewDoc] = useState<DealDocument | null>(null);
+    const [rejectingDoc, setRejectingDoc] = useState<{ taskId: string; docId: string } | null>(null);
+
+    const pendingItems = useMemo(() => collectPendingDocuments(deals, tasks), [deals, tasks]);
 
     if (!user) return null;
 
@@ -31,51 +36,18 @@ export default function PendingReviewTab() {
         return 'Admin';
     };
 
-    // Get all documents with status 'private' or 'verified' (pending review/release)
-    const pendingDocuments: Array<{
-        doc: DealDocument;
-        taskId: string;
-        taskTitle: string;
-        dealId: string;
-        dealTitle: string;
-        dealAddress: string;
-        participantName: string;
-    }> = [];
-
-    tasks.forEach(task => {
-        const deal = deals.find(d => d.id === task.dealId);
-        if (!deal || deal.status === 'closed') return;
-
-        task.documents.forEach(doc => {
-            if (doc.status === 'private' || doc.status === 'verified') {
-                pendingDocuments.push({
-                    doc,
-                    taskId: task.id,
-                    taskTitle: task.title_en,
-                    dealId: deal.id,
-                    dealTitle: deal.title,
-                    dealAddress: deal.propertyAddress,
-                    participantName: resolveUploaderName(doc.uploadedBy, deal)
-                });
-            }
-        });
-    });
-
-    // Sort by upload date (newest first)
-    pendingDocuments.sort((a, b) =>
-        new Date(b.doc.uploadedAt).getTime() - new Date(a.doc.uploadedAt).getTime()
-    );
+    // Documents with status 'private' or 'verified' (pending review/release)
+    const pendingDocuments = pendingItems.map(item => ({
+        ...item,
+        dealId: item.deal.id,
+        dealTitle: item.deal.title,
+        dealAddress: item.deal.propertyAddress,
+        participantName: resolveUploaderName(item.doc.uploadedBy, item.deal),
+    }));
 
     const handleVerify = (taskId: string, docId: string) => {
         if (user) {
             verifyDocument(user.id, taskId, docId);
-        }
-    };
-
-    const handleReject = (taskId: string, docId: string) => {
-        const reason = prompt('Enter rejection reason:');
-        if (reason && user) {
-            rejectDocument(user.id, taskId, docId, reason, reason);
         }
     };
 
@@ -221,7 +193,7 @@ export default function PendingReviewTab() {
                                                 {t('deal.verify')}
                                             </button>
                                             <button
-                                                onClick={() => handleReject(item.taskId, item.doc.id)}
+                                                onClick={() => setRejectingDoc({ taskId: item.taskId, docId: item.doc.id })}
                                                 className="px-3 py-2 bg-red-50 text-red-600 border border-red-100 text-xs font-bold rounded-lg hover:bg-red-100 transition-colors shrink-0 whitespace-nowrap"
                                             >
                                                 {t('deal.reject')}
@@ -248,6 +220,17 @@ export default function PendingReviewTab() {
                 <DocumentPreviewModal
                     doc={previewDoc}
                     onClose={() => setPreviewDoc(null)}
+                />
+            )}
+
+            {/* Rejection Modal */}
+            {rejectingDoc && (
+                <RejectionModal
+                    onClose={() => setRejectingDoc(null)}
+                    onConfirm={(reasonEn, reasonBg) => {
+                        rejectDocument(user.id, rejectingDoc.taskId, rejectingDoc.docId, reasonEn, reasonBg);
+                        setRejectingDoc(null);
+                    }}
                 />
             )}
         </div>
