@@ -5,7 +5,7 @@ import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
 import { AlertTriangle, Calendar, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { collectExpiringTasks, urgencyOf, UrgencyLevel } from '@/lib/archiveSelectors';
+import { collectExpiringTasks, resolveTaskPersonName, urgencyOf, UrgencyLevel } from '@/lib/archiveSelectors';
 
 const URGENCY_BADGE: Record<UrgencyLevel, { text: string; color: string }> = {
     expired: { text: 'Expired', color: 'bg-red-700' },
@@ -39,7 +39,7 @@ function describeDays(days: number): string {
 }
 
 export default function ExpiringSoonTab() {
-    const { deals, tasks } = useData();
+    const { deals, tasks, users } = useData();
     const { user } = useAuth();
     const router = useRouter();
 
@@ -56,10 +56,8 @@ export default function ExpiringSoonTab() {
         router.push(`/deal/${dealId}`);
     };
 
-    const participantNameFor = (item: typeof expiringTasks[number]): string => {
-        const participant = item.deal.participants.find(p => p.role === item.assignedTo);
-        return participant?.fullName || 'Unknown';
-    };
+    const participantNameFor = (item: typeof expiringTasks[number]): string =>
+        resolveTaskPersonName(item.task, item.deal, users);
 
     return (
         <div>

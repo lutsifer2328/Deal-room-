@@ -1,7 +1,6 @@
 'use client';
 
 import { useData } from '@/lib/store';
-import { User } from '@/lib/types';
 import { useAuth } from '@/lib/authContext';
 import { useTranslation } from '@/lib/useTranslation';
 import { FileText, Eye, CheckCircle, ExternalLink } from 'lucide-react';
@@ -10,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import DocumentPreviewModal from '@/components/deal/DocumentPreviewModal';
 import RejectionModal from '@/components/deal/RejectionModal';
 import { DealDocument } from '@/lib/types';
-import { collectPendingDocuments } from '@/lib/archiveSelectors';
+import { collectPendingDocuments, resolveUploaderName } from '@/lib/archiveSelectors';
 
 export default function PendingReviewTab() {
     const { deals, tasks, users, verifyDocument, rejectDocument, releaseDocument } = useData();
@@ -24,25 +23,13 @@ export default function PendingReviewTab() {
 
     if (!user) return null;
 
-    // Resolve uploader name from user ID — same pattern as SearchAllDocumentsTab
-    const resolveUploaderName = (uploadedBy: string | undefined, deal: any): string => {
-        if (!uploadedBy) return 'Admin';
-        // Check internal users map first
-        const internalUser: User | undefined = users[uploadedBy];
-        if (internalUser) return internalUser.name;
-        // Check deal participants
-        const participant = deal?.participants?.find((p: any) => p.userId === uploadedBy || p.id === uploadedBy);
-        if (participant) return participant.fullName || participant.email || 'Participant';
-        return 'Admin';
-    };
-
     // Documents with status 'private' or 'verified' (pending review/release)
     const pendingDocuments = pendingItems.map(item => ({
         ...item,
         dealId: item.deal.id,
         dealTitle: item.deal.title,
         dealAddress: item.deal.propertyAddress,
-        participantName: resolveUploaderName(item.doc.uploadedBy, item.deal),
+        participantName: resolveUploaderName(item.doc.uploadedBy, item.deal, users),
     }));
 
     const handleVerify = (taskId: string, docId: string) => {

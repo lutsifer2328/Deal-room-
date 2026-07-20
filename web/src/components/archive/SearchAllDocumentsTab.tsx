@@ -1,7 +1,7 @@
 'use client';
 
 import { useData } from '@/lib/store';
-import { User } from '@/lib/types';
+import { getStatusBadge, getStatusLabel, resolveUploaderName } from '@/lib/archiveSelectors';
 import { useAuth } from '@/lib/authContext';
 import { useTranslation } from '@/lib/useTranslation';
 import { Search, FileText, Eye, ExternalLink, Filter } from 'lucide-react';
@@ -37,18 +37,6 @@ export default function SearchAllDocumentsTab() {
         return d.toLocaleTimeString();
     };
 
-    // Resolve uploader name from user ID
-    const resolveUploaderName = (uploadedBy: string | undefined, deal: any): string => {
-        if (!uploadedBy) return 'Admin';
-        // Check internal users map first
-        const internalUser: User | undefined = users[uploadedBy];
-        if (internalUser) return internalUser.name;
-        // Check deal participants
-        const participant = deal?.participants?.find((p: any) => p.userId === uploadedBy || p.id === uploadedBy);
-        if (participant) return participant.fullName || participant.email || 'Participant';
-        return 'Admin';
-    };
-
     // Collect all documents from all tasks
     const allDocuments: Array<{
         doc: DealDocument;
@@ -74,7 +62,7 @@ export default function SearchAllDocumentsTab() {
                 dealTitle: deal.title,
                 dealAddress: deal.propertyAddress,
                 dealStatus: deal.status,
-                participantName: resolveUploaderName(doc.uploadedBy, deal)
+                participantName: resolveUploaderName(doc.uploadedBy, deal, users)
             });
         });
     });
@@ -113,36 +101,6 @@ export default function SearchAllDocumentsTab() {
 
     const handleViewDeal = (dealId: string) => {
         router.push(`/deal/${dealId}`);
-    };
-
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'private':
-                return 'bg-yellow-100 text-yellow-700';
-            case 'verified':
-                return 'bg-blue-100 text-blue-700';
-            case 'released':
-                return 'bg-green-100 text-green-700';
-            case 'rejected':
-                return 'bg-red-100 text-red-700';
-            default:
-                return 'bg-gray-100 text-gray-700';
-        }
-    };
-
-    const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'private':
-                return 'Private';
-            case 'verified':
-                return 'Verified';
-            case 'released':
-                return 'Released';
-            case 'rejected':
-                return 'Rejected';
-            default:
-                return status;
-        }
     };
 
     return (
