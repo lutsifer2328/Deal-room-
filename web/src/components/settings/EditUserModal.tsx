@@ -14,6 +14,8 @@ export default function EditUserModal({ user, onClose }: EditUserModalProps) {
     const [fullName, setFullName] = useState(user.name);
     const [email, setEmail] = useState(user.email);
     const [role, setRole] = useState<Role>(user.role);
+    const [title, setTitle] = useState(user.title || '');
+    const [phone, setPhone] = useState(user.phone || '');
 
     const organizationalRoles: Role[] = ['admin', 'lawyer', 'staff', 'viewer'];
 
@@ -24,7 +26,9 @@ export default function EditUserModal({ user, onClose }: EditUserModalProps) {
         updateUser(user.id, {
             name: fullName,
             email,
-            role
+            role,
+            title: title.trim(),
+            phone: phone.trim()
         });
         onClose();
     };
@@ -61,6 +65,33 @@ export default function EditUserModal({ user, onClose }: EditUserModalProps) {
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Job Title
+                            </label>
+                            <input
+                                type="text"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder="e.g. Transaction Lawyer"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Shown to clients on deals this person leads.</p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Phone
+                            </label>
+                            <input
+                                type="tel"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                placeholder="e.g. 0888 123 456"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
 

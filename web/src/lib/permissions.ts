@@ -134,7 +134,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission> = {
         canViewAllDeals: false,
         canEditTimeline: false,
         canCloseDeals: false,
-        canManageDocuments: true, // Attorneys likely review docs
+        canManageDocuments: false, // External counsel: a guest who completes assigned tasks, never operates the room
         canExportData: false,
     },
 };

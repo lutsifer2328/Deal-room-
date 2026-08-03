@@ -82,7 +82,8 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
                 selectedParticipant.id, // AssignedParticipantId
                 selectedStandardDocId,
                 expirationDate || undefined,
-                newTaskId
+                newTaskId,
+                user?.id // createdBy — real actor, for internal accountability
             );
             onClose();
         } catch (error) {

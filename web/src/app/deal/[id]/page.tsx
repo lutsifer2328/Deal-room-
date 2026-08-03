@@ -17,6 +17,7 @@ import DeleteDocumentModal from '@/components/deal/DeleteDocumentModal';
 import DocumentAccessModal from '@/components/deal/DocumentAccessModal';
 import TaskComments from '@/components/deal/TaskComments';
 import ClientTodoBanner from '@/components/deal/ClientTodoBanner';
+import DealLeadCard from '@/components/deal/DealLeadCard';
 import { isOutstandingForParticipant } from '@/lib/taskOutstanding';
 import { useTranslation, TranslationKey } from '@/lib/useTranslation';
 import { DealPageSkeleton } from '@/components/ui/Skeleton';
@@ -186,16 +187,7 @@ export default function DealDetailPage() {
                 </div>
 
                 <div className="col-span-1 space-y-6">
-                    <div className="bg-midnight/5 rounded-xl p-6 border border-midnight/10 sticky top-24">
-                        <h3 className="font-bold text-midnight mb-2">{t('deal.infoTitle')}</h3>
-                        <p className="text-sm text-gray-600 mb-4">
-                            {t('deal.infoPrefix')} <strong>Agenzia Legal</strong>{t('deal.infoSuffix')}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs font-medium text-teal">
-                            <ShieldCheck className="w-4 h-4" />
-                            <span>{t('deal.encryption')}</span>
-                        </div>
-                    </div>
+                    <DealLeadCard deal={deal} />
                 </div>
             </div>
 
@@ -283,6 +275,7 @@ function TaskItem({ task, userRole, dealId, onDelete, currentDealParticipantReco
 }) {
     const { t } = useTranslation();
     const { user } = useAuth();
+    const { users } = useData();
 
     // Deal-level ownership: the user's PARTICIPANT record is assigned this task either by ID or by Role (e.g. 'buyer')
     // We check `user.id` matches the global `Participant` in `page.tsx`, but here we have the joined `DealParticipant`.
@@ -334,6 +327,18 @@ function TaskItem({ task, userRole, dealId, onDelete, currentDealParticipantReco
                         {task.required && <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 shadow-sm whitespace-nowrap flex-shrink-0">* {t('deal.required')}</span>}
                     </div>
                     {task.title_bg && <p className="text-sm text-text-light break-words">{task.title_bg}</p>}
+                    {/* Attribution: clients see institutional "Agenzia requires"; staff see the
+                        real creator for accountability (legacy tasks predate created_by → omitted). */}
+                    {isStaffOrAbove ? (
+                        task.createdBy && users[task.createdBy] && (
+                            <p className="text-xs text-text-light mt-1">
+                                {t('deal.attribution.createdBy' as TranslationKey)}{' '}
+                                <span className="font-medium text-text-secondary">{users[task.createdBy].name}</span>
+                            </p>
+                        )
+                    ) : (
+                        <p className="text-xs text-text-light mt-1 italic">{t('deal.attribution.requested' as TranslationKey)}</p>
+                    )}
                 </div>
 
                 <div className="mr-8 flex-shrink-0">

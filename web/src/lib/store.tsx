@@ -27,9 +27,9 @@ interface DataContextType {
     downloadableDocIds: Set<string>;
 
     // Actions
-    createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number, templateItems?: DealTemplateItem[]) => Promise<string>;
-    updateDeal: (dealId: string, updates: { title?: string; propertyAddress?: string; price?: number }) => Promise<void>;
-    addTask: (dealId: string, title: string, assignedToEmail: string, assignedParticipantId: string, standardDocumentId?: string, expirationDate?: string, customId?: string) => Promise<void>;
+    createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number, templateItems?: DealTemplateItem[], leadUserId?: string) => Promise<string>;
+    updateDeal: (dealId: string, updates: { title?: string; propertyAddress?: string; price?: number; leadUserId?: string }) => Promise<void>;
+    addTask: (dealId: string, title: string, assignedToEmail: string, assignedParticipantId: string, standardDocumentId?: string, expirationDate?: string, customId?: string, createdBy?: string) => Promise<void>;
     deleteTask: (taskId: string, actorId: string) => void;
     setActiveDeal: (dealId: string) => void;
     updateDealStep: (dealId: string, step: DealStep, actorId: string) => void;
@@ -110,6 +110,8 @@ const mapUserRow = (u: any): User => ({
     role: u.role,
     permissions: getPermissionsForRole(u.role),
     avatarUrl: u.avatar_url,
+    title: u.title || undefined,
+    phone: u.phone || undefined,
     isActive: u.is_active !== false,
     createdAt: u.created_at,
     lastLogin: u.last_login
@@ -548,7 +550,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 participants,
                 buyerIds: participants.filter(p => p.role === 'buyer' && p.userId).map(p => p.userId!),
                 sellerIds: participants.filter(p => p.role === 'seller' && p.userId).map(p => p.userId!),
-                lawyerId: 'u_lawyer', // Mock
+                leadUserId: d.lead_user_id || undefined, // Agenzia operator running this deal
+                lawyerId: d.lead_user_id || '', // Legacy alias; repointed off the old 'u_lawyer' mock
                 agentId: participants.find(p => p.role === 'agent')?.userId,
                 price: d.price ? Number(d.price) : undefined,
                 createdAt: d.created_at,
@@ -591,7 +594,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 required: t.required,
                 standardDocumentId: t.standard_document_id,
                 expirationDate: t.expiration_date,
-                createdAt: t.created_at
+                createdAt: t.created_at,
+                createdBy: t.created_by || undefined
             };
         });
         setTasks(computedTasks);
@@ -860,11 +864,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }, DIGEST_DEBOUNCE_MS);
     };
 
-    const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number, templateItems?: DealTemplateItem[]) => {
+    const createDeal = async (title: string, propertyAddress: string, participantsInput: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number, templateItems?: DealTemplateItem[], leadUserId?: string) => {
         try {
             const dealId = generateId();
             const defaultTimeline = createDefaultTimeline();
             const validCreatorId = actorId && actorId !== 'unknown' && actorId.length > 20 ? actorId : null;
+            // Deal lead: the Agenzia operator shown to clients. Defaults to the creator.
+            const validLeadId = leadUserId && leadUserId.length > 20 ? leadUserId : validCreatorId;
 
             // 1. Create Deal Payload
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -877,6 +883,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 timeline_json: defaultTimeline,
                 created_at: new Date().toISOString(),
                 created_by: validCreatorId,
+                lead_user_id: validLeadId,
                 price: price || null
             };
             if (dealNumber) { dealPayload.external_reference = dealNumber; }
@@ -1112,9 +1119,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const addTask = async (dealId: string, title: string, assignedToEmail: string, assignedParticipantId: string, standardDocumentId?: string, expirationDate?: string, customId?: string) => {
+    const addTask = async (dealId: string, title: string, assignedToEmail: string, assignedParticipantId: string, standardDocumentId?: string, expirationDate?: string, customId?: string, createdBy?: string) => {
         const normalizedAssignedTo = assignedToEmail.toLowerCase().trim();
         const taskId = customId || generateId();
+        // Real creator for internal accountability; only persisted when it's a valid user id.
+        const validCreatedBy = createdBy && createdBy.length > 20 ? createdBy : null;
 
         // No need to lookup participant, we have it explicitly
         // Logic simplified to use passed ID directly
@@ -1138,6 +1147,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             standard_document_id: standardDocumentId,
             expiration_date: expirationDate,
             created_at: new Date().toISOString(),
+            created_by: validCreatedBy,
             documents: [], // DB shape usually has join, but here it's fine
             comments: []
         };
@@ -1154,7 +1164,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 required: true,
                 standard_document_id: standardDocumentId,
                 expiration_date: expirationDate,
-                created_at: newRawTask.created_at
+                created_at: newRawTask.created_at,
+                created_by: validCreatedBy
             });
 
             if (error) {
@@ -1308,14 +1319,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const updateDeal = async (dealId: string, updates: { title?: string; propertyAddress?: string; price?: number }) => {
+    const updateDeal = async (dealId: string, updates: { title?: string; propertyAddress?: string; price?: number; leadUserId?: string }) => {
         try {
             // Optimistic Update
             setRawDeals(prev => prev.map(d => d.id === dealId ? {
                 ...d,
                 ...(updates.title !== undefined && { title: updates.title }),
                 ...(updates.propertyAddress !== undefined && { property_address: updates.propertyAddress }),
-                ...(updates.price !== undefined && { price: updates.price })
+                ...(updates.price !== undefined && { price: updates.price }),
+                ...(updates.leadUserId !== undefined && { lead_user_id: updates.leadUserId })
             } : d));
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1323,6 +1335,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             if (updates.title !== undefined) dbUpdates.title = updates.title;
             if (updates.propertyAddress !== undefined) dbUpdates.property_address = updates.propertyAddress;
             if (updates.price !== undefined) dbUpdates.price = updates.price;
+            if (updates.leadUserId !== undefined) dbUpdates.lead_user_id = updates.leadUserId;
 
             const { error } = await supabase.from('deals').update(dbUpdates).eq('id', dealId);
             if (error) throw error;
@@ -1419,7 +1432,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 name: updates.name,
                 email: updates.email,
                 role: updates.role,
-                is_active: updates.isActive
+                is_active: updates.isActive,
+                title: updates.title,
+                phone: updates.phone
             }).eq('id', userId);
 
             if (error) throw error;

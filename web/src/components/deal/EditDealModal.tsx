@@ -12,14 +12,20 @@ interface EditDealModalProps {
 }
 
 export default function EditDealModal({ deal, isOpen, onClose }: EditDealModalProps) {
-    const { updateDeal } = useData();
+    const { updateDeal, users } = useData();
     const [editForm, setEditForm] = useState({
         title: deal.title,
         address: deal.propertyAddress || '',
-        price: deal.price ? String(deal.price) : ''
+        price: deal.price ? String(deal.price) : '',
+        leadUserId: deal.leadUserId || ''
     });
     const [isSaving, setIsSaving] = useState(false);
     const [mounted, setMounted] = useState(false);
+
+    // Active Agenzia operators eligible to lead this deal.
+    const internalOperators = Object.values(users).filter(
+        u => ['admin', 'lawyer', 'staff'].includes(u.role) && u.isActive
+    );
 
     useEffect(() => {
         setMounted(true);
@@ -29,7 +35,8 @@ export default function EditDealModal({ deal, isOpen, onClose }: EditDealModalPr
         setEditForm({
             title: deal.title,
             address: deal.propertyAddress || '',
-            price: deal.price ? String(deal.price) : ''
+            price: deal.price ? String(deal.price) : '',
+            leadUserId: deal.leadUserId || ''
         });
     }, [deal]);
 
@@ -42,7 +49,8 @@ export default function EditDealModal({ deal, isOpen, onClose }: EditDealModalPr
             await updateDeal(deal.id, {
                 title: editForm.title.trim(),
                 propertyAddress: editForm.address.trim(),
-                price: editForm.price ? Number(editForm.price) : undefined
+                price: editForm.price ? Number(editForm.price) : undefined,
+                ...(editForm.leadUserId && { leadUserId: editForm.leadUserId })
             });
             onClose();
         } catch (error) {
@@ -97,6 +105,24 @@ export default function EditDealModal({ deal, isOpen, onClose }: EditDealModalPr
                             onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                         />
+                    </div>
+
+                    {/* Deal Lead */}
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Deal Lead</label>
+                        <select
+                            value={editForm.leadUserId}
+                            onChange={(e) => setEditForm({ ...editForm, leadUserId: e.target.value })}
+                            title="Deal Lead"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                        >
+                            {internalOperators.map(op => (
+                                <option key={op.id} value={op.id}>
+                                    {op.name}{op.title ? ` — ${op.title}` : ''}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">The Agenzia contact clients see as managing this deal.</p>
                     </div>
 
                     {/* Price Field */}

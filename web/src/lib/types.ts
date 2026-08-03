@@ -19,6 +19,8 @@ export interface User {
   role: Role;
   permissions: Permission;
   avatarUrl?: string;
+  title?: string;   // Job title, e.g. "Transaction Lawyer" — shown on the deal contact card
+  phone?: string;   // Contact number shown to participants of deals they lead
   isActive: boolean;
   createdAt: string;
   lastLogin?: string;
@@ -180,6 +182,7 @@ export interface Task {
   standardDocumentId?: string;  // Reference to StandardDocument
   expirationDate?: string;      // For tracking expiring docs
   createdAt: string;            // ISO date string
+  createdBy?: string;           // Internal user who created the request (staff-only display; null = institutional)
 }
 
 export interface AuditLogEntry {
@@ -208,6 +211,7 @@ export interface Deal {
   title: string;
   propertyAddress: string;
   status: DealStatus;            // Deal lifecycle status
+  leadUserId?: string;           // Agenzia operator running this deal — the client-facing contact
   closedAt?: string;             // When deal was closed (ISO date)
   closedBy?: string;             // User ID who closed it
   closureNotes?: string;         // Optional closure/completion notes

@@ -285,11 +285,20 @@ export interface DigestTask {
   dueDate?: string; // ISO date
 }
 
+/** The deal lead (Agenzia operator) shown as the point of contact in automated mail. */
+export interface EmailLeadContact {
+  name: string;
+  title?: string | null;
+  phone?: string | null;
+  email?: string | null;
+}
+
 export async function sendTaskNotificationEmail(
   to: string,
   name: string,
   actionLink: string,
-  tasks: DigestTask[] = []
+  tasks: DigestTask[] = [],
+  lead?: EmailLeadContact
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
 
   if (!resend) {
@@ -318,6 +327,7 @@ export async function sendTaskNotificationEmail(
         name: name,
         actionLink: actionLink,
         tasks: tasks,
+        lead: lead,
       }),
       tags: [{ name: 'privacy', value: 'zero-trace' }]
     });
@@ -350,10 +360,12 @@ export function getTaskNotificationHtml({
   name,
   actionLink,
   tasks = [],
+  lead,
 }: {
   name: string;
   actionLink: string;
   tasks?: DigestTask[];
+  lead?: EmailLeadContact;
 }) {
   // Inline styles: Gmail/Outlook strip or ignore <style> blocks inconsistently.
   const renderList = (locale: 'en-GB' | 'bg-BG', dueLabel: string) => {
@@ -385,6 +397,16 @@ export function getTaskNotificationHtml({
   const bodyBg = tasks.length > 0
     ? `<p>Здравейте, <strong>${escapeHtml(name)}</strong>,</p><p>${countLineBg}</p>${renderList('bg-BG', 'срок')}<p>Можете да снимате документите директно с камерата на телефона си при качване.</p>`
     : `<p>Здравейте, <strong>${escapeHtml(name)}</strong>,</p><p>Имате нова задача, която изисква Вашето внимание. Моля, влезте във Вашата защитена Deal Room, за да прегледате изискванията и да качите необходимите документи.</p>`;
+
+  // Contact block: names the deal lead as the operator to reach for questions or
+  // upload trouble — a universal contact, not a claim of legal representation.
+  const leadBlock = lead
+    ? `<div style="border-top:1px solid #f1f5f9;margin-top:40px;padding-top:24px;">
+         <p style="font-size:13px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Managing this deal · Отговорник по сделката</p>
+         <p style="margin:0;font-size:15px;color:#0f172a;font-weight:600;">${escapeHtml(lead.name)}${lead.title ? `<span style="font-weight:400;color:#475569;"> — ${escapeHtml(lead.title)}</span>` : ''}</p>
+         <p style="margin:8px 0 0 0;font-size:14px;color:#475569;">Questions or trouble uploading? · Въпроси или проблем с качването?${lead.phone ? `<br>📞 <a href="tel:${escapeHtml(lead.phone.replace(/\s+/g, ''))}" style="color:#0f172a;text-decoration:none;">${escapeHtml(lead.phone)}</a>` : ''}${lead.email ? `<br>✉ <a href="mailto:${escapeHtml(lead.email)}" style="color:#0f172a;text-decoration:none;">${escapeHtml(lead.email)}</a>` : ''}</p>
+       </div>`
+    : '';
 
   return `
 <!DOCTYPE html>
@@ -430,6 +452,8 @@ export function getTaskNotificationHtml({
             <a href="${actionLink}" class="button">${tasks.length > 0 ? 'Качете документите' : 'Вижте задачата'}</a>
           </div>
         </div>
+
+        ${leadBlock}
       </div>
       <div class="footer">
         <div class="legal">

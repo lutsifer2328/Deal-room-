@@ -72,12 +72,34 @@ export async function POST(request: Request) {
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dealroom.online';
         const actionLink = `${siteUrl}/deal/${dealId}`;
 
+        // Resolve the deal lead (Agenzia operator) to name as the contact in the email.
+        // Uses the caller's session client so it's bound by RLS.
+        let lead: { name: string; title?: string | null; phone?: string | null; email?: string | null } | undefined;
+        try {
+            const { data: dealRow } = await userClient
+                .from('deals')
+                .select('lead_user_id')
+                .eq('id', dealId)
+                .maybeSingle();
+            if (dealRow?.lead_user_id) {
+                const { data: leadRow } = await userClient
+                    .from('users')
+                    .select('name, title, phone, email')
+                    .eq('id', dealRow.lead_user_id)
+                    .maybeSingle();
+                if (leadRow?.name) lead = leadRow;
+            }
+        } catch {
+            // Non-fatal: the email still sends without a contact block.
+        }
+
         // Send the email
         const result = await sendTaskNotificationEmail(
             participantEmail,
             participantName || participantEmail.split('@')[0],
             actionLink,
-            digestTasks
+            digestTasks,
+            lead
         );
 
         if (!result.success) {

@@ -9,16 +9,23 @@ import DuplicateDetectionModal from '@/components/participants/DuplicateDetectio
 import { useTranslation, TranslationKey } from '@/lib/useTranslation';
 
 export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () => void, onSuccess?: (dealId: string) => void }) {
-    const { createDeal, checkDuplicateEmail, getParticipantDeals, dealTemplates } = useData();
+    const { createDeal, checkDuplicateEmail, getParticipantDeals, dealTemplates, users } = useData();
     const { user } = useAuth();
     const { t, language } = useTranslation();
     const [step, setStep] = useState(1);
+
+    // Active Agenzia operators eligible to lead a deal (the client-facing contact).
+    const internalOperators = Object.values(users).filter(
+        u => ['admin', 'lawyer', 'staff'].includes(u.role) && u.isActive
+    );
 
     // Step 1: Deal Info
     const [dealNumber, setDealNumber] = useState('');
     const [title, setTitle] = useState('');
     const [propertyAddress, setPropertyAddress] = useState('');
     const [price, setPrice] = useState('');
+    // Deal lead: who the client sees as running this deal. Defaults to the creator.
+    const [leadUserId, setLeadUserId] = useState<string>(user?.id || '');
     // Template id from the lawyer-managed checklists ('' = none)
     const [templateId, setTemplateId] = useState<string>('');
 
@@ -175,7 +182,8 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
             const parsedPrice = price ? Number(price.replace(/,/g, '')) : undefined;
             const dealId = await createDeal(
                 title, propertyAddress, finalParticipants, user.id, dealNumber || undefined, parsedPrice,
-                selectedTemplate ? selectedTemplate.items : undefined
+                selectedTemplate ? selectedTemplate.items : undefined,
+                leadUserId || user.id
             );
             if (onSuccess) {
                 onSuccess(dealId);
@@ -266,6 +274,23 @@ export default function CreateDealWizard({ onClose, onSuccess }: { onClose: () =
                                     placeholder={t('wizard.placeholder.address')}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none"
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('wizard.label.lead' as TranslationKey)}</label>
+                                <select
+                                    value={leadUserId}
+                                    onChange={(e) => setLeadUserId(e.target.value)}
+                                    title={t('wizard.label.lead' as TranslationKey)}
+                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none bg-white"
+                                >
+                                    {internalOperators.map(op => (
+                                        <option key={op.id} value={op.id}>
+                                            {op.name}{op.title ? ` — ${op.title}` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                                <p className="text-xs text-gray-500 mt-1">{t('wizard.hint.lead' as TranslationKey)}</p>
                             </div>
 
                             <div>

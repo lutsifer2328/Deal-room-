@@ -91,11 +91,11 @@ export const translations = {
         "role.agent": "Broker",
         "role.broker": "Broker",
         "role.user": "User",
-        "role.lawyer": "Attorney",
+        "role.lawyer": "Agenzia Lawyer",
         "role.notary": "Notary",
         "role.bank_representative": "Bank Representative",
         "role.N/A": "N/A",
-        "role.attorney": "Attorney", // Alias for lawyer if data varies
+        "role.attorney": "External Lawyer", // Opposing counsel — a guest, not an Agenzia operator
 
         // Duplicate participant detection
         "duplicate.title": "Existing Participant Found",
@@ -118,6 +118,10 @@ export const translations = {
         "deal.infoPrefix": "This deal room is supervised by",
         "deal.infoSuffix": ". All documents are verified independently.",
         "deal.encryption": "Bank Encryption Standard",
+        "deal.lead.managing": "Managing this deal",
+        "deal.lead.help": "Questions about a document, or trouble uploading? Get in touch — happy to help.",
+        "deal.attribution.createdBy": "Created by",
+        "deal.attribution.requested": "Requested by Agenzia",
         "deal.unassigned": "Unassigned Role",
         "deal.required": "REQUIRED",
         "deal.upload": "Upload",
@@ -203,6 +207,8 @@ export const translations = {
         "wizard.placeholder.title": "e.g. Luxury Apartment in Lozenets",
         "wizard.label.address": "Property Address",
         "wizard.placeholder.address": "e.g. 123 Main Street, Sofia",
+        "wizard.label.lead": "Deal Lead",
+        "wizard.hint.lead": "The Agenzia contact clients see as managing this deal.",
         "wizard.section.added": "Added Participants",
         "wizard.section.add": "Add Participant",
         "wizard.label.name": "Full Name *",
@@ -432,7 +438,7 @@ export const translations = {
         "upload.takePhoto": "Take a photo",
         "upload.cameraHint": "Photograph the document with your camera",
         "upload.noteLabel": "Note:",
-        "upload.noteBody": "After upload, the attorney will review your document before it becomes visible to other parties.",
+        "upload.noteBody": "After upload, Agenzia will review your document before it is shared with other parties.",
 
         // Document preview modal
         "preview.uploaded": "Uploaded {date}",
@@ -574,11 +580,11 @@ export const translations = {
         "role.agent": "Брокер",
         "role.broker": "Брокер",
         "role.user": "Потребител",
-        "role.lawyer": "Адвокат",
+        "role.lawyer": "Адвокат на Agenzia",
         "role.notary": "Нотариус",
         "role.bank_representative": "Банков Представител",
         "role.N/A": "N/A",
-        "role.attorney": "Адвокат", // Alias for lawyer
+        "role.attorney": "Външен адвокат", // Opposing counsel — a guest, not an Agenzia operator
 
         // Duplicate participant detection
         "duplicate.title": "Намерен съществуващ участник",
@@ -602,6 +608,10 @@ export const translations = {
         "deal.infoPrefix": "Тази сделка се наблюдава от",
         "deal.infoSuffix": ". Всички документи се проверяват независимо.",
         "deal.encryption": "Банков стандарт за криптиране",
+        "deal.lead.managing": "Отговорник по сделката",
+        "deal.lead.help": "Въпроси относно документ или проблем с качването? Свържете се с нас — ще помогнем с радост.",
+        "deal.attribution.createdBy": "Създадено от",
+        "deal.attribution.requested": "Изискано от Agenzia",
         "deal.unassigned": "Неназначена роля",
         "deal.required": "ЗАДЪЛЖИТЕЛНО",
         "deal.upload": "Качване",
@@ -687,6 +697,8 @@ export const translations = {
         "wizard.placeholder.title": "напр. Луксозен апартамент в Лозенец",
         "wizard.label.address": "Адрес на имота",
         "wizard.placeholder.address": "напр. ул. Освобождение 12, София",
+        "wizard.label.lead": "Отговорник по сделката",
+        "wizard.hint.lead": "Контактът от Agenzia, който клиентите виждат като отговорник по сделката.",
         "wizard.section.added": "Добавени участници",
         "wizard.section.add": "Добави участник",
         "wizard.label.name": "Име и Фамилия *",
@@ -916,7 +928,7 @@ export const translations = {
         "upload.takePhoto": "Снимайте документа",
         "upload.cameraHint": "Снимайте документа с камерата на телефона",
         "upload.noteLabel": "Забележка:",
-        "upload.noteBody": "След качване адвокатът ще прегледа документа ви, преди той да стане видим за останалите страни.",
+        "upload.noteBody": "След качване Agenzia ще прегледа документа ви, преди той да бъде споделен с останалите страни.",
 
         // Document preview modal
         "preview.uploaded": "Качено на {date}",
