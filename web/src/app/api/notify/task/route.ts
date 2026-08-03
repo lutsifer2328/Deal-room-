@@ -65,7 +65,8 @@ export async function POST(request: Request) {
                 .slice(0, 25) // keep the email readable
                 .map((t: any) => ({
                     title: String(t.title).trim().slice(0, 200),
-                    dueDate: typeof t.dueDate === 'string' ? t.dueDate : undefined
+                    dueDate: typeof t.dueDate === 'string' ? t.dueDate : undefined,
+                    description: typeof t.description === 'string' ? t.description.trim().slice(0, 1000) : undefined
                 }))
             : [];
 

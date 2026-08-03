@@ -29,7 +29,8 @@ interface DataContextType {
     // Actions
     createDeal: (title: string, propertyAddress: string, participants: Omit<Participant, 'id' | 'addedAt'>[], actorId: string, dealNumber?: string, price?: number, templateItems?: DealTemplateItem[], leadUserId?: string) => Promise<string>;
     updateDeal: (dealId: string, updates: { title?: string; propertyAddress?: string; price?: number; leadUserId?: string }) => Promise<void>;
-    addTask: (dealId: string, title: string, assignedToEmail: string, assignedParticipantId: string, standardDocumentId?: string, expirationDate?: string, customId?: string, createdBy?: string) => Promise<void>;
+    addTask: (dealId: string, title: string, assignedToEmail: string, assignedParticipantId: string, standardDocumentId?: string, expirationDate?: string, customId?: string, createdBy?: string, description?: string) => Promise<void>;
+    updateTask: (taskId: string, updates: { title?: string; description?: string; expirationDate?: string | null }, actorId?: string) => Promise<void>;
     deleteTask: (taskId: string, actorId: string) => void;
     setActiveDeal: (dealId: string) => void;
     updateDealStep: (dealId: string, step: DealStep, actorId: string) => void;
@@ -846,7 +847,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     participantName: name,
                     tasks: outstanding.map((t: any) => ({
                         title: t.title_en,
-                        dueDate: t.expiration_date || undefined
+                        dueDate: t.expiration_date || undefined,
+                        description: t.description_en || t.description_bg || undefined
                     }))
                 })
             });
@@ -1119,11 +1121,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const addTask = async (dealId: string, title: string, assignedToEmail: string, assignedParticipantId: string, standardDocumentId?: string, expirationDate?: string, customId?: string, createdBy?: string) => {
+    const addTask = async (dealId: string, title: string, assignedToEmail: string, assignedParticipantId: string, standardDocumentId?: string, expirationDate?: string, customId?: string, createdBy?: string, description?: string) => {
         const normalizedAssignedTo = assignedToEmail.toLowerCase().trim();
         const taskId = customId || generateId();
         // Real creator for internal accountability; only persisted when it's a valid user id.
         const validCreatedBy = createdBy && createdBy.length > 20 ? createdBy : null;
+        // Per-request instructions — free text the lawyer writes in the client's
+        // language, stored in description_en (the single free-text column).
+        const instructions = description?.trim() || null;
 
         // No need to lookup participant, we have it explicitly
         // Logic simplified to use passed ID directly
@@ -1148,6 +1153,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             expiration_date: expirationDate,
             created_at: new Date().toISOString(),
             created_by: validCreatedBy,
+            description_en: instructions,
             documents: [], // DB shape usually has join, but here it's fine
             comments: []
         };
@@ -1165,7 +1171,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 standard_document_id: standardDocumentId,
                 expiration_date: expirationDate,
                 created_at: newRawTask.created_at,
-                created_by: validCreatedBy
+                created_by: validCreatedBy,
+                description_en: instructions
             });
 
             if (error) {
@@ -1226,6 +1233,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setRawTasks(prev => prev.filter(t => t.id !== taskId));
         supabase.from('tasks').delete().eq('id', taskId).then();
         logAction(activeDealId, actorId, 'REMOVED_TASK', `Removed task`);
+    };
+
+    // Edit an existing request — title, instructions, or deadline. Instructions are
+    // per-case free text so the lawyer refines them here rather than delete/recreate.
+    const updateTask = async (taskId: string, updates: { title?: string; description?: string; expirationDate?: string | null }, actorId?: string) => {
+        const existing = rawTasksRef.current.find((t: any) => t.id === taskId);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const dbUpdates: any = {};
+        if (updates.title !== undefined) dbUpdates.title_en = updates.title;
+        if (updates.description !== undefined) dbUpdates.description_en = updates.description.trim() || null;
+        if (updates.expirationDate !== undefined) dbUpdates.expiration_date = updates.expirationDate || null;
+
+        // Optimistic
+        setRawTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...dbUpdates } : t));
+
+        try {
+            const { error } = await supabase.from('tasks').update(dbUpdates).eq('id', taskId);
+            if (error) throw error;
+            if (actorId) logAction(existing?.deal_id || activeDealId, actorId, 'UPDATED_TASK', `Edited requirement`);
+        } catch (error: any) {
+            console.error('Failed to update task:', error);
+            addNotification('error', 'Update Failed', error.message);
+        }
     };
 
     const setActiveDeal = (dealId: string) => setActiveDealId(dealId);
@@ -2323,6 +2353,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         createDeal,
         updateDeal,
         addTask,
+        updateTask,
         deleteTask,
         setActiveDeal,
         updateDealStep,

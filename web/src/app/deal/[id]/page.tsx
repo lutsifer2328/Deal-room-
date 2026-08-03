@@ -5,7 +5,7 @@ import { useData } from '@/lib/store';
 import { useAuth } from '@/lib/authContext';
 import DealHeader from '@/components/deal/DealHeader';
 import SingleProgressBar from '@/components/deal/SingleProgressBar';
-import { FileText, Lock, ShieldCheck, Download, Upload, AlertTriangle, Eye, Mail, ArrowLeft, Trash2, Users } from 'lucide-react';
+import { FileText, Lock, ShieldCheck, Download, Upload, AlertTriangle, Eye, Mail, ArrowLeft, Trash2, Users, Pencil } from 'lucide-react';
 import { Task, DealDocument, Deal, DealParticipant } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import CreateTaskModal from '@/components/deal/CreateTaskModal';
@@ -18,6 +18,7 @@ import DocumentAccessModal from '@/components/deal/DocumentAccessModal';
 import TaskComments from '@/components/deal/TaskComments';
 import ClientTodoBanner from '@/components/deal/ClientTodoBanner';
 import DealLeadCard from '@/components/deal/DealLeadCard';
+import EditTaskModal from '@/components/deal/EditTaskModal';
 import { isOutstandingForParticipant } from '@/lib/taskOutstanding';
 import { useTranslation, TranslationKey } from '@/lib/useTranslation';
 import { DealPageSkeleton } from '@/components/ui/Skeleton';
@@ -294,6 +295,7 @@ function TaskItem({ task, userRole, dealId, onDelete, currentDealParticipantReco
     const isAdmin = globalRole === 'admin';
     const isStaffOrAbove = isLawyer || isAdmin || globalRole === 'staff';
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     // Import Trash icon
     const { Trash2 } = require('lucide-react');
@@ -305,19 +307,8 @@ function TaskItem({ task, userRole, dealId, onDelete, currentDealParticipantReco
 
     return (
         <div id={`task-${task.id}`} className="p-6 hover:bg-teal/[0.02] transition-all duration-300 group relative scroll-mt-24">
-            {(isLawyer || isAdmin) && (
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm(t('common.confirmDelete') || 'Are you sure you want to delete this requirement?')) {
-                            onDelete();
-                        }
-                    }}
-                    className="absolute top-4 right-4 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Delete Requirement"
-                >
-                    <Trash2 className="w-4 h-4" />
-                </button>
+            {isEditModalOpen && (
+                <EditTaskModal task={task} onClose={() => setIsEditModalOpen(false)} />
             )}
 
             <div className="flex justify-between items-start mb-5 gap-4">
@@ -327,6 +318,13 @@ function TaskItem({ task, userRole, dealId, onDelete, currentDealParticipantReco
                         {task.required && <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 shadow-sm whitespace-nowrap flex-shrink-0">* {t('deal.required')}</span>}
                     </div>
                     {task.title_bg && <p className="text-sm text-text-light break-words">{task.title_bg}</p>}
+                    {/* Per-request instructions from the lawyer — case-specific detail, shown to
+                        everyone. Line breaks preserved so pasted lists keep their structure. */}
+                    {(task.description_en || task.description_bg) && (
+                        <div className="mt-2 text-sm text-gray-600 bg-gold/5 border border-gold/20 rounded-lg px-3 py-2 whitespace-pre-wrap break-words">
+                            {task.description_en || task.description_bg}
+                        </div>
+                    )}
                     {/* Attribution: clients see institutional "Agenzia requires"; staff see the
                         real creator for accountability (legacy tasks predate created_by → omitted). */}
                     {isStaffOrAbove ? (
@@ -341,23 +339,50 @@ function TaskItem({ task, userRole, dealId, onDelete, currentDealParticipantReco
                     )}
                 </div>
 
-                <div className="mr-8 flex-shrink-0">
-                    {task.status === 'completed' ? (
-                        <span className="flex items-center gap-1.5 text-success font-bold text-xs bg-success/10 px-3 py-1 rounded-full border border-success/20 shadow-sm whitespace-nowrap">
-                            <ShieldCheck className="w-3.5 h-3.5" /> {t('status.verified')}
-                        </span>
-                    ) : task.status === 'rejected' ? (
-                        <span className="flex items-center gap-1.5 text-amber-700 font-bold text-xs bg-amber-50 px-3 py-1 rounded-full border border-amber-200 shadow-sm whitespace-nowrap">
-                            <AlertTriangle className="w-3.5 h-3.5" /> {t('deal.actionRequired' as TranslationKey)}
-                        </span>
-                    ) : task.status === 'pending_review' || task.status === 'in_review' ? (
-                        <span className="flex items-center gap-1.5 text-blue-600 font-bold text-xs bg-blue-50 px-3 py-1 rounded-full border border-blue-200 shadow-sm whitespace-nowrap">
-                            <Eye className="w-3.5 h-3.5" /> {t('deal.underReview' as TranslationKey)}
-                        </span>
-                    ) : (
-                        <span className="text-xs font-bold text-text-secondary bg-gray-100/80 px-3 py-1 rounded-full border border-gray-200 whitespace-nowrap">
-                            {getStatusLabel(task.status)}
-                        </span>
+                <div className="flex-shrink-0 flex items-center gap-3">
+                    <div>
+                        {task.status === 'completed' ? (
+                            <span className="flex items-center gap-1.5 text-success font-bold text-xs bg-success/10 px-3 py-1 rounded-full border border-success/20 shadow-sm whitespace-nowrap">
+                                <ShieldCheck className="w-3.5 h-3.5" /> {t('status.verified')}
+                            </span>
+                        ) : task.status === 'rejected' ? (
+                            <span className="flex items-center gap-1.5 text-amber-700 font-bold text-xs bg-amber-50 px-3 py-1 rounded-full border border-amber-200 shadow-sm whitespace-nowrap">
+                                <AlertTriangle className="w-3.5 h-3.5" /> {t('deal.actionRequired' as TranslationKey)}
+                            </span>
+                        ) : task.status === 'pending_review' || task.status === 'in_review' ? (
+                            <span className="flex items-center gap-1.5 text-blue-600 font-bold text-xs bg-blue-50 px-3 py-1 rounded-full border border-blue-200 shadow-sm whitespace-nowrap">
+                                <Eye className="w-3.5 h-3.5" /> {t('deal.underReview' as TranslationKey)}
+                            </span>
+                        ) : (
+                            <span className="text-xs font-bold text-text-secondary bg-gray-100/80 px-3 py-1 rounded-full border border-gray-200 whitespace-nowrap">
+                                {getStatusLabel(task.status)}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Edit / delete — inline beside the status so they never sit under it. */}
+                    {(isLawyer || isAdmin) && (
+                        <div className="flex items-center gap-1 border-l border-gray-200 pl-2">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setIsEditModalOpen(true); }}
+                                className="p-1.5 text-gray-400 hover:text-teal hover:bg-teal/10 rounded-lg transition-colors"
+                                title={t('modal.editTask.title' as TranslationKey)}
+                            >
+                                <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm(t('common.confirmDelete') || 'Are you sure you want to delete this requirement?')) {
+                                        onDelete();
+                                    }
+                                }}
+                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete Requirement"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>

@@ -283,6 +283,7 @@ export function getStaffEmailHtml({
 export interface DigestTask {
   title: string;
   dueDate?: string; // ISO date
+  description?: string; // Per-request instructions from the lawyer
 }
 
 /** The deal lead (Agenzia operator) shown as the point of contact in automated mail. */
@@ -378,7 +379,10 @@ export function getTaskNotificationHtml({
           due = `<span style="color:#b45309;font-size:13px;white-space:nowrap;">— ${dueLabel} ${d.toLocaleDateString(locale, { day: 'numeric', month: 'long' })}</span>`;
         }
       }
-      return `<li style="font-size:15px;color:#0f172a;margin-bottom:10px;line-height:1.5;">${escapeHtml(task.title)} ${due}</li>`;
+      const instructions = task.description
+        ? `<div style="font-size:13px;color:#64748b;line-height:1.5;margin-top:4px;white-space:pre-wrap;">${escapeHtml(task.description)}</div>`
+        : '';
+      return `<li style="font-size:15px;color:#0f172a;margin-bottom:12px;line-height:1.5;">${escapeHtml(task.title)} ${due}${instructions}</li>`;
     }).join('');
     return `<ul style="margin:0 0 24px 0;padding-left:22px;">${rows}</ul>`;
   };

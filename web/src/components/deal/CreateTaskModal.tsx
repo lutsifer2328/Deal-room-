@@ -15,6 +15,7 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
     const { t } = useTranslation();
 
     const [title, setTitle] = useState('');
+    const [instructions, setInstructions] = useState('');
     const [selectedParticipantId, setSelectedParticipantId] = useState('');
     const [selectedStandardDocId, setSelectedStandardDocId] = useState<string | undefined>(undefined);
     const [expirationDate, setExpirationDate] = useState('');
@@ -83,7 +84,8 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
                 selectedStandardDocId,
                 expirationDate || undefined,
                 newTaskId,
-                user?.id // createdBy — real actor, for internal accountability
+                user?.id, // createdBy — real actor, for internal accountability
+                instructions // per-request instructions in the client's language
             );
             onClose();
         } catch (error) {
@@ -143,6 +145,18 @@ export default function CreateTaskModal({ deal, onClose }: { deal: Deal, onClose
                             required
                         />
                         <p className="text-xs text-gray-500 mt-1">{t('modal.createTask.docHelp')}</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('modal.createTask.instructions' as TranslationKey)}</label>
+                        <textarea
+                            value={instructions}
+                            onChange={(e) => setInstructions(e.target.value)}
+                            rows={4}
+                            placeholder={t('modal.createTask.instructionsPlaceholder' as TranslationKey)}
+                            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal focus:border-teal outline-none transition-all resize-y"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">{t('modal.createTask.instructionsHelp' as TranslationKey)}</p>
                     </div>
 
                     <div>

@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
     'CREATED_DEAL': { label: 'Created Deal', color: 'bg-emerald-100 text-emerald-800' },
     'ADDED_TASK': { label: 'Added Task', color: 'bg-blue-100 text-blue-800' },
+    'UPDATED_TASK': { label: 'Edited Requirement', color: 'bg-blue-100 text-blue-800' },
     'VERIFIED_DOC': { label: 'Verified Document', color: 'bg-emerald-100 text-emerald-800' },
     'RELEASED_DOC': { label: 'Released Document', color: 'bg-teal-100 text-teal-800' },
     'REJECTED_DOC': { label: 'Rejected Document', color: 'bg-red-100 text-red-800' },

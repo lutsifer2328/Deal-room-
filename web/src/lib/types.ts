@@ -190,7 +190,7 @@ export interface AuditLogEntry {
   dealId: string;
   actorId: string;
   actorName: string; // Denormalized for display speed
-  action: 'CREATED_DEAL' | 'ADDED_TASK' | 'REMOVED_TASK' | 'UPLOADED_DOC' | 'VERIFIED_DOC' | 'REJECTED_DOC' | 'RELEASED_DOC' | 'ADDED_PARTICIPANT' | 'UPDATED_PARTICIPANT' | 'UPDATED_DEAL_STEP' | 'ADDED_COMMENT' | 'UPDATED_TIMELINE' | 'UPDATED_DEAL_STATUS';
+  action: 'CREATED_DEAL' | 'ADDED_TASK' | 'UPDATED_TASK' | 'REMOVED_TASK' | 'UPLOADED_DOC' | 'VERIFIED_DOC' | 'REJECTED_DOC' | 'RELEASED_DOC' | 'ADDED_PARTICIPANT' | 'UPDATED_PARTICIPANT' | 'UPDATED_DEAL_STEP' | 'ADDED_COMMENT' | 'UPDATED_TIMELINE' | 'UPDATED_DEAL_STATUS';
   details: string;
   timestamp: string;
 }
