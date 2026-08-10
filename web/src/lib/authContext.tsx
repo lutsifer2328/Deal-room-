@@ -233,7 +233,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 avatarUrl: dbData.avatar_url,
                 isActive: dbData.is_active,
                 createdAt: dbData.created_at,
-                lastLogin: dbData.last_login
+                lastLogin: dbData.last_login,
+                financeAccess: dbData.finance_access ?? 'none',
+                department: dbData.department ?? null,
+                defaultCommissionPct: dbData.default_commission_pct ?? null
             });
             setIsLoading(false);
             isFetchingRef.current = false;
@@ -262,7 +265,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     role: metaRole,
                     permissions: getPermissionsForRole(metaRole),
                     isActive: true, // Assuming active if they have a valid session
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    // Finance fields are mirrored into auth metadata (sync_user_to_metadata)
+                    // so this degraded path still knows the user's finance access.
+                    financeAccess: session?.user?.user_metadata?.finance_access ?? 'none',
+                    department: session?.user?.user_metadata?.department ?? null,
+                    defaultCommissionPct: session?.user?.user_metadata?.default_commission_pct ?? null
                 });
                 setIsLoading(false);
                 isFetchingRef.current = false;

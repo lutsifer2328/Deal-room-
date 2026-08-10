@@ -29,11 +29,16 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         { icon: LayoutDashboard, label: t('nav.dealRoom'), href: user.role === 'admin' ? '/dashboard-pro' : '/dashboard', roles: ['admin', 'lawyer', 'staff', 'broker', 'agent', 'buyer', 'seller', 'notary', 'bank_representative', 'viewer', 'attorney', 'user'] },
         { icon: ClipboardCheck, label: t('nav.archive'), href: '/archive', roles: ['admin', 'lawyer', 'staff', 'broker', 'agent'], badge: pendingReviewTotal },
         { icon: Users, label: t('nav.participants'), href: '/participants', roles: ['admin', 'lawyer', 'staff', 'broker'] },
-        { icon: CreditCard, label: t('nav.finances'), href: '/finances', roles: ['admin', 'lawyer'] },
+        // Finances is gated by finance_access, NOT role — the lawyer-admin has 'none' and never sees it.
+        { icon: CreditCard, label: t('nav.finances'), href: '/finances', roles: [] as string[], requiresFinance: true },
         { icon: Settings, label: t('nav.settings'), href: '/settings', roles: ['admin'] },
     ];
 
-    const visibleItems = navItems.filter(item => item.roles.includes(user.role));
+    const visibleItems = navItems.filter(item =>
+        'requiresFinance' in item && item.requiresFinance
+            ? (user.financeAccess ?? 'none') !== 'none'
+            : item.roles.includes(user.role)
+    );
 
     return (
         <>

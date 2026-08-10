@@ -115,7 +115,10 @@ const mapUserRow = (u: any): User => ({
     phone: u.phone || undefined,
     isActive: u.is_active !== false,
     createdAt: u.created_at,
-    lastLogin: u.last_login
+    lastLogin: u.last_login,
+    financeAccess: u.finance_access ?? 'none',
+    department: u.department ?? null,
+    defaultCommissionPct: u.default_commission_pct ?? null
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1458,14 +1461,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
             // Optimistic Update
             setRawUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
 
-            const { error } = await supabase.from('users').update({
+            // Finance fields are only sent when explicitly provided (i.e. by a
+            // finance manager using the finance section). Omitting them when
+            // undefined keeps normal edits from tripping the guard_finance_fields
+            // DB trigger, which rejects finance changes by non-managers.
+            const payload: Record<string, unknown> = {
                 name: updates.name,
                 email: updates.email,
                 role: updates.role,
                 is_active: updates.isActive,
                 title: updates.title,
                 phone: updates.phone
-            }).eq('id', userId);
+            };
+            if (updates.financeAccess !== undefined) payload.finance_access = updates.financeAccess;
+            if (updates.department !== undefined) payload.department = updates.department;
+            if (updates.defaultCommissionPct !== undefined) payload.default_commission_pct = updates.defaultCommissionPct;
+
+            const { error } = await supabase.from('users').update(payload).eq('id', userId);
 
             if (error) throw error;
             addNotification('success', 'User Updated', 'User details saved successfully.');

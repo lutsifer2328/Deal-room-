@@ -25,7 +25,16 @@ export interface User {
   createdAt: string;
   lastLogin?: string;
   requiresPasswordChange?: boolean; // New flag for forced password change
+
+  // Finance module (separate authority axis — never derived from role).
+  // 'none' hides Finances entirely (e.g. the lawyer-admin).
+  financeAccess?: FinanceAccess;
+  department?: Department | null;
+  defaultCommissionPct?: number | null; // visible/editable only to finance managers
 }
+
+export type FinanceAccess = 'none' | 'own' | 'all';
+export type Department = 'properties' | 'insurance';
 
 export interface AgencyContract {
   id: string;
