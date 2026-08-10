@@ -49,6 +49,7 @@ const mapEntry = (e: any): IncomeEntry => ({
     propertyAddress: e.property_address ?? null,
     listingSource: e.listing_source ?? null,
     cobroke: e.cobroke ?? 'none',
+    houseDeal: e.house_deal ?? false,
     externalShare: e.external_share ?? null,
     externalAgency: e.external_agency ?? null,
     renewalDate: e.renewal_date ?? null,
@@ -110,6 +111,7 @@ export interface EditEntryInput {
     dealDate: string | null;
     listingSource: 'portfolio' | 'external' | null;
     cobroke: 'none' | 'internal' | 'external';
+    houseDeal: boolean;
     externalAgency: string | null;
     externalShare: number | null;
     renewalDate: string | null;
@@ -252,6 +254,7 @@ export function useFinance() {
                         property_ref: input.propertyRef?.trim() || null,
                         listing_source: property ? 'portfolio' : null,
                         cobroke: 'none',
+                        house_deal: input.houseDeal ?? false,
                         // The policy expiry is the renewal trigger; fall back to an
                         // explicit renewal date if one was given without a valid-to.
                         renewal_date: input.policyValidTo || input.renewalDate || null,
@@ -393,8 +396,11 @@ export function useFinance() {
                 }
 
                 for (const l of lines) {
+                    // A house deal has no broker: force the broker share to 0 so the
+                    // agency keeps the whole line, whatever pct was typed.
+                    const brokerPct = entry.houseDeal ? 0 : l.brokerPct;
                     const base = l.gross != null ? (l.vatIncluded ? l.gross / 1.2 : l.gross) : null;
-                    const brokerCut = base != null && l.brokerPct != null ? round2(base * (l.brokerPct / 100)) : null;
+                    const brokerCut = base != null && brokerPct != null ? round2(base * (brokerPct / 100)) : null;
                     const agencyCut = base != null ? round2(base - (brokerCut ?? 0)) : null;
                     const payload = {
                         side: l.side,
@@ -405,7 +411,7 @@ export function useFinance() {
                         vat_included: l.vatIncluded,
                         amount_cash: l.gross != null ? l.cash : null,
                         amount_bank: l.gross != null ? l.bank : null,
-                        broker_pct: l.brokerPct,
+                        broker_pct: brokerPct,
                         broker_cut: brokerCut,
                         agency_cut: agencyCut,
                         received_date: l.gross != null ? today : null,
@@ -430,6 +436,7 @@ export function useFinance() {
                     deal_date: entry.dealDate,
                     listing_source: entry.listingSource,
                     cobroke: entry.cobroke,
+                    house_deal: entry.houseDeal,
                     external_agency: entry.externalAgency,
                     external_share: entry.externalShare,
                     // Keep the renewal reminder pinned to the policy's expiry.
@@ -585,6 +592,7 @@ export function useFinance() {
                         property_address: src.propertyAddress,
                         property_ref: src.propertyRef,
                         cobroke: src.cobroke,
+                        house_deal: src.houseDeal,
                         renewal_date: addYear(src.policyValidTo ?? src.renewalDate),
                         renewed_from: src.id,
                         // Carry the policy over; advance the cover period a year.

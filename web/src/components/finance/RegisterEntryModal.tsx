@@ -40,6 +40,7 @@ const REFERRAL_TILES: Tile[] = [
 export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntryModalProps) {
     const { user } = useAuth();
     const insuranceFirst = (user?.department ?? null) === 'insurance';
+    const isManager = (user?.financeAccess ?? 'none') === 'all';
 
     const [step, setStep] = useState<1 | 2>(1);
     const [showReferralTiles, setShowReferralTiles] = useState(false);
@@ -64,6 +65,7 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
     const [policyGross, setPolicyGross] = useState('');
     const [policyNet, setPolicyNet] = useState('');
     const [insuredIdent, setInsuredIdent] = useState('');
+    const [houseDeal, setHouseDeal] = useState(false);
     const [expected, setExpected] = useState('');
     const [notes, setNotes] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -97,6 +99,7 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
             clientName,
             secondClientName: secondClientName || undefined,
             commissionFrom,
+            houseDeal: houseDeal || undefined,
             dealDate,
             propertyAddress: propertyAddress || undefined,
             propertyRef: propertyRef || undefined,
@@ -228,6 +231,21 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                 {step === 2 && category && (
                     <form onSubmit={handleSubmit} className="px-6 py-4">
                         <div className="space-y-4">
+                            {isManager && (
+                                <label className="flex items-start gap-2.5 p-3 rounded-lg border border-gray-200 bg-gray-50 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={houseDeal}
+                                        onChange={(e) => setHouseDeal(e.target.checked)}
+                                        className="mt-0.5"
+                                    />
+                                    <span className="text-sm">
+                                        <span className="font-medium text-navy-primary">Agency deal — no broker</span>
+                                        <span className="block text-xs text-gray-500">The agency closed this directly; 100% of the commission is agency income.</span>
+                                    </span>
+                                </label>
+                            )}
+
                             {property && (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Property address</label>
@@ -496,7 +514,12 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                                                 <span>Agency commission (est.)</span>
                                                 <strong className="text-navy-primary">{eur(agencyCommission)}</strong>
                                             </div>
-                                            {estCut != null && (
+                                            {houseDeal ? (
+                                                <div className="flex justify-between text-gray-500 mt-0.5">
+                                                    <span>Broker cut</span>
+                                                    <strong className="text-teal">100% to agency</strong>
+                                                </div>
+                                            ) : estCut != null && (
                                                 <div className="flex justify-between text-gray-500 mt-0.5">
                                                     <span>Your cut (est. at {myPct}%)</span>
                                                     <strong className="text-teal">{eur(estCut)}</strong>

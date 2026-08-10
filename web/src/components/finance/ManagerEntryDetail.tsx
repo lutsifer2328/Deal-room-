@@ -75,6 +75,7 @@ export default function ManagerEntryDetail({ entry, owners, onClose, onEdit }: M
                             </h3>
                         </div>
                         <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusChip(entry.status)}`}>{STATUS_LABELS[entry.status]}</span>
+                        {entry.houseDeal && <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-teal/10 text-teal">Agency deal</span>}
                     </div>
                     <div className="flex items-center gap-2">
                         <button onClick={() => onEdit(entry)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-navy-primary border border-gray-200 rounded-lg hover:bg-gray-50"><Pencil className="w-3.5 h-3.5" /> Edit</button>

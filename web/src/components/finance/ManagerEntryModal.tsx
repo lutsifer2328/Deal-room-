@@ -54,6 +54,7 @@ export default function ManagerEntryModal({ entry, owners, onClose, onSave, onDe
     const [dealDate, setDealDate] = useState(entry.dealDate ?? '');
     const [listingSource, setListingSource] = useState<'portfolio' | 'external' | ''>(entry.listingSource ?? '');
     const [cobroke, setCobroke] = useState<'none' | 'internal' | 'external'>(entry.cobroke);
+    const [houseDeal, setHouseDeal] = useState(entry.houseDeal);
     const [externalAgency, setExternalAgency] = useState(entry.externalAgency ?? '');
     const [externalShare, setExternalShare] = useState(entry.externalShare != null ? String(entry.externalShare) : '');
     const [renewalDate] = useState(entry.renewalDate ?? '');
@@ -107,7 +108,8 @@ export default function ManagerEntryModal({ entry, owners, onClose, onSave, onDe
     const cutsOf = (l: LineRow) => {
         const gross = Number(l.gross) || 0;
         const base = l.vatIncluded ? gross / 1.2 : gross;
-        const broker = round2(base * ((Number(l.brokerPct) || 0) / 100));
+        const pct = houseDeal ? 0 : (Number(l.brokerPct) || 0);
+        const broker = round2(base * (pct / 100));
         return { broker, agency: round2(base - broker) };
     };
 
@@ -123,6 +125,7 @@ export default function ManagerEntryModal({ entry, owners, onClose, onSave, onDe
             dealDate: dealDate || null,
             listingSource: listingSource === '' ? null : listingSource,
             cobroke,
+            houseDeal,
             externalAgency: externalAgency.trim() || null,
             externalShare: num(externalShare),
             renewalDate: renewalDate || null,
@@ -295,6 +298,15 @@ export default function ManagerEntryModal({ entry, owners, onClose, onSave, onDe
                         </div>
                     )}
 
+                    {/* House deal */}
+                    <label className="flex items-start gap-2.5 p-3 rounded-lg border border-gray-200 bg-gray-50 cursor-pointer">
+                        <input type="checkbox" checked={houseDeal} onChange={(e) => setHouseDeal(e.target.checked)} className="mt-0.5" />
+                        <span className="text-sm">
+                            <span className="font-medium text-navy-primary">Agency deal — no broker</span>
+                            <span className="block text-xs text-gray-500">100% of the commission is agency income; broker cut is forced to 0.</span>
+                        </span>
+                    </label>
+
                     {/* Lines */}
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -331,7 +343,9 @@ export default function ManagerEntryModal({ entry, owners, onClose, onSave, onDe
                                         </div>
                                         <div>
                                             <label className="block text-[11px] text-gray-500 mb-0.5">Broker %</label>
-                                            <input type="number" value={l.brokerPct} onChange={(e) => setLine(i, { brokerPct: e.target.value })} className={inp} />
+                                            <input type="number" value={houseDeal ? '0' : l.brokerPct} disabled={houseDeal}
+                                                onChange={(e) => setLine(i, { brokerPct: e.target.value })}
+                                                className={`${inp} ${houseDeal ? 'bg-gray-50 text-gray-400' : ''}`} />
                                         </div>
                                         <label className="col-span-3 flex items-end gap-2 text-xs text-gray-500 pb-2">
                                             <input type="checkbox" checked={l.vatIncluded} onChange={(e) => setLine(i, { vatIncluded: e.target.checked })} /> incl. VAT

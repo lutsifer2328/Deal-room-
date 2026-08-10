@@ -37,6 +37,8 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
     // Property deals derive the commission from price/rent × a rate; insurance and
     // referrals have no such basis — the manager just types the commission in.
     const property = entry.category === 'sale' || entry.category === 'rent';
+    // House deal: no broker, so the split is fixed at 0% → 100% agency.
+    const houseDeal = entry.houseDeal;
 
     // Gross commission: sale = price x agency%; rent = monthly rent x months.
     const grossFrom = (dealValue: string, rate: string): string => {
@@ -61,7 +63,7 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
                 vatIncluded: false,
                 cash: l.amountCash != null ? String(l.amountCash) : '',
                 bank: l.amountBank != null ? String(l.amountBank) : '',
-                brokerPct: l.brokerPct != null ? String(l.brokerPct) : (owners[l.ownerId]?.defaultPct != null ? String(owners[l.ownerId].defaultPct) : ''),
+                brokerPct: houseDeal ? '0' : (l.brokerPct != null ? String(l.brokerPct) : (owners[l.ownerId]?.defaultPct != null ? String(owners[l.ownerId].defaultPct) : '')),
             };
         })
     );
@@ -177,16 +179,24 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
                                         onChange={(e) => setLine(l.id, { gross: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal" />
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-600 mb-1">Broker %</label>
-                                    <input type="number" min={0} max={100} step={0.5} value={l.brokerPct}
-                                        onChange={(e) => setLine(l.id, { brokerPct: e.target.value })}
-                                        placeholder="default"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal" />
-                                    <p className="text-[11px] text-gray-400 mt-1">
-                                        {owners[l.ownerId]?.defaultPct != null ? `default ${owners[l.ownerId].defaultPct}% — override for this deal` : 'no default set'}
-                                    </p>
-                                </div>
+                                {houseDeal ? (
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">Broker %</label>
+                                        <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-500">0% · house deal</div>
+                                        <p className="text-[11px] text-gray-400 mt-1">No broker — 100% to the agency.</p>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">Broker %</label>
+                                        <input type="number" min={0} max={100} step={0.5} value={l.brokerPct}
+                                            onChange={(e) => setLine(l.id, { brokerPct: e.target.value })}
+                                            placeholder="default"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal" />
+                                        <p className="text-[11px] text-gray-400 mt-1">
+                                            {owners[l.ownerId]?.defaultPct != null ? `default ${owners[l.ownerId].defaultPct}% — override for this deal` : 'no default set'}
+                                        </p>
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">Cash (EUR)</label>
                                     <input type="number" min={0} step={0.01} value={l.cash}

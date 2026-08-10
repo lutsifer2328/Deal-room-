@@ -93,6 +93,7 @@ export interface IncomeEntry {
     propertyAddress: string | null;
     listingSource: 'portfolio' | 'external' | null;
     cobroke: 'none' | 'internal' | 'external';
+    houseDeal: boolean;             // agency closed it with no broker — 100% agency
     externalShare: number | null;   // paid away to the outside agency (before our split)
     externalAgency: string | null;  // which outside agency, on a co-broke
     renewalDate: string | null;
@@ -119,6 +120,7 @@ export interface RegisterEntryInput {
     clientName: string;         // primary/buyer-side client
     secondClientName?: string;  // seller/landlord side, for both-sides deals
     commissionFrom: CommissionFrom;
+    houseDeal?: boolean;        // manager-only: agency deal, no broker cut
     dealDate: string;           // ISO date
     propertyAddress?: string;
     propertyRef?: string;   // CRM number

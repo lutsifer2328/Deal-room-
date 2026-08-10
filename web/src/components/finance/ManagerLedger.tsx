@@ -108,20 +108,23 @@ export default function ManagerLedger({ entries, owners, onConfirm, onSave, onDe
     }), [allRows, category, employee, status, year, month, q]);
 
     const totals = useMemo(() => {
-        let cash = 0, bank = 0, received = 0, pipeline = 0;
+        let cash = 0, bank = 0, received = 0, pipeline = 0, agencyNet = 0, brokerCuts = 0;
         const seenEntries = new Set<string>();
         for (const r of rows) {
             cash += r.line.amountCash ?? 0;
             bank += r.line.amountBank ?? 0;
             if (r.entry.status === 'paid' || r.entry.status === 'partially_paid') {
                 received += (r.line.amountCash ?? 0) + (r.line.amountBank ?? 0);
+                // The agency's kept share, after each broker's cut is paid out.
+                agencyNet += r.line.agencyCut ?? 0;
+                brokerCuts += r.line.brokerCut ?? 0;
             }
             if (r.firstOfEntry && (r.entry.status === 'won') && !seenEntries.has(r.entry.id)) {
                 pipeline += r.entry.expectedAmount ?? 0;
                 seenEntries.add(r.entry.id);
             }
         }
-        return { cash, bank, received, pipeline };
+        return { cash, bank, received, pipeline, agencyNet, brokerCuts };
     }, [rows]);
 
     const exportCsv = () => {
@@ -159,10 +162,21 @@ export default function ManagerLedger({ entries, owners, onConfirm, onSave, onDe
     return (
         <div>
             {/* Stat cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
                 <div className="bg-white border border-gray-100 rounded-xl p-4">
                     <div className="text-xs text-text-muted mb-1">Received (paid)</div>
                     <div className="text-2xl font-bold text-navy-primary">{eur(totals.received)}</div>
+                    <div className="text-[11px] text-text-muted mt-0.5">total commission in</div>
+                </div>
+                <div className="bg-white border border-teal/30 rounded-xl p-4 ring-1 ring-teal/20">
+                    <div className="text-xs text-text-muted mb-1">Agency net</div>
+                    <div className="text-2xl font-bold text-teal">{eur(totals.agencyNet)}</div>
+                    <div className="text-[11px] text-text-muted mt-0.5">after brokers&apos; cuts</div>
+                </div>
+                <div className="bg-white border border-gray-100 rounded-xl p-4">
+                    <div className="text-xs text-text-muted mb-1">Brokers&apos; cuts</div>
+                    <div className="text-2xl font-bold text-navy-primary">{eur(totals.brokerCuts)}</div>
+                    <div className="text-[11px] text-text-muted mt-0.5">paid out to employees</div>
                 </div>
                 <div className="bg-white border border-gray-100 rounded-xl p-4">
                     <div className="text-xs text-text-muted mb-1">Pipeline (expected)</div>
@@ -255,7 +269,14 @@ export default function ManagerLedger({ entries, owners, onConfirm, onSave, onDe
                                         {CATEGORY_LABELS[r.entry.category]}
                                         {r.entry.propertyType && <span className="block text-xs text-text-muted">{PROPERTY_TYPE_LABELS[r.entry.propertyType]}</span>}
                                     </td>
-                                    <td className="px-4 py-3">{owners[r.line.ownerId]?.name ?? '—'}</td>
+                                    <td className="px-4 py-3">
+                                        {r.entry.houseDeal ? (
+                                            <span className="inline-flex items-center gap-1.5">
+                                                <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-teal/10 text-teal">Agency</span>
+                                                <span className="text-text-muted">{owners[r.line.ownerId]?.name ?? '—'}</span>
+                                            </span>
+                                        ) : (owners[r.line.ownerId]?.name ?? '—')}
+                                    </td>
                                     <td className="px-4 py-3">
                                         {(r.line.clientName ?? r.entry.clientName ?? '—')}
                                         {r.line.side !== 'n/a' && <span className="text-text-muted"> · {r.line.side}</span>}
