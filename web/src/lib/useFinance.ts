@@ -549,6 +549,32 @@ export function useFinance() {
         [user, refresh]
     );
 
+    // Lightweight status change (manager-only) for the non-money transitions —
+    // referred / in_progress / won / lost / cancelled. Reaching 'paid' still goes
+    // through confirmation (money is entered there), so it's not accepted here.
+    const updateStatus = useCallback(
+        async (entryId: string, status: IncomeStatus): Promise<{ error: string | null }> => {
+            if (!user) return { error: 'Not signed in' };
+            if (status === 'paid' || status === 'partially_paid') {
+                return { error: 'Use Confirm payment to mark money received.' };
+            }
+            try {
+                const { error } = await supabase
+                    .from('income_entries')
+                    .update({ status, locked_at: null })
+                    .eq('id', entryId);
+                if (error) throw error;
+                await refresh();
+                return { error: null };
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Could not update status';
+                console.error('updateStatus failed:', err);
+                return { error: message };
+            }
+        },
+        [user, refresh]
+    );
+
     const deleteEntry = useCallback(
         async (entryId: string): Promise<{ error: string | null }> => {
             try {
@@ -632,5 +658,5 @@ export function useFinance() {
         [user, refresh]
     );
 
-    return { entries, owners, partners, isLoading, canUseFinance, financeAccess, isManager, refresh, registerEntry, confirmEntry, renewEntry, saveEntry, deleteEntry, importEntries };
+    return { entries, owners, partners, isLoading, canUseFinance, financeAccess, isManager, refresh, registerEntry, confirmEntry, renewEntry, saveEntry, deleteEntry, importEntries, updateStatus };
 }

@@ -48,6 +48,9 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
     };
 
     const [dealValue, setDealValue] = useState<string>(entry.dealValue != null ? String(entry.dealValue) : '');
+    // Referrals/insurance carry a single line and the broker's agreed figure on
+    // the entry (expected_amount). Prefill it so the manager confirms, not retypes.
+    const singleExpected = entry.lines.length === 1 && entry.expectedAmount != null ? String(entry.expectedAmount) : '';
     const [lines, setLines] = useState<LineState[]>(() =>
         entry.lines.map((l) => {
             const rate = isRent
@@ -59,7 +62,7 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
                 ownerId: l.ownerId,
                 label: `${l.side !== 'n/a' ? l.side + ' · ' : ''}${l.clientName ?? owners[l.ownerId]?.name ?? '—'}`,
                 rate,
-                gross: l.grossAmount != null ? String(l.grossAmount) : derived,
+                gross: l.grossAmount != null ? String(l.grossAmount) : (derived || singleExpected),
                 vatIncluded: false,
                 cash: l.amountCash != null ? String(l.amountCash) : '',
                 bank: l.amountBank != null ? String(l.amountBank) : '',
@@ -155,6 +158,12 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
                             </p>
                         </div>
                     ) : null}
+
+                    {!property && singleExpected && (
+                        <p className="text-sm text-navy-primary bg-teal/5 border border-teal/20 rounded-lg px-3 py-2">
+                            Agreed at registration: <strong>{eur(Number(singleExpected))}</strong> — prefilled below. Adjust if the final amount differs.
+                        </p>
+                    )}
 
                     {lines.map((l, i) => (
                         <div key={l.id} className="border border-gray-200 rounded-xl p-4">

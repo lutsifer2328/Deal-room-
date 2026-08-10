@@ -30,6 +30,7 @@ interface ManagerLedgerProps {
     onSave: (entryId: string, entryOwnerId: string, entry: EditEntryInput, lines: EditLineInput[], removedLineIds: string[]) => Promise<{ error: string | null }>;
     onDelete: (entryId: string) => Promise<{ error: string | null }>;
     onImport: (rows: PreparedImportRow[]) => Promise<{ imported: number; error: string | null }>;
+    onUpdateStatus: (entryId: string, status: IncomeStatus) => Promise<{ error: string | null }>;
 }
 
 interface Row {
@@ -52,7 +53,7 @@ const statusChip = (s: IncomeStatus) => {
     }
 };
 
-export default function ManagerLedger({ entries, owners, onConfirm, onSave, onDelete, onImport }: ManagerLedgerProps) {
+export default function ManagerLedger({ entries, owners, onConfirm, onSave, onDelete, onImport, onUpdateStatus }: ManagerLedgerProps) {
     const [category, setCategory] = useState<'all' | IncomeCategory>('all');
     const [employee, setEmployee] = useState<'all' | string>('all');
     const [status, setStatus] = useState<'all' | IncomeStatus>('all');
@@ -61,8 +62,12 @@ export default function ManagerLedger({ entries, owners, onConfirm, onSave, onDe
     const [search, setSearch] = useState('');
     const [confirming, setConfirming] = useState<IncomeEntry | null>(null);
     const [editing, setEditing] = useState<IncomeEntry | null>(null);
-    const [viewing, setViewing] = useState<IncomeEntry | null>(null);
+    const [viewingId, setViewingId] = useState<string | null>(null);
     const [importing, setImporting] = useState(false);
+
+    // Derive the open entry from the live list so a quick status change (which
+    // refreshes entries) is reflected in the drawer without a stale copy.
+    const viewing = viewingId ? entries.find((e) => e.id === viewingId) ?? null : null;
 
     // Flatten to one row per line, tagging the first line of each entry (for the action button).
     const allRows: Row[] = useMemo(() => {
@@ -119,7 +124,8 @@ export default function ManagerLedger({ entries, owners, onConfirm, onSave, onDe
                 agencyNet += r.line.agencyCut ?? 0;
                 brokerCuts += r.line.brokerCut ?? 0;
             }
-            if (r.firstOfEntry && (r.entry.status === 'won') && !seenEntries.has(r.entry.id)) {
+            // Expected money not yet received: referrals sent, in progress, or won.
+            if (r.firstOfEntry && ['referred', 'in_progress', 'won'].includes(r.entry.status) && !seenEntries.has(r.entry.id)) {
                 pipeline += r.entry.expectedAmount ?? 0;
                 seenEntries.add(r.entry.id);
             }
@@ -261,7 +267,7 @@ export default function ManagerLedger({ entries, owners, onConfirm, onSave, onDe
                         {rows.length === 0 ? (
                             <tr><td colSpan={8} className="px-4 py-10 text-center text-text-muted">No matching rows.</td></tr>
                         ) : rows.map((r) => {
-                            const canConfirm = r.firstOfEntry && (r.entry.status === 'won' || r.entry.status === 'partially_paid');
+                            const canConfirm = r.firstOfEntry && ['referred', 'in_progress', 'won', 'partially_paid'].includes(r.entry.status);
                             return (
                                 <tr key={r.line.id} className="border-b border-gray-50">
                                     <td className="px-4 py-3 text-text-muted whitespace-nowrap">{r.entry.dealDate ? new Date(r.entry.dealDate).toLocaleDateString() : '—'}</td>
@@ -292,7 +298,7 @@ export default function ManagerLedger({ entries, owners, onConfirm, onSave, onDe
                                                         {r.entry.status === 'partially_paid' ? 'Update' : 'Confirm'}
                                                     </button>
                                                 )}
-                                                <button onClick={() => setViewing(r.entry)} className="text-text-muted hover:text-navy-primary hover:underline">Open</button>
+                                                <button onClick={() => setViewingId(r.entry.id)} className="text-text-muted hover:text-navy-primary hover:underline">Open</button>
                                             </span>
                                         )}
                                     </td>
@@ -324,8 +330,10 @@ export default function ManagerLedger({ entries, owners, onConfirm, onSave, onDe
                 <ManagerEntryDetail
                     entry={viewing}
                     owners={owners}
-                    onClose={() => setViewing(null)}
-                    onEdit={(e) => { setViewing(null); setEditing(e); }}
+                    onClose={() => setViewingId(null)}
+                    onEdit={(e) => { setViewingId(null); setEditing(e); }}
+                    onQuickStatus={onUpdateStatus}
+                    onConfirmRequest={(e) => { setViewingId(null); setConfirming(e); }}
                 />
             )}
 

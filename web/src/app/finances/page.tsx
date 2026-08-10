@@ -29,7 +29,7 @@ const statusChipClass = (status: IncomeEntry['status']) => {
 
 export default function FinancesPage() {
     const { user, isLoading: authLoading } = useAuth();
-    const { entries, owners, partners, isLoading, financeAccess, registerEntry, confirmEntry, renewEntry, saveEntry, deleteEntry, importEntries } = useFinance();
+    const { entries, owners, partners, isLoading, financeAccess, registerEntry, confirmEntry, renewEntry, saveEntry, deleteEntry, importEntries, updateStatus } = useFinance();
     const [showRegister, setShowRegister] = useState(false);
     const [managerTab, setManagerTab] = useState<'overview' | 'ledger' | 'renewals'>('overview');
 
@@ -112,7 +112,7 @@ export default function FinancesPage() {
                         ))}
                     </div>
                     {managerTab === 'overview' && <FinanceOverview entries={entries} owners={owners} partners={partners} />}
-                    {managerTab === 'ledger' && <ManagerLedger entries={entries} owners={owners} onConfirm={confirmEntry} onSave={saveEntry} onDelete={deleteEntry} onImport={importEntries} />}
+                    {managerTab === 'ledger' && <ManagerLedger entries={entries} owners={owners} onConfirm={confirmEntry} onSave={saveEntry} onDelete={deleteEntry} onImport={importEntries} onUpdateStatus={updateStatus} />}
                     {managerTab === 'renewals' && <RenewalsPanel entries={entries} owners={owners} showOwner onRenew={renewEntry} />}
                 </>
             ) : (

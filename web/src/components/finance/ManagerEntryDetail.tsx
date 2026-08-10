@@ -1,8 +1,10 @@
 'use client';
 
-import { X, Pencil, Home, Users, Wallet, Calendar, Building2, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { X, Pencil, Home, Users, Wallet, Calendar, Building2, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import {
     IncomeEntry,
+    IncomeStatus,
     CATEGORY_LABELS,
     STATUS_LABELS,
     PROPERTY_TYPE_LABELS,
@@ -15,7 +17,13 @@ interface ManagerEntryDetailProps {
     owners: Record<string, OwnerInfo>;
     onClose: () => void;
     onEdit: (entry: IncomeEntry) => void;
+    onQuickStatus: (entryId: string, status: IncomeStatus) => Promise<{ error: string | null }>;
+    onConfirmRequest: (entry: IncomeEntry) => void;
 }
+
+// Statuses a manager can set directly from the drawer. 'paid'/'partially_paid'
+// are reached via Confirm payment (money is entered there), not this dropdown.
+const QUICK_STATUSES: IncomeStatus[] = ['referred', 'in_progress', 'won', 'lost', 'cancelled'];
 
 const eur = (n: number) => new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(n);
 const dt = (s: string | null) => (s ? new Date(s).toLocaleDateString() : '—');
@@ -52,10 +60,21 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
 
 const sideLabel: Record<string, string> = { buyer: 'Buyer', seller: 'Seller', tenant: 'Tenant', landlord: 'Landlord', 'n/a': 'Client' };
 
-export default function ManagerEntryDetail({ entry, owners, onClose, onEdit }: ManagerEntryDetailProps) {
+export default function ManagerEntryDetail({ entry, owners, onClose, onEdit, onQuickStatus, onConfirmRequest }: ManagerEntryDetailProps) {
     const property = isProperty(entry.category);
     const isRent = entry.category === 'rent';
     const paid = entry.status === 'paid' || entry.status === 'partially_paid';
+    const [savingStatus, setSavingStatus] = useState(false);
+    const [statusError, setStatusError] = useState<string | null>(null);
+
+    const changeStatus = async (next: IncomeStatus) => {
+        if (next === entry.status) return;
+        setStatusError(null);
+        setSavingStatus(true);
+        const { error } = await onQuickStatus(entry.id, next);
+        setSavingStatus(false);
+        if (error) setStatusError(error);
+    };
 
     const totalGross = entry.lines.reduce((s, l) => s + (l.grossAmount ?? 0), 0);
     const totalBroker = entry.lines.reduce((s, l) => s + (l.brokerCut ?? 0), 0);
@@ -74,14 +93,33 @@ export default function ManagerEntryDetail({ entry, owners, onClose, onEdit }: M
                                 {entry.propertyAddress || entry.clientName || CATEGORY_LABELS[entry.category]}
                             </h3>
                         </div>
-                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusChip(entry.status)}`}>{STATUS_LABELS[entry.status]}</span>
+                        {paid ? (
+                            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusChip(entry.status)}`}>{STATUS_LABELS[entry.status]}</span>
+                        ) : (
+                            <select
+                                value={entry.status}
+                                disabled={savingStatus}
+                                onChange={(e) => changeStatus(e.target.value as IncomeStatus)}
+                                title="Change status"
+                                className={`text-xs font-medium px-2 py-1 rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-teal cursor-pointer ${statusChip(entry.status)}`}
+                            >
+                                {QUICK_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+                            </select>
+                        )}
                         {entry.houseDeal && <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-teal/10 text-teal">Agency deal</span>}
                     </div>
                     <div className="flex items-center gap-2">
+                        {!paid && entry.status !== 'lost' && entry.status !== 'cancelled' && (
+                            <button onClick={() => onConfirmRequest(entry)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-teal rounded-lg hover:opacity-90"><CheckCircle2 className="w-3.5 h-3.5" /> Confirm payment</button>
+                        )}
                         <button onClick={() => onEdit(entry)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-navy-primary border border-gray-200 rounded-lg hover:bg-gray-50"><Pencil className="w-3.5 h-3.5" /> Edit</button>
                         <button onClick={onClose} className="text-gray-400 hover:text-gray-700" aria-label="Close"><X className="w-5 h-5" /></button>
                     </div>
                 </div>
+
+                {statusError && (
+                    <p className="mx-6 mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-2">{statusError}</p>
+                )}
 
                 <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
                     <Section icon={<Home className="w-3.5 h-3.5" />} title={property ? 'Property' : 'Deal'}>
