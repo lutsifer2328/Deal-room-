@@ -4,7 +4,9 @@ import { useMemo, useState } from 'react';
 import { Lock, Plus, Wallet, Clock, BellRing } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 import { useFinance } from '@/lib/useFinance';
-import { IncomeEntry, CATEGORY_LABELS, STATUS_LABELS } from '@/lib/financeTypes';
+import { IncomeEntry } from '@/lib/financeTypes';
+import { useTranslation, TranslationKey } from '@/lib/useTranslation';
+import { catKey, statusKey } from '@/lib/financeLabels';
 import RegisterEntryModal from '@/components/finance/RegisterEntryModal';
 import ManagerLedger from '@/components/finance/ManagerLedger';
 import FinanceOverview from '@/components/finance/FinanceOverview';
@@ -29,6 +31,7 @@ const statusChipClass = (status: IncomeEntry['status']) => {
 
 export default function FinancesPage() {
     const { user, isLoading: authLoading } = useAuth();
+    const { t } = useTranslation();
     const { entries, owners, partners, isLoading, financeAccess, registerEntry, confirmEntry, renewEntry, saveEntry, deleteEntry, importEntries, updateStatus } = useFinance();
     const [showRegister, setShowRegister] = useState(false);
     const [managerTab, setManagerTab] = useState<'overview' | 'ledger' | 'renewals'>('overview');
@@ -66,10 +69,9 @@ export default function FinancesPage() {
                 <div className="bg-navy-secondary/10 p-6 rounded-full mb-6">
                     <Lock className="w-16 h-16 text-navy-secondary" />
                 </div>
-                <h1 className="text-3xl font-playfair font-bold text-navy-primary mb-4">Restricted</h1>
+                <h1 className="text-3xl font-playfair font-bold text-navy-primary mb-4">{t('fin.restricted.title')}</h1>
                 <p className="text-lg text-text-muted max-w-md">
-                    The Finances section is available only to team members with finance access.
-                    Ask an agency manager if you need it.
+                    {t('fin.restricted.body')}
                 </p>
             </div>
         );
@@ -81,16 +83,16 @@ export default function FinancesPage() {
         <div className={`${isManager ? 'max-w-6xl' : 'max-w-4xl'} mx-auto p-6 md:p-8`}>
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-3xl font-playfair font-bold text-navy-primary">Finances</h1>
+                    <h1 className="text-3xl font-playfair font-bold text-navy-primary">{t('fin.page.title')}</h1>
                     <p className="text-text-muted text-sm mt-1">
-                        {isManager ? 'All deals across the agency' : `Your deals, ${user?.name?.split(' ')[0] ?? ''}`}
+                        {isManager ? t('fin.page.subAll') : t('fin.page.subMine', { name: user?.name?.split(' ')[0] ?? '' })}
                     </p>
                 </div>
                 <button
                     onClick={() => setShowRegister(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-navy-primary text-white font-semibold rounded-lg hover:bg-navy-secondary transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-navy-primary text-white font-semibold rounded-lg hover:bg-navy-secondary transition-colors shrink-0"
                 >
-                    <Plus className="w-4 h-4" /> Register deal
+                    <Plus className="w-4 h-4" /> <span className="hidden sm:inline">{t('fin.page.register')}</span><span className="sm:hidden">{t('common.add')}</span>
                 </button>
             </div>
 
@@ -107,7 +109,7 @@ export default function FinancesPage() {
                                         : 'border-transparent text-text-muted hover:text-navy-primary'
                                 }`}
                             >
-                                {tab}
+                                {t(`fin.tab.${tab}` as TranslationKey)}
                             </button>
                         ))}
                     </div>
@@ -118,17 +120,17 @@ export default function FinancesPage() {
             ) : (
               <>
             {/* Stat cards */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
                 <div className="bg-white border border-gray-100 rounded-xl p-4">
-                    <div className="flex items-center gap-2 text-text-muted text-xs mb-1"><Wallet className="w-4 h-4" /> Earned this month</div>
+                    <div className="flex items-center gap-2 text-text-muted text-xs mb-1"><Wallet className="w-4 h-4" /> {t('fin.stat.earnedMonth')}</div>
                     <div className="text-2xl font-bold text-navy-primary">{eur(stats.earnedThisMonth)}</div>
                 </div>
                 <div className="bg-white border border-gray-100 rounded-xl p-4">
-                    <div className="flex items-center gap-2 text-text-muted text-xs mb-1"><Clock className="w-4 h-4" /> Awaiting payment</div>
+                    <div className="flex items-center gap-2 text-text-muted text-xs mb-1"><Clock className="w-4 h-4" /> {t('fin.stat.awaiting')}</div>
                     <div className="text-2xl font-bold text-navy-primary">{stats.awaiting}</div>
                 </div>
                 <div className="bg-white border border-gray-100 rounded-xl p-4">
-                    <div className="flex items-center gap-2 text-text-muted text-xs mb-1"><BellRing className="w-4 h-4" /> Renewals due</div>
+                    <div className="flex items-center gap-2 text-text-muted text-xs mb-1"><BellRing className="w-4 h-4" /> {t('fin.stat.renewalsDue')}</div>
                     <div className="text-2xl font-bold text-navy-primary">{stats.renewalsDue}</div>
                 </div>
             </div>
@@ -136,11 +138,11 @@ export default function FinancesPage() {
             {/* Entry list */}
             <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
                 {isLoading ? (
-                    <div className="p-8 text-center text-text-muted text-sm">Loading…</div>
+                    <div className="p-8 text-center text-text-muted text-sm">{t('fin.loading')}</div>
                 ) : entries.length === 0 ? (
                     <div className="p-10 text-center">
-                        <p className="text-navy-primary font-semibold mb-1">No deals yet</p>
-                        <p className="text-text-muted text-sm">Register your first deal to start tracking your commissions.</p>
+                        <p className="text-navy-primary font-semibold mb-1">{t('fin.empty.title')}</p>
+                        <p className="text-text-muted text-sm">{t('fin.empty.body')}</p>
                     </div>
                 ) : (
                     <ul className="divide-y divide-gray-100">
@@ -150,10 +152,10 @@ export default function FinancesPage() {
                                 <li key={e.id} className="flex items-center gap-4 px-5 py-4">
                                     <div className="flex-1 min-w-0">
                                         <p className="font-semibold text-navy-primary truncate">
-                                            {e.propertyAddress || e.clientName || CATEGORY_LABELS[e.category]}
+                                            {e.propertyAddress || e.clientName || t(catKey(e.category))}
                                         </p>
                                         <p className="text-xs text-text-muted">
-                                            {CATEGORY_LABELS[e.category]}
+                                            {t(catKey(e.category))}
                                             {e.category === 'insurance' && e.policyType ? ` · ${e.policyType}` : ''}
                                             {e.clientName && e.propertyAddress ? ` · ${e.clientName}` : ''}
                                             {e.category === 'insurance' && e.policyNumber ? ` · №${e.policyNumber}` : ''}
@@ -164,11 +166,11 @@ export default function FinancesPage() {
                                         {e.status === 'paid' || e.status === 'partially_paid' ? (
                                             <span className="text-sm font-bold text-green-700">{eur(cut)}</span>
                                         ) : e.expectedAmount ? (
-                                            <span className="text-xs text-text-muted">expected {eur(e.expectedAmount)}</span>
+                                            <span className="text-xs text-text-muted">{t('fin.expected', { amount: eur(e.expectedAmount) })}</span>
                                         ) : null}
                                     </div>
                                     <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${statusChipClass(e.status)}`}>
-                                        {STATUS_LABELS[e.status]}
+                                        {t(statusKey(e.status))}
                                     </span>
                                 </li>
                             );
@@ -178,7 +180,7 @@ export default function FinancesPage() {
             </div>
             {entries.some((e) => (e.category === 'insurance' && e.renewalDate) || e.status === 'won') && (
                 <div className="mt-6">
-                    <h2 className="text-lg font-semibold text-navy-primary mb-3">Renewals &amp; follow-ups</h2>
+                    <h2 className="text-lg font-semibold text-navy-primary mb-3">{t('fin.renewalsFollowups')}</h2>
                     <RenewalsPanel entries={entries} owners={owners} showOwner={false} onRenew={renewEntry} />
                 </div>
             )}

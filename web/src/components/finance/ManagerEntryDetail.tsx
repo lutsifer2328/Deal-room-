@@ -5,12 +5,11 @@ import { X, Pencil, Home, Users, Wallet, Calendar, Building2, ShieldCheck, Check
 import {
     IncomeEntry,
     IncomeStatus,
-    CATEGORY_LABELS,
-    STATUS_LABELS,
-    PROPERTY_TYPE_LABELS,
     isProperty,
 } from '@/lib/financeTypes';
 import { OwnerInfo } from '@/lib/useFinance';
+import { useTranslation } from '@/lib/useTranslation';
+import { catKey, statusKey, sideKey, ptypeKey } from '@/lib/financeLabels';
 
 interface ManagerEntryDetailProps {
     entry: IncomeEntry;
@@ -58,9 +57,8 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
     );
 }
 
-const sideLabel: Record<string, string> = { buyer: 'Buyer', seller: 'Seller', tenant: 'Tenant', landlord: 'Landlord', 'n/a': 'Client' };
-
 export default function ManagerEntryDetail({ entry, owners, onClose, onEdit, onQuickStatus, onConfirmRequest }: ManagerEntryDetailProps) {
+    const { t } = useTranslation();
     const property = isProperty(entry.category);
     const isRent = entry.category === 'rent';
     const paid = entry.status === 'paid' || entry.status === 'partially_paid';
@@ -88,13 +86,13 @@ export default function ManagerEntryDetail({ entry, owners, onClose, onEdit, onQ
                 <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
                     <div className="flex items-center gap-3">
                         <div>
-                            <p className="text-xs text-gray-400">{entry.propertyRef || 'No CRM number'}</p>
+                            <p className="text-xs text-gray-400">{entry.propertyRef || t('fin.detail.noCrm')}</p>
                             <h3 className="text-lg font-semibold text-gray-900">
-                                {entry.propertyAddress || entry.clientName || CATEGORY_LABELS[entry.category]}
+                                {entry.propertyAddress || entry.clientName || t(catKey(entry.category))}
                             </h3>
                         </div>
                         {paid ? (
-                            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusChip(entry.status)}`}>{STATUS_LABELS[entry.status]}</span>
+                            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusChip(entry.status)}`}>{t(statusKey(entry.status))}</span>
                         ) : (
                             <select
                                 value={entry.status}
@@ -103,16 +101,16 @@ export default function ManagerEntryDetail({ entry, owners, onClose, onEdit, onQ
                                 title="Change status"
                                 className={`text-xs font-medium px-2 py-1 rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-teal cursor-pointer ${statusChip(entry.status)}`}
                             >
-                                {QUICK_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+                                {QUICK_STATUSES.map((s) => <option key={s} value={s}>{t(statusKey(s))}</option>)}
                             </select>
                         )}
-                        {entry.houseDeal && <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-teal/10 text-teal">Agency deal</span>}
+                        {entry.houseDeal && <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-teal/10 text-teal">{t('fin.detail.agencyDeal')}</span>}
                     </div>
                     <div className="flex items-center gap-2">
                         {!paid && entry.status !== 'lost' && entry.status !== 'cancelled' && (
-                            <button onClick={() => onConfirmRequest(entry)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-teal rounded-lg hover:opacity-90"><CheckCircle2 className="w-3.5 h-3.5" /> Confirm payment</button>
+                            <button onClick={() => onConfirmRequest(entry)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-teal rounded-lg hover:opacity-90"><CheckCircle2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('fin.detail.confirmPayment')}</span></button>
                         )}
-                        <button onClick={() => onEdit(entry)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-navy-primary border border-gray-200 rounded-lg hover:bg-gray-50"><Pencil className="w-3.5 h-3.5" /> Edit</button>
+                        <button onClick={() => onEdit(entry)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-navy-primary border border-gray-200 rounded-lg hover:bg-gray-50"><Pencil className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('fin.detail.edit')}</span></button>
                         <button onClick={onClose} className="text-gray-400 hover:text-gray-700" aria-label="Close"><X className="w-5 h-5" /></button>
                     </div>
                 </div>
@@ -122,79 +120,79 @@ export default function ManagerEntryDetail({ entry, owners, onClose, onEdit, onQ
                 )}
 
                 <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-                    <Section icon={<Home className="w-3.5 h-3.5" />} title={property ? 'Property' : 'Deal'}>
-                        <Row label="Type" value={CATEGORY_LABELS[entry.category]} />
-                        {property && <Row label="Property type" value={entry.propertyType ? PROPERTY_TYPE_LABELS[entry.propertyType] : '—'} />}
-                        <Row label="Address" value={entry.propertyAddress} />
-                        <Row label="CRM number" value={entry.propertyRef} />
-                        {property && <Row label="Source" value={entry.listingSource === 'external' ? 'External listing' : entry.listingSource === 'portfolio' ? 'Our portfolio' : '—'} />}
-                        {property && <Row label={isRent ? 'Monthly rent' : 'Sale price'} value={entry.dealValue != null ? eur(entry.dealValue) : '—'} />}
+                    <Section icon={<Home className="w-3.5 h-3.5" />} title={property ? t('fin.detail.property') : t('fin.detail.deal')}>
+                        <Row label={t('fin.detail.type')} value={t(catKey(entry.category))} />
+                        {property && <Row label={t('fin.reg.propertyType')} value={entry.propertyType ? t(ptypeKey(entry.propertyType)) : '—'} />}
+                        <Row label={t('fin.detail.address')} value={entry.propertyAddress} />
+                        <Row label={t('fin.edit.crmNumber')} value={entry.propertyRef} />
+                        {property && <Row label={t('fin.detail.source')} value={entry.listingSource === 'external' ? t('fin.edit.externalListing') : entry.listingSource === 'portfolio' ? t('fin.edit.ourPortfolio') : '—'} />}
+                        {property && <Row label={isRent ? t('fin.detail.monthlyRent') : t('fin.detail.salePrice')} value={entry.dealValue != null ? eur(entry.dealValue) : '—'} />}
                     </Section>
 
-                    <Section icon={<Users className="w-3.5 h-3.5" />} title="Parties &amp; brokers">
+                    <Section icon={<Users className="w-3.5 h-3.5" />} title={t('fin.detail.parties')}>
                         {entry.lines.map((l) => (
                             <div key={l.id} className="flex justify-between gap-4 py-1.5 text-sm">
-                                <span className="text-text-muted">{sideLabel[l.side] ?? l.side}</span>
+                                <span className="text-text-muted">{t(sideKey(l.side))}</span>
                                 <span className="text-right">
                                     <span className="text-navy-primary font-medium">{l.clientName ?? '—'}</span>
-                                    <span className="block text-xs text-text-muted">broker: {owners[l.ownerId]?.name ?? '—'}</span>
+                                    <span className="block text-xs text-text-muted">{t('fin.detail.brokerLabel')}: {owners[l.ownerId]?.name ?? '—'}</span>
                                 </span>
                             </div>
                         ))}
-                        {entry.cobroke === 'internal' && <Row label="Co-broke" value="Split with a colleague (internal)" />}
-                        {entry.cobroke === 'external' && <Row label="Co-broke with" value={entry.externalAgency || 'External agency'} />}
-                        {entry.cobroke === 'external' && entry.externalShare != null && <Row label="Paid to their agency" value={eur(entry.externalShare)} />}
+                        {entry.cobroke === 'internal' && <Row label={t('fin.detail.cobrokeWith')} value={t('fin.detail.cobrokeInternalVal')} />}
+                        {entry.cobroke === 'external' && <Row label={t('fin.detail.cobrokeWith')} value={entry.externalAgency || t('fin.detail.externalAgencyFallback')} />}
+                        {entry.cobroke === 'external' && entry.externalShare != null && <Row label={t('fin.detail.paidToAgency')} value={eur(entry.externalShare)} />}
                     </Section>
 
-                    <Section icon={<Wallet className="w-3.5 h-3.5" />} title="Commission">
+                    <Section icon={<Wallet className="w-3.5 h-3.5" />} title={t('fin.commission')}>
                         {entry.lines.map((l) => (
                             <div key={l.id} className="py-1.5 border-b border-gray-50 last:border-0">
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-text-muted">{sideLabel[l.side] ?? l.side}
+                                    <span className="text-text-muted">{t(sideKey(l.side))}
                                         {l.agencyPct != null ? ` · ${l.agencyPct}%` : ''}
-                                        {l.rentMonths != null ? ` · ${l.rentMonths} mo` : ''}
+                                        {l.rentMonths != null ? ` · ${l.rentMonths} ${t('fin.months').toLowerCase()}` : ''}
                                     </span>
-                                    <span className="text-navy-primary font-medium">{l.grossAmount != null ? eur(l.grossAmount) : 'pending'}</span>
+                                    <span className="text-navy-primary font-medium">{l.grossAmount != null ? eur(l.grossAmount) : t('fin.pending')}</span>
                                 </div>
                                 {l.grossAmount != null && (
                                     <div className="flex justify-between text-xs text-text-muted mt-0.5">
-                                        <span>broker {l.brokerPct ?? 0}%: {eur(l.brokerCut ?? 0)} · agency: {eur(l.agencyCut ?? 0)}</span>
-                                        <span>{l.amountCash ? `cash ${eur(l.amountCash)}` : ''}{l.amountCash && l.amountBank ? ' · ' : ''}{l.amountBank ? `bank ${eur(l.amountBank)}` : ''}</span>
+                                        <span>{t('fin.broker')} {l.brokerPct ?? 0}%: {eur(l.brokerCut ?? 0)} · {t('fin.agency')}: {eur(l.agencyCut ?? 0)}</span>
+                                        <span>{l.amountCash ? `${t('fin.cash')} ${eur(l.amountCash)}` : ''}{l.amountCash && l.amountBank ? ' · ' : ''}{l.amountBank ? `${t('fin.bank')} ${eur(l.amountBank)}` : ''}</span>
                                     </div>
                                 )}
                             </div>
                         ))}
                         {paid && (
                             <div className="flex justify-between pt-2 mt-1 border-t border-gray-200 text-sm font-semibold text-navy-primary">
-                                <span>Total {eur(totalGross)}</span>
-                                <span>broker {eur(totalBroker)} · agency {eur(totalAgency)}</span>
+                                <span>{t('fin.detail.total')} {eur(totalGross)}</span>
+                                <span>{t('fin.broker')} {eur(totalBroker)} · {t('fin.agency')} {eur(totalAgency)}</span>
                             </div>
                         )}
                         {paid && (totalCash > 0 || totalBank > 0) && (
-                            <div className="flex justify-end text-xs text-text-muted mt-1">cash {eur(totalCash)} · bank {eur(totalBank)}</div>
+                            <div className="flex justify-end text-xs text-text-muted mt-1">{t('fin.cash')} {eur(totalCash)} · {t('fin.bank')} {eur(totalBank)}</div>
                         )}
-                        {!paid && entry.expectedAmount != null && <Row label="Expected" value={eur(entry.expectedAmount)} />}
+                        {!paid && entry.expectedAmount != null && <Row label={t('fin.detail.expected')} value={eur(entry.expectedAmount)} />}
                     </Section>
 
                     {entry.category === 'insurance' && (
-                        <Section icon={<ShieldCheck className="w-3.5 h-3.5" />} title="Policy">
-                            <Row label="Policy number" value={entry.policyNumber} />
-                            <Row label="Type" value={entry.policyType} />
+                        <Section icon={<ShieldCheck className="w-3.5 h-3.5" />} title={t('fin.detail.policy')}>
+                            <Row label={t('fin.reg.policyNumber')} value={entry.policyNumber} />
+                            <Row label={t('fin.detail.type')} value={entry.policyType} />
                             <Row label="ЕГН / ЕИК" value={entry.insuredIdent} />
-                            <Row label="Valid" value={entry.policyValidFrom || entry.policyValidTo ? `${dt(entry.policyValidFrom)} — ${dt(entry.policyValidTo)}` : '—'} />
-                            <Row label="Cost bruto" value={entry.policyCostGross != null ? eur(entry.policyCostGross) : '—'} />
-                            <Row label="Cost neto" value={entry.policyCostNet != null ? eur(entry.policyCostNet) : '—'} />
+                            <Row label={t('fin.detail.valid')} value={entry.policyValidFrom || entry.policyValidTo ? `${dt(entry.policyValidFrom)} — ${dt(entry.policyValidTo)}` : '—'} />
+                            <Row label={t('fin.costBruto')} value={entry.policyCostGross != null ? eur(entry.policyCostGross) : '—'} />
+                            <Row label={t('fin.costNeto')} value={entry.policyCostNet != null ? eur(entry.policyCostNet) : '—'} />
                         </Section>
                     )}
 
-                    <Section icon={<Calendar className="w-3.5 h-3.5" />} title="Dates">
-                        <Row label={property ? 'Date signed' : 'Date'} value={dt(entry.dealDate)} />
-                        {entry.category === 'insurance' && <Row label="Renewal due" value={dt(entry.renewalDate)} />}
-                        <Row label="Registered" value={dt(entry.createdAt)} />
+                    <Section icon={<Calendar className="w-3.5 h-3.5" />} title={t('fin.detail.dates')}>
+                        <Row label={property ? t('fin.reg.dateSigned') : t('fin.reg.date')} value={dt(entry.dealDate)} />
+                        {entry.category === 'insurance' && <Row label={t('fin.detail.renewalDue')} value={dt(entry.renewalDate)} />}
+                        <Row label={t('fin.detail.registeredRow')} value={dt(entry.createdAt)} />
                     </Section>
 
                     {entry.notes && entry.notes !== 'MOCK' && (
-                        <Section icon={<Building2 className="w-3.5 h-3.5" />} title="Notes">
+                        <Section icon={<Building2 className="w-3.5 h-3.5" />} title={t('fin.notes')}>
                             <p className="text-sm text-navy-primary whitespace-pre-wrap">{entry.notes}</p>
                         </Section>
                     )}

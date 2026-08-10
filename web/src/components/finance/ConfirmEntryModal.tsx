@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { IncomeEntry, CATEGORY_LABELS } from '@/lib/financeTypes';
+import { IncomeEntry } from '@/lib/financeTypes';
 import { OwnerInfo, ConfirmLineInput } from '@/lib/useFinance';
+import { useTranslation } from '@/lib/useTranslation';
+import { catKey, sideKey } from '@/lib/financeLabels';
 
 interface ConfirmEntryModalProps {
     entry: IncomeEntry;
@@ -33,6 +35,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 const eur = (n: number) => new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(n);
 
 export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }: ConfirmEntryModalProps) {
+    const { t } = useTranslation();
     const isRent = entry.category === 'rent';
     // Property deals derive the commission from price/rent × a rate; insurance
     // derives it from the policy neto × agency %. Referrals have no basis — the
@@ -73,7 +76,7 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
             return {
                 id: l.id,
                 ownerId: l.ownerId,
-                label: `${l.side !== 'n/a' ? l.side + ' · ' : ''}${l.clientName ?? owners[l.ownerId]?.name ?? '—'}`,
+                label: `${l.side !== 'n/a' ? t(sideKey(l.side)) + ' · ' : ''}${l.clientName ?? owners[l.ownerId]?.name ?? '—'}`,
                 rate,
                 gross: l.grossAmount != null ? String(l.grossAmount) : (derived || singleExpected),
                 vatIncluded: false,
@@ -121,7 +124,7 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
     const submit = async (status: 'paid' | 'partially_paid') => {
         setError(null);
         if (!allHaveGross) {
-            setError('Enter the commission amount for each line.');
+            setError(t('fin.confirm.enterEach'));
             return;
         }
         setSubmitting(true);
@@ -148,9 +151,9 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
             <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
                     <div>
-                        <p className="text-xs text-gray-400">Confirm payment</p>
+                        <p className="text-xs text-gray-400">{t('fin.confirm.eyebrow')}</p>
                         <h3 className="text-lg font-semibold text-gray-900">
-                            {CATEGORY_LABELS[entry.category]}
+                            {t(catKey(entry.category))}
                             {entry.propertyAddress ? ` · ${entry.propertyAddress}` : ''}
                         </h3>
                     </div>
@@ -163,23 +166,23 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
                     {basisMode ? (
                         <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">
-                                {isRent ? 'Monthly rent (EUR)' : insurance ? 'Policy neto (EUR)' : 'Sale price (EUR)'}
+                                {isRent ? t('fin.monthlyRentEur') : insurance ? t('fin.policyNetoEur') : t('fin.salePriceEur')}
                             </label>
                             <input type="number" min={0} step={0.01} value={dealValue}
                                 onChange={(e) => onDealValueChange(e.target.value)}
                                 readOnly={insurance}
                                 className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal ${insurance ? 'bg-gray-50 text-gray-600' : ''}`} />
                             <p className="text-[11px] text-gray-400 mt-1">
-                                {isRent ? 'Commission below fills in from rent × months.'
-                                    : insurance ? 'Commission fills in from neto × agency %. Change the neto in Edit transaction.'
-                                        : 'Commission below fills in from price × agency %.'}
+                                {isRent ? t('fin.confirm.rentHint')
+                                    : insurance ? t('fin.confirm.netoHint')
+                                        : t('fin.confirm.priceHint')}
                             </p>
                         </div>
                     ) : null}
 
                     {!property && !insurance && singleExpected && (
                         <p className="text-sm text-navy-primary bg-teal/5 border border-teal/20 rounded-lg px-3 py-2">
-                            Agreed at registration: <strong>{eur(Number(singleExpected))}</strong> — prefilled below. Adjust if the final amount differs.
+                            {t('fin.confirm.agreedAt', { amount: eur(Number(singleExpected)) })}
                         </p>
                     )}
 
@@ -193,7 +196,7 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
                             <div className="grid grid-cols-2 gap-3">
                                 {basisMode && (
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">{isRent ? 'Months of rent' : 'Agency %'}</label>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">{isRent ? t('fin.months') : t('fin.agencyPct')}</label>
                                         <input type="number" min={0} max={isRent ? undefined : 100} step={isRent ? 0.25 : 0.1} value={l.rate}
                                             onChange={(e) => onRateChange(l.id, e.target.value)}
                                             placeholder={isRent ? 'e.g. 1' : 'e.g. 3'}
@@ -201,37 +204,37 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
                                     </div>
                                 )}
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-600 mb-1">Commission received (EUR)</label>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('fin.commissionReceived')}</label>
                                     <input type="number" min={0} step={0.01} value={l.gross}
                                         onChange={(e) => setLine(l.id, { gross: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal" />
                                 </div>
                                 {houseDeal ? (
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">Broker %</label>
-                                        <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-500">0% · house deal</div>
-                                        <p className="text-[11px] text-gray-400 mt-1">No broker — 100% to the agency.</p>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('fin.brokerPct')}</label>
+                                        <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-500">{t('fin.confirm.houseDealTag')}</div>
+                                        <p className="text-[11px] text-gray-400 mt-1">{t('fin.confirm.houseNoBroker')}</p>
                                     </div>
                                 ) : (
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">Broker %</label>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('fin.brokerPct')}</label>
                                         <input type="number" min={0} max={100} step={0.5} value={l.brokerPct}
                                             onChange={(e) => setLine(l.id, { brokerPct: e.target.value })}
-                                            placeholder="default"
+                                            placeholder={t('fin.confirm.noDefault')}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal" />
                                         <p className="text-[11px] text-gray-400 mt-1">
-                                            {owners[l.ownerId]?.defaultPct != null ? `default ${owners[l.ownerId].defaultPct}% — override for this deal` : 'no default set'}
+                                            {owners[l.ownerId]?.defaultPct != null ? t('fin.confirm.defaultOverride', { pct: owners[l.ownerId].defaultPct as number }) : t('fin.confirm.noDefault')}
                                         </p>
                                     </div>
                                 )}
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-600 mb-1">Cash (EUR)</label>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('fin.cash')} (EUR)</label>
                                     <input type="number" min={0} step={0.01} value={l.cash}
                                         onChange={(e) => setLine(l.id, { cash: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-600 mb-1">Bank (EUR)</label>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('fin.bank')} (EUR)</label>
                                     <input type="number" min={0} step={0.01} value={l.bank}
                                         onChange={(e) => setLine(l.id, { bank: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal" />
@@ -242,16 +245,16 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
                                 <label className="flex items-center gap-2 mt-3 text-sm text-gray-600">
                                     <input type="checkbox" checked={l.vatIncluded}
                                         onChange={(e) => setLine(l.id, { vatIncluded: e.target.checked })} />
-                                    Amount includes VAT (ДДС) — split computed on net
+                                    {t('fin.vatNote')}
                                 </label>
                             )}
 
                             <div className="mt-3 flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
-                                <span className="text-gray-500">Broker gets <strong className="text-navy-primary">{eur(computed[i].brokerCut)}</strong></span>
-                                <span className="text-gray-500">Agency keeps <strong className="text-navy-primary">{eur(computed[i].agencyCut)}</strong></span>
+                                <span className="text-gray-500">{t('fin.brokerGets')} <strong className="text-navy-primary">{eur(computed[i].brokerCut)}</strong></span>
+                                <span className="text-gray-500">{t('fin.agencyKeeps')} <strong className="text-navy-primary">{eur(computed[i].agencyCut)}</strong></span>
                             </div>
                             {computed[i].cashBankMismatch && (
-                                <p className="text-[11px] text-amber-600 mt-1">Cash + bank doesn&apos;t match the commission amount.</p>
+                                <p className="text-[11px] text-amber-600 mt-1">{t('fin.confirm.cashBankMismatch')}</p>
                             )}
                         </div>
                     ))}
@@ -261,11 +264,11 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
                     <div className="flex items-center justify-end gap-3 pt-2">
                         <button type="button" onClick={() => submit('partially_paid')} disabled={submitting}
                             className="px-4 py-2 text-navy-primary bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50">
-                            Partially paid
+                            {t('fin.confirm.partiallyPaid')}
                         </button>
                         <button type="button" onClick={() => submit('paid')} disabled={submitting}
                             className="px-5 py-2 bg-navy-primary text-white font-semibold rounded-lg hover:bg-navy-secondary transition-colors disabled:opacity-50">
-                            {submitting ? 'Saving…' : anyMismatch ? 'Mark paid anyway' : 'Mark paid & lock'}
+                            {submitting ? t('fin.confirm.saving') : anyMismatch ? t('fin.confirm.markPaidAnyway') : t('fin.confirm.markPaidLock')}
                         </button>
                     </div>
                 </div>

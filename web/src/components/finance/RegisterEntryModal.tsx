@@ -8,12 +8,13 @@ import {
     CommissionFrom,
     PropertyType,
     RegisterEntryInput,
-    CATEGORY_LABELS,
     PROPERTY_TYPE_LABELS,
     POLICY_TYPE_SUGGESTIONS,
     isProperty,
     isReferral,
 } from '@/lib/financeTypes';
+import { useTranslation } from '@/lib/useTranslation';
+import { catKey, ptypeKey } from '@/lib/financeLabels';
 
 interface RegisterEntryModalProps {
     onClose: () => void;
@@ -39,6 +40,7 @@ const REFERRAL_TILES: Tile[] = [
 
 export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntryModalProps) {
     const { user } = useAuth();
+    const { t } = useTranslation();
     const insuranceFirst = (user?.department ?? null) === 'insurance';
     const isManager = (user?.financeAccess ?? 'none') === 'all';
 
@@ -128,6 +130,19 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
         onClose();
     };
 
+    // Tiles carry hardcoded English labels; translate them at render. Referral
+    // sub-tiles use short labels, distinct from the full category names.
+    const tileLabel = (tile: Tile): string => {
+        if (tile.group === 'referral') return t('fin.reg.tile.referral');
+        if (tile.category === 'credit_referral') return t('fin.reg.tile.credit');
+        if (tile.category === 'construction_referral') return t('fin.reg.tile.construction');
+        if (tile.category === 'interior_design_referral') return t('fin.reg.tile.interior');
+        if (tile.category) return t(catKey(tile.category));
+        return tile.label;
+    };
+    const tileSub = (tile: Tile): string | undefined =>
+        tile.group === 'referral' ? t('fin.reg.tile.referralSub') : undefined;
+
     const property = category ? isProperty(category) : false;
     const bothSides = property && commissionFrom === 'both';
     const isRent = category === 'rent';
@@ -172,9 +187,9 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                         </button>
                     )}
                     <div>
-                        <p className="text-xs text-gray-400">Step {step} of 2</p>
+                        <p className="text-xs text-gray-400">{t('fin.reg.step', { n: step })}</p>
                         <h3 className="text-lg font-semibold text-gray-900">
-                            {step === 1 ? 'What did you close?' : CATEGORY_LABELS[category!]}
+                            {step === 1 ? t('fin.reg.step1Title') : t(catKey(category!))}
                         </h3>
                     </div>
                     <button
@@ -201,8 +216,8 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                                             className="flex flex-col items-center text-center gap-2 p-5 rounded-xl border border-gray-200 hover:border-teal hover:bg-teal/5 transition-colors"
                                         >
                                             <Icon className="w-7 h-7 text-teal" />
-                                            <span className="text-sm font-semibold text-gray-800">{tile.label}</span>
-                                            {tile.sub && <span className="text-xs text-gray-400">{tile.sub}</span>}
+                                            <span className="text-sm font-semibold text-gray-800">{tileLabel(tile)}</span>
+                                            {tileSub(tile) && <span className="text-xs text-gray-400">{tileSub(tile)}</span>}
                                         </button>
                                     );
                                 })}
@@ -219,7 +234,7 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                                             className="flex flex-col items-center text-center gap-2 p-5 rounded-xl border border-gray-200 hover:border-teal hover:bg-teal/5 transition-colors"
                                         >
                                             <Icon className="w-6 h-6 text-teal" />
-                                            <span className="text-sm font-semibold text-gray-800">{tile.label}</span>
+                                            <span className="text-sm font-semibold text-gray-800">{tileLabel(tile)}</span>
                                         </button>
                                     );
                                 })}
@@ -240,15 +255,15 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                                         className="mt-0.5"
                                     />
                                     <span className="text-sm">
-                                        <span className="font-medium text-navy-primary">Agency deal — no broker</span>
-                                        <span className="block text-xs text-gray-500">The agency closed this directly; 100% of the commission is agency income.</span>
+                                        <span className="font-medium text-navy-primary">{t('fin.reg.houseDeal')}</span>
+                                        <span className="block text-xs text-gray-500">{t('fin.reg.houseDealSub')}</span>
                                     </span>
                                 </label>
                             )}
 
                             {property && (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Property address</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('fin.reg.propertyAddress')}</label>
                                     <input
                                         type="text"
                                         value={propertyAddress}
@@ -261,7 +276,7 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
 
                             {property && (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">CRM number (optional)</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('fin.reg.crmOptional')}</label>
                                     <input
                                         type="text"
                                         value={propertyRef}
@@ -274,16 +289,16 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
 
                             {property && (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Property type</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('fin.reg.propertyType')}</label>
                                     <select
                                         value={propertyType}
                                         onChange={(e) => setPropertyType(e.target.value as PropertyType | '')}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal"
-                                        title="Property type"
+                                        title={t('fin.reg.propertyType')}
                                     >
                                         <option value="">—</option>
                                         {(Object.keys(PROPERTY_TYPE_LABELS) as PropertyType[]).map((tp) => (
-                                            <option key={tp} value={tp}>{PROPERTY_TYPE_LABELS[tp]}</option>
+                                            <option key={tp} value={tp}>{t(ptypeKey(tp))}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -292,7 +307,7 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                             <div className="flex gap-3">
                                 <div className="flex-1">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {isProperty(category) ? 'Date signed' : isReferral(category) ? 'Date referred' : 'Date'}
+                                        {isProperty(category) ? t('fin.reg.dateSigned') : isReferral(category) ? t('fin.reg.dateReferred') : t('fin.reg.date')}
                                     </label>
                                     <input
                                         type="date"
@@ -303,16 +318,16 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                                 </div>
                                 {property && (
                                     <div className="flex-1">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Commission from</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('fin.reg.commissionFrom')}</label>
                                         <select
                                             value={commissionFrom}
                                             onChange={(e) => setCommissionFrom(e.target.value as CommissionFrom)}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal"
-                                            title="Commission from"
+                                            title={t('fin.reg.commissionFrom')}
                                         >
-                                            <option value="both">Both sides</option>
-                                            <option value="buyer">{isRent ? 'Tenant only' : 'Buyer only'}</option>
-                                            <option value="seller">{isRent ? 'Landlord only' : 'Seller only'}</option>
+                                            <option value="both">{t('fin.reg.bothSides')}</option>
+                                            <option value="buyer">{isRent ? t('fin.reg.tenantOnly') : t('fin.reg.buyerOnly')}</option>
+                                            <option value="seller">{isRent ? t('fin.reg.landlordOnly') : t('fin.reg.sellerOnly')}</option>
                                         </select>
                                     </div>
                                 )}
@@ -320,7 +335,7 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {property ? (isRent ? 'Tenant name' : 'Buyer name') : 'Client name'}
+                                    {property ? (isRent ? t('fin.reg.tenantName') : t('fin.reg.buyerName')) : t('fin.reg.clientName')}
                                 </label>
                                 <input
                                     type="text"
@@ -335,7 +350,7 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                             {bothSides && (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {isRent ? 'Landlord name' : 'Seller name'}
+                                        {isRent ? t('fin.reg.landlordName') : t('fin.reg.sellerName')}
                                     </label>
                                     <input
                                         type="text"
@@ -350,20 +365,20 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                             {category === 'insurance' && (
                                 <>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">ЕГН / ЕИК (optional)</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('fin.reg.egnOptional')}</label>
                                         <input
                                             type="text"
                                             value={insuredIdent}
                                             onChange={(e) => setInsuredIdent(e.target.value)}
-                                            placeholder="Personal (ЕГН) or company (ЕИК) number"
+                                            placeholder="ЕГН / ЕИК"
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal"
                                         />
-                                        <p className="text-xs text-gray-500 mt-1">Makes the policy easy to find later.</p>
+                                        <p className="text-xs text-gray-500 mt-1">{t('fin.reg.egnHint')}</p>
                                     </div>
 
                                     <div className="flex gap-3">
                                         <div className="flex-1">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Policy number</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('fin.reg.policyNumber')}</label>
                                             <input
                                                 type="text"
                                                 value={policyNumber}
@@ -373,7 +388,7 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                                             />
                                         </div>
                                         <div className="flex-1">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Policy type</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('fin.reg.policyTypeLabel')}</label>
                                             <input
                                                 type="text"
                                                 list="policy-types"
@@ -383,51 +398,51 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal"
                                             />
                                             <datalist id="policy-types">
-                                                {POLICY_TYPE_SUGGESTIONS.map((t) => <option key={t} value={t} />)}
+                                                {POLICY_TYPE_SUGGESTIONS.map((s) => <option key={s} value={s} />)}
                                             </datalist>
                                         </div>
                                     </div>
 
                                     <div className="flex gap-3">
                                         <div className="flex-1">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Valid from</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('fin.reg.validFrom')}</label>
                                             <input
                                                 type="date"
                                                 value={validFrom}
                                                 onChange={(e) => setValidFrom(e.target.value)}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal"
-                                                title="Valid from"
+                                                title={t('fin.reg.validFrom')}
                                             />
                                         </div>
                                         <div className="flex-1">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Valid till</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('fin.reg.validTill')}</label>
                                             <input
                                                 type="date"
                                                 value={validTo}
                                                 onChange={(e) => setValidTo(e.target.value)}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal"
-                                                title="Valid till"
+                                                title={t('fin.reg.validTill')}
                                             />
                                         </div>
                                     </div>
-                                    {validTo && <p className="text-xs text-gray-500 -mt-2">You&apos;ll get a renewal reminder before it&apos;s due.</p>}
+                                    {validTo && <p className="text-xs text-gray-500 -mt-2">{t('fin.reg.renewalHint')}</p>}
 
                                     <div className="flex gap-3">
                                         <div className="flex-1">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Policy cost — bruto (EUR)</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('fin.reg.brutoLabel')}</label>
                                             <input
                                                 type="number" min={0} step={0.01} value={policyGross}
                                                 onChange={(e) => setPolicyGross(e.target.value)}
-                                                placeholder="with tax"
+                                                placeholder={t('fin.withTax')}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal"
                                             />
                                         </div>
                                         <div className="flex-1">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Policy cost — neto (EUR)</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('fin.reg.netoLabel')}</label>
                                             <input
                                                 type="number" min={0} step={0.01} value={policyNet}
                                                 onChange={(e) => setPolicyNet(e.target.value)}
-                                                placeholder="without tax"
+                                                placeholder={t('fin.withoutTax')}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal"
                                             />
                                         </div>
@@ -439,7 +454,7 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            {isRent ? 'Monthly rent (EUR)' : 'Sale price (EUR)'}
+                                            {isRent ? t('fin.monthlyRentEur') : t('fin.salePriceEur')}
                                         </label>
                                         <input
                                             type="number" min={0} step={0.01} value={dealValue}
@@ -453,7 +468,7 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                                         <div className="flex gap-3">
                                             <div className="flex-1">
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    {bothSides ? 'Tenant — months of rent' : 'Commission (months of rent)'}
+                                                    {bothSides ? t('fin.reg.tenantMonths') : t('fin.reg.commissionMonths')}
                                                 </label>
                                                 <input
                                                     type="number" min={0} step={0.25} value={rentMonths}
@@ -472,7 +487,7 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                                             </div>
                                             {bothSides && (
                                                 <div className="flex-1">
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Landlord — months of rent</label>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('fin.reg.landlordMonths')}</label>
                                                     <input
                                                         type="number" min={0} step={0.25} value={secondRentMonths}
                                                         onChange={(e) => setSecondRentMonths(e.target.value)}
@@ -484,9 +499,9 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                                         </div>
                                     ) : (
                                         <div className="flex gap-3">
-                                            <div className="w-40">
+                                            <div className="flex-1">
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    {bothSides ? 'Buyer %' : 'Agency %'}
+                                                    {bothSides ? t('fin.buyerPct') : t('fin.agencyPct')}
                                                 </label>
                                                 <input
                                                     type="number" min={0} max={100} step={0.1} value={agencyPct}
@@ -496,8 +511,8 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                                                 />
                                             </div>
                                             {bothSides && (
-                                                <div className="w-40">
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Seller %</label>
+                                                <div className="flex-1">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('fin.sellerPct')}</label>
                                                     <input
                                                         type="number" min={0} max={100} step={0.1} value={secondAgencyPct}
                                                         onChange={(e) => setSecondAgencyPct(e.target.value)}
@@ -511,28 +526,28 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                                     {agencyCommission > 0 && (
                                         <div className="bg-teal/5 border border-teal/20 rounded-lg px-3 py-2 text-sm">
                                             <div className="flex justify-between text-gray-700">
-                                                <span>Agency commission (est.)</span>
+                                                <span>{t('fin.reg.agencyCommissionEst')}</span>
                                                 <strong className="text-navy-primary">{eur(agencyCommission)}</strong>
                                             </div>
                                             {houseDeal ? (
                                                 <div className="flex justify-between text-gray-500 mt-0.5">
-                                                    <span>Broker cut</span>
-                                                    <strong className="text-teal">100% to agency</strong>
+                                                    <span>{t('fin.reg.brokerCut')}</span>
+                                                    <strong className="text-teal">{t('fin.reg.hundredToAgency')}</strong>
                                                 </div>
                                             ) : estCut != null && (
                                                 <div className="flex justify-between text-gray-500 mt-0.5">
-                                                    <span>Your cut (est. at {myPct}%)</span>
+                                                    <span>{t('fin.reg.yourCutEst', { pct: myPct as number })}</span>
                                                     <strong className="text-teal">{eur(estCut)}</strong>
                                                 </div>
                                             )}
-                                            <p className="text-[11px] text-gray-400 mt-1">Estimate — the office confirms the final figures.</p>
+                                            <p className="text-[11px] text-gray-400 mt-1">{t('fin.reg.estimateNote')}</p>
                                         </div>
                                     )}
                                 </>
                             ) : isReferral(category) ? (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Commission agreed (EUR, optional)
+                                        {t('fin.reg.commissionAgreed')}
                                     </label>
                                     <input
                                         type="number"
@@ -540,14 +555,14 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                                         step={0.01}
                                         value={expected}
                                         onChange={(e) => setExpected(e.target.value)}
-                                        placeholder="Leave blank if not final yet"
+                                        placeholder={t('fin.reg.commissionAgreedPh')}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal"
                                     />
                                 </div>
                             ) : null}
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('fin.reg.notesOptional')}</label>
                                 <textarea
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
@@ -566,11 +581,11 @@ export default function RegisterEntryModal({ onClose, onRegister }: RegisterEntr
                             disabled={submitting || !clientName.trim()}
                             className="mt-5 w-full py-2.5 bg-navy-primary text-white font-semibold rounded-lg hover:bg-navy-secondary transition-colors disabled:opacity-50"
                         >
-                            {submitting ? 'Registering…' : 'Register deal'}
+                            {submitting ? t('fin.reg.registering') : t('fin.reg.registerDeal')}
                         </button>
                         <p className="text-xs text-gray-400 mt-3 text-center flex items-center justify-center gap-1">
                             <Lock className="w-3.5 h-3.5" />
-                            The office confirms the money — you&apos;ll see your cut once it&apos;s paid.
+                            {t('fin.reg.footer')}
                         </p>
                     </form>
                 )}

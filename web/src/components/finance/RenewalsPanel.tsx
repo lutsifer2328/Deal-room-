@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import { RefreshCw, AlertTriangle, Clock } from 'lucide-react';
-import { IncomeEntry, CATEGORY_LABELS } from '@/lib/financeTypes';
+import { IncomeEntry } from '@/lib/financeTypes';
 import { OwnerInfo } from '@/lib/useFinance';
+import { useTranslation } from '@/lib/useTranslation';
+import { catKey } from '@/lib/financeLabels';
 
 interface RenewalsPanelProps {
     entries: IncomeEntry[];
@@ -17,6 +19,7 @@ const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); retur
 const daysBetween = (a: Date, b: Date) => Math.round((a.getTime() - b.getTime()) / DAY);
 
 export default function RenewalsPanel({ entries, owners, showOwner, onRenew }: RenewalsPanelProps) {
+    const { t } = useTranslation();
     const [busyId, setBusyId] = useState<string | null>(null);
 
     const data = useMemo(() => {
@@ -66,19 +69,19 @@ export default function RenewalsPanel({ entries, owners, showOwner, onRenew }: R
         return (
             <li key={e.id} className="flex items-center gap-3 py-2.5">
                 <div className="flex-1 min-w-0">
-                    <p className="font-medium text-navy-primary truncate">{e.clientName ?? 'Policy'}</p>
+                    <p className="font-medium text-navy-primary truncate">{e.clientName ?? t('fin.renew.policyFallback')}</p>
                     <p className="text-xs text-text-muted">
                         {r.toLocaleDateString()}
-                        {overdue ? ` · ${Math.abs(days)}d overdue` : ` · in ${days}d`}
+                        {overdue ? ` · ${t('fin.renew.overdueDays', { days: Math.abs(days) })}` : ` · ${t('fin.renew.inDays', { days })}`}
                         {showOwner && ownerName(e) ? ` · ${ownerName(e)}` : ''}
                     </p>
                 </div>
                 <button
                     onClick={() => renew(e)}
                     disabled={busyId === e.id}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-teal border border-teal/40 rounded-lg hover:bg-teal/5 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-teal border border-teal/40 rounded-lg hover:bg-teal/5 disabled:opacity-50 shrink-0"
                 >
-                    <RefreshCw className="w-3.5 h-3.5" /> {busyId === e.id ? 'Renewing…' : 'Register renewal'}
+                    <RefreshCw className="w-3.5 h-3.5" /> {busyId === e.id ? t('fin.renew.renewing') : t('fin.renew.registerRenewal')}
                 </button>
             </li>
         );
@@ -89,16 +92,16 @@ export default function RenewalsPanel({ entries, owners, showOwner, onRenew }: R
             {data.retention != null && (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     <div className="bg-white border border-gray-100 rounded-xl p-4">
-                        <div className="text-xs text-text-muted mb-1">Retention</div>
+                        <div className="text-xs text-text-muted mb-1">{t('fin.renew.retention')}</div>
                         <div className="text-2xl font-bold text-navy-primary">{data.retention}%</div>
-                        <div className="text-xs text-text-muted">{data.renewedCount} of {data.dueTotal} renewed</div>
+                        <div className="text-xs text-text-muted">{t('fin.renew.renewedOf', { done: data.renewedCount, total: data.dueTotal })}</div>
                     </div>
                     <div className="bg-white border border-gray-100 rounded-xl p-4">
-                        <div className="text-xs text-text-muted mb-1">Due next 30 days</div>
+                        <div className="text-xs text-text-muted mb-1">{t('fin.renew.dueNext30')}</div>
                         <div className="text-2xl font-bold text-navy-primary">{data.dueSoon.length}</div>
                     </div>
                     <div className="bg-white border border-gray-100 rounded-xl p-4">
-                        <div className="text-xs text-text-muted mb-1">Overdue</div>
+                        <div className="text-xs text-text-muted mb-1">{t('fin.renew.overdue')}</div>
                         <div className="text-2xl font-bold text-navy-primary">{data.overdue.length}</div>
                     </div>
                 </div>
@@ -106,10 +109,10 @@ export default function RenewalsPanel({ entries, owners, showOwner, onRenew }: R
 
             <div className={card}>
                 <p className="text-sm font-medium text-navy-primary mb-1 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-500" /> Overdue renewals
+                    <AlertTriangle className="w-4 h-4 text-amber-500" /> {t('fin.renew.overdueTitle')}
                 </p>
                 {data.overdue.length === 0 ? (
-                    <p className="text-text-muted text-sm py-2">Nothing overdue.</p>
+                    <p className="text-text-muted text-sm py-2">{t('fin.renew.nothingOverdue')}</p>
                 ) : (
                     <ul className="divide-y divide-gray-50">{data.overdue.map((e) => renewalRow(e, true))}</ul>
                 )}
@@ -117,20 +120,20 @@ export default function RenewalsPanel({ entries, owners, showOwner, onRenew }: R
 
             <div className={card}>
                 <p className="text-sm font-medium text-navy-primary mb-1 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-teal" /> Due in the next 30 days
+                    <Clock className="w-4 h-4 text-teal" /> {t('fin.renew.dueSoonTitle')}
                 </p>
                 {data.dueSoon.length === 0 ? (
-                    <p className="text-text-muted text-sm py-2">Nothing due soon.</p>
+                    <p className="text-text-muted text-sm py-2">{t('fin.renew.nothingDueSoon')}</p>
                 ) : (
                     <ul className="divide-y divide-gray-50">{data.dueSoon.map((e) => renewalRow(e, false))}</ul>
                 )}
             </div>
 
             <div className={card}>
-                <p className="text-sm font-medium text-navy-primary mb-1">Awaiting payment too long</p>
-                <p className="text-xs text-text-muted mb-2">Registered as won over 30 days ago, still not paid — worth chasing.</p>
+                <p className="text-sm font-medium text-navy-primary mb-1">{t('fin.renew.awaitingTooLong')}</p>
+                <p className="text-xs text-text-muted mb-2">{t('fin.renew.awaitingDesc')}</p>
                 {data.aging.length === 0 ? (
-                    <p className="text-text-muted text-sm py-2">Nothing stuck.</p>
+                    <p className="text-text-muted text-sm py-2">{t('fin.renew.nothingStuck')}</p>
                 ) : (
                     <ul className="divide-y divide-gray-50">
                         {data.aging.map((e) => {
@@ -139,16 +142,16 @@ export default function RenewalsPanel({ entries, owners, showOwner, onRenew }: R
                                 <li key={e.id} className="flex items-center gap-3 py-2.5">
                                     <div className="flex-1 min-w-0">
                                         <p className="font-medium text-navy-primary truncate">
-                                            {e.propertyAddress || e.clientName || CATEGORY_LABELS[e.category]}
+                                            {e.propertyAddress || e.clientName || t(catKey(e.category))}
                                         </p>
                                         <p className="text-xs text-text-muted">
-                                            {CATEGORY_LABELS[e.category]} · {days}d waiting
+                                            {t(catKey(e.category))} · {t('fin.renew.daysWaiting', { days })}
                                             {showOwner && ownerName(e) ? ` · ${ownerName(e)}` : ''}
                                         </p>
                                     </div>
                                     {e.expectedAmount != null && (
                                         <span className="text-xs text-text-muted">
-                                            expected {new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(e.expectedAmount)}
+                                            {t('fin.expected', { amount: new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(e.expectedAmount) })}
                                         </span>
                                     )}
                                 </li>

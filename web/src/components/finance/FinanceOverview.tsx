@@ -1,8 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { IncomeEntry, IncomeCategory, CATEGORY_LABELS } from '@/lib/financeTypes';
+import { IncomeEntry, IncomeCategory } from '@/lib/financeTypes';
 import { OwnerInfo, PartnerInfo } from '@/lib/useFinance';
+import { useTranslation } from '@/lib/useTranslation';
+import { catKey } from '@/lib/financeLabels';
 
 interface FinanceOverviewProps {
     entries: IncomeEntry[];
@@ -22,6 +24,7 @@ const yearOf = (e: IncomeEntry) => (e.dealDate ? e.dealDate.slice(0, 4) : null);
 const monthOf = (e: IncomeEntry) => (e.dealDate ? Number(e.dealDate.slice(5, 7)) : null);
 
 export default function FinanceOverview({ entries, owners, partners }: FinanceOverviewProps) {
+    const { t } = useTranslation();
     const years = useMemo(() => {
         const s = new Set<string>();
         entries.forEach((e) => { const y = yearOf(e); if (y) s.add(y); });
@@ -128,28 +131,28 @@ export default function FinanceOverview({ entries, owners, partners }: FinanceOv
             <div className="flex items-center gap-2">
                 <select value={year} onChange={(e) => setYear(e.target.value)} title="Year"
                     className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal">
-                    <option value="all">All years</option>
+                    <option value="all">{t('fin.ledger.allYears')}</option>
                     {years.map((y) => <option key={y} value={y}>{y}</option>)}
                 </select>
-                <span className="text-xs text-text-muted ml-auto">Amounts are commission received (paid).</span>
+                <span className="text-xs text-text-muted ml-auto">{t('fin.ov.amountsNote')}</span>
             </div>
 
             {!hasData ? (
                 <div className={`${card} text-center py-12`}>
-                    <p className="text-navy-primary font-semibold mb-1">No data yet</p>
-                    <p className="text-text-muted text-sm">Charts appear once deals are registered and confirmed.</p>
+                    <p className="text-navy-primary font-semibold mb-1">{t('fin.ov.noData')}</p>
+                    <p className="text-text-muted text-sm">{t('fin.ov.noDataSub')}</p>
                 </div>
             ) : (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Revenue by pillar */}
                         <div className={card}>
-                            <p className="text-sm font-medium text-navy-primary mb-3">Revenue by pillar</p>
+                            <p className="text-sm font-medium text-navy-primary mb-3">{t('fin.ov.revenueByPillar')}</p>
                             <div className="space-y-2.5">
                                 {pillars.map((p) => (
                                     <div key={p.cat}>
                                         <div className="flex justify-between text-xs mb-1">
-                                            <span>{CATEGORY_LABELS[p.cat]}</span>
+                                            <span>{t(catKey(p.cat))}</span>
                                             <span className="text-text-muted">{eur(p.val)}</span>
                                         </div>
                                         <div className="h-2 bg-gray-100 rounded">
@@ -159,14 +162,14 @@ export default function FinanceOverview({ entries, owners, partners }: FinanceOv
                                 ))}
                             </div>
                             <div className="flex justify-between mt-4 pt-3 border-t border-gray-100 text-sm">
-                                <span className="text-text-muted">Received <strong className="text-navy-primary">{eur(totalReceived)}</strong></span>
-                                <span className="text-text-muted">Pipeline <strong className="text-navy-primary">{eur(totalPipeline)}</strong></span>
+                                <span className="text-text-muted">{t('fin.ov.received')} <strong className="text-navy-primary">{eur(totalReceived)}</strong></span>
+                                <span className="text-text-muted">{t('fin.ov.pipeline')} <strong className="text-navy-primary">{eur(totalPipeline)}</strong></span>
                             </div>
                         </div>
 
                         {/* Monthly revenue */}
                         <div className={card}>
-                            <p className="text-sm font-medium text-navy-primary mb-3">Monthly revenue · {effectiveYear}</p>
+                            <p className="text-sm font-medium text-navy-primary mb-3">{t('fin.ov.monthlyRevenue')} · {effectiveYear}</p>
                             <div className="flex items-end gap-1.5 h-28">
                                 {monthly.map((v, i) => (
                                     <div key={i} className="flex-1 flex flex-col justify-end" title={eur(v)}>
@@ -183,9 +186,9 @@ export default function FinanceOverview({ entries, owners, partners }: FinanceOv
 
                         {/* Where sales come from */}
                         <div className={card}>
-                            <p className="text-sm font-medium text-navy-primary mb-3">Where sales come from</p>
+                            <p className="text-sm font-medium text-navy-primary mb-3">{t('fin.ov.whereSales')}</p>
                             {sourceTotal === 0 ? (
-                                <p className="text-text-muted text-sm">No confirmed sales or rentals yet.</p>
+                                <p className="text-text-muted text-sm">{t('fin.ov.noConfirmedSales')}</p>
                             ) : (
                                 <>
                                     <div className="flex h-3.5 rounded-full overflow-hidden mb-3">
@@ -194,9 +197,9 @@ export default function FinanceOverview({ entries, owners, partners }: FinanceOv
                                         <div style={{ width: `${(sourceSplit.external / sourceTotal) * 100}%`, background: '#9FE1CB' }} />
                                     </div>
                                     <div className="space-y-1 text-sm">
-                                        <Legend color="#1D9E75" label="Our portfolio / solo" value={sourceSplit.portfolio} total={sourceTotal} />
-                                        <Legend color="#5DCAA5" label="Co-broke internal" value={sourceSplit.internal} total={sourceTotal} />
-                                        <Legend color="#9FE1CB" label="Co-broke external" value={sourceSplit.external} total={sourceTotal} />
+                                        <Legend color="#1D9E75" label={t('fin.ov.portfolioSolo')} value={sourceSplit.portfolio} total={sourceTotal} />
+                                        <Legend color="#5DCAA5" label={t('fin.ov.cobrokeInternal')} value={sourceSplit.internal} total={sourceTotal} />
+                                        <Legend color="#9FE1CB" label={t('fin.ov.cobrokeExternal')} value={sourceSplit.external} total={sourceTotal} />
                                     </div>
                                 </>
                             )}
@@ -204,17 +207,17 @@ export default function FinanceOverview({ entries, owners, partners }: FinanceOv
 
                         {/* Cross-sell + partners */}
                         <div className={card}>
-                            <p className="text-sm font-medium text-navy-primary mb-3">Cross-sell</p>
+                            <p className="text-sm font-medium text-navy-primary mb-3">{t('fin.ov.crossSell')}</p>
                             <div className="flex items-baseline gap-2 mb-4">
                                 <span className="text-3xl font-bold text-navy-primary">{crossSell.rate}%</span>
-                                <span className="text-sm text-text-muted">of property clients also generated a referral or policy ({crossSell.both} of {crossSell.propClients})</span>
+                                <span className="text-sm text-text-muted">{t('fin.ov.crossSellDesc', { both: crossSell.both, total: crossSell.propClients })}</span>
                             </div>
-                            <p className="text-sm font-medium text-navy-primary mb-2">Partners by revenue</p>
+                            <p className="text-sm font-medium text-navy-primary mb-2">{t('fin.ov.partnersByRevenue')}</p>
                             {partnerRows.length === 0 ? (
-                                <p className="text-text-muted text-sm">No partner referrals yet.</p>
+                                <p className="text-text-muted text-sm">{t('fin.ov.noPartners')}</p>
                             ) : (
                                 <table className="w-full text-sm">
-                                    <thead><tr className="text-text-muted text-left"><th className="font-medium py-1">Partner</th><th className="font-medium text-right">Paid us</th><th className="font-medium text-right">Won / sent</th></tr></thead>
+                                    <thead><tr className="text-text-muted text-left"><th className="font-medium py-1">{t('fin.ov.thPartner')}</th><th className="font-medium text-right">{t('fin.ov.thPaidUs')}</th><th className="font-medium text-right">{t('fin.ov.thWonSent')}</th></tr></thead>
                                     <tbody>
                                         {partnerRows.map((p) => (
                                             <tr key={p.id} className="border-t border-gray-50">
@@ -231,12 +234,12 @@ export default function FinanceOverview({ entries, owners, partners }: FinanceOv
 
                     {/* Team */}
                     <div className={card}>
-                        <p className="text-sm font-medium text-navy-primary mb-3">Team</p>
+                        <p className="text-sm font-medium text-navy-primary mb-3">{t('fin.ov.team')}</p>
                         {teamRows.length === 0 ? (
-                            <p className="text-text-muted text-sm">No deals registered yet.</p>
+                            <p className="text-text-muted text-sm">{t('fin.ov.noDealsYet')}</p>
                         ) : (
                             <table className="w-full text-sm">
-                                <thead><tr className="text-text-muted text-left"><th className="font-medium py-1">Employee</th><th className="font-medium text-right">Deals</th><th className="font-medium text-right">Received</th></tr></thead>
+                                <thead><tr className="text-text-muted text-left"><th className="font-medium py-1">{t('fin.ov.thEmployee')}</th><th className="font-medium text-right">{t('fin.ov.thDeals')}</th><th className="font-medium text-right">{t('fin.ov.received')}</th></tr></thead>
                                 <tbody>
                                     {teamRows.map((t) => (
                                         <tr key={t.id} className="border-t border-gray-50">

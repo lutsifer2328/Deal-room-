@@ -13,6 +13,8 @@ import {
 } from '@/lib/financeTypes';
 import { OwnerInfo, ConfirmLineInput, EditEntryInput, EditLineInput } from '@/lib/useFinance';
 import { PreparedImportRow } from '@/lib/financeImport';
+import { useTranslation } from '@/lib/useTranslation';
+import { catKey, statusKey, ptypeKey, sideKey } from '@/lib/financeLabels';
 import ConfirmEntryModal from './ConfirmEntryModal';
 import ManagerEntryModal from './ManagerEntryModal';
 import ManagerEntryDetail from './ManagerEntryDetail';
@@ -54,6 +56,7 @@ const statusChip = (s: IncomeStatus) => {
 };
 
 export default function ManagerLedger({ entries, owners, onConfirm, onSave, onDelete, onImport, onUpdateStatus }: ManagerLedgerProps) {
+    const { t, language } = useTranslation();
     const [category, setCategory] = useState<'all' | IncomeCategory>('all');
     const [employee, setEmployee] = useState<'all' | string>('all');
     const [status, setStatus] = useState<'all' | IncomeStatus>('all');
@@ -170,30 +173,30 @@ export default function ManagerLedger({ entries, owners, onConfirm, onSave, onDe
             {/* Stat cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
                 <div className="bg-white border border-gray-100 rounded-xl p-4">
-                    <div className="text-xs text-text-muted mb-1">Received (paid)</div>
+                    <div className="text-xs text-text-muted mb-1">{t('fin.ledger.received')}</div>
                     <div className="text-2xl font-bold text-navy-primary">{eur(totals.received)}</div>
-                    <div className="text-[11px] text-text-muted mt-0.5">total commission in</div>
+                    <div className="text-[11px] text-text-muted mt-0.5">{t('fin.ledger.receivedSub')}</div>
                 </div>
                 <div className="bg-white border border-teal/30 rounded-xl p-4 ring-1 ring-teal/20">
-                    <div className="text-xs text-text-muted mb-1">Agency net</div>
+                    <div className="text-xs text-text-muted mb-1">{t('fin.ledger.agencyNet')}</div>
                     <div className="text-2xl font-bold text-teal">{eur(totals.agencyNet)}</div>
-                    <div className="text-[11px] text-text-muted mt-0.5">after brokers&apos; cuts</div>
+                    <div className="text-[11px] text-text-muted mt-0.5">{t('fin.ledger.agencyNetSub')}</div>
                 </div>
                 <div className="bg-white border border-gray-100 rounded-xl p-4">
-                    <div className="text-xs text-text-muted mb-1">Brokers&apos; cuts</div>
+                    <div className="text-xs text-text-muted mb-1">{t('fin.ledger.brokerCuts')}</div>
                     <div className="text-2xl font-bold text-navy-primary">{eur(totals.brokerCuts)}</div>
-                    <div className="text-[11px] text-text-muted mt-0.5">paid out to employees</div>
+                    <div className="text-[11px] text-text-muted mt-0.5">{t('fin.ledger.brokerCutsSub')}</div>
                 </div>
                 <div className="bg-white border border-gray-100 rounded-xl p-4">
-                    <div className="text-xs text-text-muted mb-1">Pipeline (expected)</div>
+                    <div className="text-xs text-text-muted mb-1">{t('fin.ledger.pipeline')}</div>
                     <div className="text-2xl font-bold text-navy-primary">{eur(totals.pipeline)}</div>
                 </div>
                 <div className="bg-white border border-gray-100 rounded-xl p-4">
-                    <div className="text-xs text-text-muted mb-1">Cash</div>
+                    <div className="text-xs text-text-muted mb-1">{t('fin.cash')}</div>
                     <div className="text-2xl font-bold text-navy-primary">{eur(totals.cash)}</div>
                 </div>
                 <div className="bg-white border border-gray-100 rounded-xl p-4">
-                    <div className="text-xs text-text-muted mb-1">Bank</div>
+                    <div className="text-xs text-text-muted mb-1">{t('fin.bank')}</div>
                     <div className="text-2xl font-bold text-navy-primary">{eur(totals.bank)}</div>
                 </div>
             </div>
@@ -206,44 +209,44 @@ export default function ManagerLedger({ entries, owners, onConfirm, onSave, onDe
                         type="search"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Client, policy no, ЕГН/ЕИК…"
-                        className="pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal w-56"
+                        placeholder={t('fin.ledger.searchPh')}
+                        className="pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal w-full sm:w-56"
                     />
                 </div>
-                <select className={selectCls} value={category} onChange={(e) => setCategory(e.target.value as typeof category)} title="Segment">
-                    <option value="all">All segments</option>
+                <select className={selectCls} value={category} onChange={(e) => setCategory(e.target.value as typeof category)} title={t('fin.ledger.thSegment')}>
+                    <option value="all">{t('fin.ledger.allSegments')}</option>
                     {(Object.keys(CATEGORY_LABELS) as IncomeCategory[]).map((c) => (
-                        <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
+                        <option key={c} value={c}>{t(catKey(c))}</option>
                     ))}
                 </select>
-                <select className={selectCls} value={employee} onChange={(e) => setEmployee(e.target.value)} title="Employee">
-                    <option value="all">All employees</option>
+                <select className={selectCls} value={employee} onChange={(e) => setEmployee(e.target.value)} title={t('fin.ov.thEmployee')}>
+                    <option value="all">{t('fin.ledger.allEmployees')}</option>
                     {employeeIds.map((id) => (
                         <option key={id} value={id}>{owners[id]?.name ?? id.slice(0, 8)}</option>
                     ))}
                 </select>
-                <select className={selectCls} value={status} onChange={(e) => setStatus(e.target.value as typeof status)} title="Status">
-                    <option value="all">All statuses</option>
+                <select className={selectCls} value={status} onChange={(e) => setStatus(e.target.value as typeof status)} title={t('fin.edit.status')}>
+                    <option value="all">{t('fin.ledger.allStatuses')}</option>
                     {(Object.keys(STATUS_LABELS) as IncomeStatus[]).map((s) => (
-                        <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                        <option key={s} value={s}>{t(statusKey(s))}</option>
                     ))}
                 </select>
-                <select className={selectCls} value={year} onChange={(e) => setYear(e.target.value)} title="Year">
-                    <option value="all">All years</option>
+                <select className={selectCls} value={year} onChange={(e) => setYear(e.target.value)} title={t('fin.ledger.allYears')}>
+                    <option value="all">{t('fin.ledger.allYears')}</option>
                     {years.map((y) => <option key={y} value={y}>{y}</option>)}
                 </select>
-                <select className={selectCls} value={month} onChange={(e) => setMonth(e.target.value)} title="Month">
-                    <option value="all">All months</option>
+                <select className={selectCls} value={month} onChange={(e) => setMonth(e.target.value)} title={t('fin.ledger.allMonths')}>
+                    <option value="all">{t('fin.ledger.allMonths')}</option>
                     {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map((m) => (
-                        <option key={m} value={m}>{new Date(2000, Number(m) - 1, 1).toLocaleString('en', { month: 'short' })}</option>
+                        <option key={m} value={m}>{new Date(2000, Number(m) - 1, 1).toLocaleString(language, { month: 'short' })}</option>
                     ))}
                 </select>
                 <div className="ml-auto flex items-center gap-2">
                     <button onClick={() => setImporting(true)} className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                        <Upload className="w-4 h-4" /> Import
+                        <Upload className="w-4 h-4" /> {t('fin.ledger.import')}
                     </button>
                     <button onClick={exportCsv} className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                        <Download className="w-4 h-4" /> Export
+                        <Download className="w-4 h-4" /> {t('fin.ledger.export')}
                     </button>
                 </div>
             </div>
@@ -253,52 +256,52 @@ export default function ManagerLedger({ entries, owners, onConfirm, onSave, onDe
                 <table className="w-full text-sm min-w-[720px]">
                     <thead>
                         <tr className="text-left text-text-muted border-b border-gray-100">
-                            <th className="px-4 py-3 font-medium">Date</th>
-                            <th className="px-4 py-3 font-medium">Segment</th>
-                            <th className="px-4 py-3 font-medium">Employee</th>
-                            <th className="px-4 py-3 font-medium">Client / side</th>
-                            <th className="px-4 py-3 font-medium text-right">Cash</th>
-                            <th className="px-4 py-3 font-medium text-right">Bank</th>
-                            <th className="px-4 py-3 font-medium">Status</th>
+                            <th className="px-4 py-3 font-medium">{t('fin.ledger.thDate')}</th>
+                            <th className="px-4 py-3 font-medium">{t('fin.ledger.thSegment')}</th>
+                            <th className="px-4 py-3 font-medium">{t('fin.ov.thEmployee')}</th>
+                            <th className="px-4 py-3 font-medium">{t('fin.ledger.thClientSide')}</th>
+                            <th className="px-4 py-3 font-medium text-right">{t('fin.cash')}</th>
+                            <th className="px-4 py-3 font-medium text-right">{t('fin.bank')}</th>
+                            <th className="px-4 py-3 font-medium">{t('fin.edit.status')}</th>
                             <th className="px-4 py-3"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {rows.length === 0 ? (
-                            <tr><td colSpan={8} className="px-4 py-10 text-center text-text-muted">No matching rows.</td></tr>
+                            <tr><td colSpan={8} className="px-4 py-10 text-center text-text-muted">{t('fin.ledger.noRows')}</td></tr>
                         ) : rows.map((r) => {
                             const canConfirm = r.firstOfEntry && ['referred', 'in_progress', 'won', 'partially_paid'].includes(r.entry.status);
                             return (
                                 <tr key={r.line.id} className="border-b border-gray-50">
                                     <td className="px-4 py-3 text-text-muted whitespace-nowrap">{r.entry.dealDate ? new Date(r.entry.dealDate).toLocaleDateString() : '—'}</td>
                                     <td className="px-4 py-3">
-                                        {CATEGORY_LABELS[r.entry.category]}
-                                        {r.entry.propertyType && <span className="block text-xs text-text-muted">{PROPERTY_TYPE_LABELS[r.entry.propertyType]}</span>}
+                                        {t(catKey(r.entry.category))}
+                                        {r.entry.propertyType && <span className="block text-xs text-text-muted">{t(ptypeKey(r.entry.propertyType))}</span>}
                                     </td>
                                     <td className="px-4 py-3">
                                         {r.entry.houseDeal ? (
                                             <span className="inline-flex items-center gap-1.5">
-                                                <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-teal/10 text-teal">Agency</span>
+                                                <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-teal/10 text-teal">{t('fin.agency')}</span>
                                                 <span className="text-text-muted">{owners[r.line.ownerId]?.name ?? '—'}</span>
                                             </span>
                                         ) : (owners[r.line.ownerId]?.name ?? '—')}
                                     </td>
                                     <td className="px-4 py-3">
                                         {(r.line.clientName ?? r.entry.clientName ?? '—')}
-                                        {r.line.side !== 'n/a' && <span className="text-text-muted"> · {r.line.side}</span>}
+                                        {r.line.side !== 'n/a' && <span className="text-text-muted"> · {t(sideKey(r.line.side))}</span>}
                                     </td>
                                     <td className="px-4 py-3 text-right">{r.line.amountCash != null ? eur2(r.line.amountCash) : <span className="text-gray-300">—</span>}</td>
                                     <td className="px-4 py-3 text-right">{r.line.amountBank != null ? eur2(r.line.amountBank) : <span className="text-gray-300">—</span>}</td>
-                                    <td className="px-4 py-3"><span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${statusChip(r.entry.status)}`}>{STATUS_LABELS[r.entry.status]}</span></td>
+                                    <td className="px-4 py-3"><span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${statusChip(r.entry.status)}`}>{t(statusKey(r.entry.status))}</span></td>
                                     <td className="px-4 py-3 text-right whitespace-nowrap">
                                         {r.firstOfEntry && (
                                             <span className="inline-flex items-center gap-3">
                                                 {canConfirm && (
                                                     <button onClick={() => setConfirming(r.entry)} className="text-teal font-medium hover:underline">
-                                                        {r.entry.status === 'partially_paid' ? 'Update' : 'Confirm'}
+                                                        {r.entry.status === 'partially_paid' ? t('fin.ledger.update') : t('fin.ledger.confirm')}
                                                     </button>
                                                 )}
-                                                <button onClick={() => setViewingId(r.entry.id)} className="text-text-muted hover:text-navy-primary hover:underline">Open</button>
+                                                <button onClick={() => setViewingId(r.entry.id)} className="text-text-muted hover:text-navy-primary hover:underline">{t('fin.ledger.open')}</button>
                                             </span>
                                         )}
                                     </td>
@@ -308,7 +311,7 @@ export default function ManagerLedger({ entries, owners, onConfirm, onSave, onDe
                     </tbody>
                     <tfoot>
                         <tr className="border-t border-gray-200 font-semibold text-navy-primary">
-                            <td className="px-4 py-3" colSpan={4}>Totals (filtered)</td>
+                            <td className="px-4 py-3" colSpan={4}>{t('fin.ledger.totalsFiltered')}</td>
                             <td className="px-4 py-3 text-right">{eur2(totals.cash)}</td>
                             <td className="px-4 py-3 text-right">{eur2(totals.bank)}</td>
                             <td className="px-4 py-3" colSpan={2}></td>
