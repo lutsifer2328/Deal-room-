@@ -528,6 +528,8 @@ export function useFinance() {
                         vat_included: false,
                         amount_cash: paidLike ? r.cash : null,
                         amount_bank: paidLike ? r.bank : null,
+                        // Keep the agency % on insurance lines so the split basis is auditable.
+                        agency_pct: r.agencyPct ?? null,
                         broker_pct: r.brokerPct,
                         broker_cut: paidLike ? brokerCut : null,
                         agency_cut: paidLike ? agencyCut : null,

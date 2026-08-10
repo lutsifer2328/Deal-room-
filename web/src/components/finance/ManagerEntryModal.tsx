@@ -45,6 +45,7 @@ const SIDES: IncomeSide[] = ['buyer', 'seller', 'tenant', 'landlord', 'n/a'];
 export default function ManagerEntryModal({ entry, owners, onClose, onSave, onDelete }: ManagerEntryModalProps) {
     const property = isProperty(entry.category);
     const isRent = entry.category === 'rent';
+    const insurance = entry.category === 'insurance';
 
     const [clientName, setClientName] = useState(entry.clientName ?? '');
     const [address, setAddress] = useState(entry.propertyAddress ?? '');
@@ -68,17 +69,25 @@ export default function ManagerEntryModal({ entry, owners, onClose, onSave, onDe
     const [notes, setNotes] = useState(entry.notes ?? '');
     const [status, setStatus] = useState<IncomeStatus>(entry.status);
 
-    const [lines, setLines] = useState<LineRow[]>(() => entry.lines.map((l) => ({
-        id: l.id,
-        side: l.side,
-        clientName: l.clientName ?? '',
-        rate: isRent ? (l.rentMonths != null ? String(l.rentMonths) : '') : (l.agencyPct != null ? String(l.agencyPct) : ''),
-        gross: l.grossAmount != null ? String(l.grossAmount) : '',
-        vatIncluded: false,
-        cash: l.amountCash != null ? String(l.amountCash) : '',
-        bank: l.amountBank != null ? String(l.amountBank) : '',
-        brokerPct: l.brokerPct != null ? String(l.brokerPct) : (owners[l.ownerId]?.defaultPct != null ? String(owners[l.ownerId].defaultPct) : ''),
-    })));
+    const [lines, setLines] = useState<LineRow[]>(() => entry.lines.map((l) => {
+        const rate = isRent ? (l.rentMonths != null ? String(l.rentMonths) : '') : (l.agencyPct != null ? String(l.agencyPct) : '');
+        // If the commission wasn't stored yet, derive it from the basis × rate so the
+        // field is never blank when the price/neto and rate are both known.
+        const basis = insurance ? entry.policyCostNet : entry.dealValue;
+        const rr = Number(rate);
+        const derived = basis != null && rr ? String(round2(isRent ? basis * rr : basis * (rr / 100))) : '';
+        return {
+            id: l.id,
+            side: l.side,
+            clientName: l.clientName ?? '',
+            rate,
+            gross: l.grossAmount != null ? String(l.grossAmount) : derived,
+            vatIncluded: false,
+            cash: l.amountCash != null ? String(l.amountCash) : '',
+            bank: l.amountBank != null ? String(l.amountBank) : '',
+            brokerPct: l.brokerPct != null ? String(l.brokerPct) : (owners[l.ownerId]?.defaultPct != null ? String(owners[l.ownerId].defaultPct) : ''),
+        };
+    }));
     const [removed, setRemoved] = useState<string[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -98,11 +107,36 @@ export default function ManagerEntryModal({ entry, owners, onClose, onSave, onDe
         clientName: '', rate: '', gross: '', vatIncluded: false, cash: '', bank: '', brokerPct: '',
     }]);
 
-    // Recompute a line's gross from the deal value + its rate.
+    // Recompute a line's commission from its basis × rate. Property deals use the
+    // sale price / monthly rent; insurance uses the policy neto (commission = neto × agency %).
     const rateChange = (i: number, r: string) => {
-        const v = Number(dealValue), rr = Number(r);
-        const g = v && rr ? String(round2(isRent ? v * rr : v * (rr / 100))) : lines[i].gross;
+        const basis = insurance ? Number(policyNet) : Number(dealValue);
+        const rr = Number(r);
+        const g = basis && rr ? String(round2(isRent ? basis * rr : basis * (rr / 100))) : lines[i].gross;
         setLine(i, { rate: r, gross: g });
+    };
+
+    // Property: editing the sale price / monthly rent re-derives every line's
+    // commission (price × agency %, or rent × months).
+    const dealValueChange = (v: string) => {
+        setDealValue(v);
+        if (!property) return;
+        const basis = Number(v);
+        setLines((prev) => prev.map((l) => {
+            const rr = Number(l.rate);
+            return basis && rr ? { ...l, gross: String(round2(isRent ? basis * rr : basis * (rr / 100))) } : l;
+        }));
+    };
+
+    // Insurance: editing the neto re-derives every line's commission (neto × agency %).
+    const netChange = (v: string) => {
+        setPolicyNet(v);
+        if (!insurance) return;
+        const basis = Number(v);
+        setLines((prev) => prev.map((l) => {
+            const rr = Number(l.rate);
+            return basis && rr ? { ...l, gross: String(round2(basis * (rr / 100))) } : l;
+        }));
     };
 
     const cutsOf = (l: LineRow) => {
@@ -211,7 +245,7 @@ export default function ManagerEntryModal({ entry, owners, onClose, onSave, onDe
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">{isRent ? 'Monthly rent (EUR)' : 'Sale price (EUR)'}</label>
-                                    <input type="number" min={0} value={dealValue} onChange={(e) => setDealValue(e.target.value)} className={inp} />
+                                    <input type="number" min={0} value={dealValue} onChange={(e) => dealValueChange(e.target.value)} className={inp} />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">Listing source</label>
@@ -266,7 +300,7 @@ export default function ManagerEntryModal({ entry, owners, onClose, onSave, onDe
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">Cost neto</label>
-                                    <input type="number" min={0} step={0.01} value={policyNet} onChange={(e) => setPolicyNet(e.target.value)} className={inp} placeholder="without tax" />
+                                    <input type="number" min={0} step={0.01} value={policyNet} onChange={(e) => netChange(e.target.value)} className={inp} placeholder="without tax" />
                                 </div>
                             </div>
                         </div>
@@ -347,10 +381,15 @@ export default function ManagerEntryModal({ entry, owners, onClose, onSave, onDe
                                                 onChange={(e) => setLine(i, { brokerPct: e.target.value })}
                                                 className={`${inp} ${houseDeal ? 'bg-gray-50 text-gray-400' : ''}`} />
                                         </div>
-                                        <label className="col-span-3 flex items-end gap-2 text-xs text-gray-500 pb-2">
-                                            <input type="checkbox" checked={l.vatIncluded} onChange={(e) => setLine(i, { vatIncluded: e.target.checked })} /> incl. VAT
-                                        </label>
+                                        {!insurance && (
+                                            <label className="col-span-3 flex items-end gap-2 text-xs text-gray-500 pb-2">
+                                                <input type="checkbox" checked={l.vatIncluded} onChange={(e) => setLine(i, { vatIncluded: e.target.checked })} /> incl. VAT
+                                            </label>
+                                        )}
                                     </div>
+                                    {insurance && (
+                                        <p className="text-[11px] text-gray-400 mt-1">Commission = neto × agency %. Broker % then splits it. Override the commission if the payout differs.</p>
+                                    )}
                                     {Number(l.gross) > 0 && (
                                         <div className="mt-2 flex justify-between text-xs bg-gray-50 rounded px-2 py-1">
                                             <span className="text-gray-500">Broker <strong className="text-navy-primary">{eur(c.broker)}</strong></span>

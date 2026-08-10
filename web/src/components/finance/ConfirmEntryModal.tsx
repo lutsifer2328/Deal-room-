@@ -34,9 +34,13 @@ const eur = (n: number) => new Intl.NumberFormat('en-IE', { style: 'currency', c
 
 export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }: ConfirmEntryModalProps) {
     const isRent = entry.category === 'rent';
-    // Property deals derive the commission from price/rent × a rate; insurance and
-    // referrals have no such basis — the manager just types the commission in.
+    // Property deals derive the commission from price/rent × a rate; insurance
+    // derives it from the policy neto × agency %. Referrals have no basis — the
+    // manager just types the commission in.
     const property = entry.category === 'sale' || entry.category === 'rent';
+    const insurance = entry.category === 'insurance';
+    // Categories that compute the commission from a basis × rate (vs. typed directly).
+    const basisMode = property || insurance;
     // House deal: no broker, so the split is fixed at 0% → 100% agency.
     const houseDeal = entry.houseDeal;
 
@@ -47,7 +51,13 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
         return String(round2(isRent ? v * r : v * (r / 100)));
     };
 
-    const [dealValue, setDealValue] = useState<string>(entry.dealValue != null ? String(entry.dealValue) : '');
+    // For insurance, the "deal value" basis is the policy neto (entered by the
+    // broker at registration). It's shown read-only here; the commission derives
+    // from it × agency %. Editing the neto itself is done in Edit transaction.
+    const [dealValue, setDealValue] = useState<string>(
+        entry.dealValue != null ? String(entry.dealValue)
+            : (entry.category === 'insurance' && entry.policyCostNet != null ? String(entry.policyCostNet) : '')
+    );
     // Referrals/insurance carry a single line and the broker's agreed figure on
     // the entry (expected_amount). Prefill it so the manager confirms, not retypes.
     const singleExpected = entry.lines.length === 1 && entry.expectedAmount != null ? String(entry.expectedAmount) : '';
@@ -56,7 +66,10 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
             const rate = isRent
                 ? (l.rentMonths != null ? String(l.rentMonths) : '')
                 : (l.agencyPct != null ? String(l.agencyPct) : '');
-            const derived = grossFrom(entry.dealValue != null ? String(entry.dealValue) : '', rate);
+            // Basis for the derived commission: property → sale price/rent; insurance → policy neto.
+            const basisSeed = entry.dealValue != null ? String(entry.dealValue)
+                : (entry.category === 'insurance' && entry.policyCostNet != null ? String(entry.policyCostNet) : '');
+            const derived = grossFrom(basisSeed, rate);
             return {
                 id: l.id,
                 ownerId: l.ownerId,
@@ -122,7 +135,9 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
             agencyPct: isRent ? null : (l.rate.trim() === '' ? null : Number(l.rate)),
             rentMonths: isRent ? (l.rate.trim() === '' ? null : Number(l.rate)) : null,
         }));
-        const { error } = await onConfirm(entry.id, status, payload, dealValue.trim() === '' ? null : Number(dealValue));
+        // Insurance keeps the neto in policy_cost_net — don't stamp it onto deal_value.
+        const dealValueArg = insurance ? undefined : (dealValue.trim() === '' ? null : Number(dealValue));
+        const { error } = await onConfirm(entry.id, status, payload, dealValueArg);
         setSubmitting(false);
         if (error) { setError(error); return; }
         onClose();
@@ -145,21 +160,24 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
                 </div>
 
                 <div className="p-6 space-y-5">
-                    {entry.category === 'sale' || entry.category === 'rent' ? (
+                    {basisMode ? (
                         <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">
-                                {isRent ? 'Monthly rent (EUR)' : 'Sale price (EUR)'}
+                                {isRent ? 'Monthly rent (EUR)' : insurance ? 'Policy neto (EUR)' : 'Sale price (EUR)'}
                             </label>
                             <input type="number" min={0} step={0.01} value={dealValue}
                                 onChange={(e) => onDealValueChange(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal" />
+                                readOnly={insurance}
+                                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal ${insurance ? 'bg-gray-50 text-gray-600' : ''}`} />
                             <p className="text-[11px] text-gray-400 mt-1">
-                                {isRent ? 'Commission below fills in from rent × months.' : 'Commission below fills in from price × agency %.'}
+                                {isRent ? 'Commission below fills in from rent × months.'
+                                    : insurance ? 'Commission fills in from neto × agency %. Change the neto in Edit transaction.'
+                                        : 'Commission below fills in from price × agency %.'}
                             </p>
                         </div>
                     ) : null}
 
-                    {!property && singleExpected && (
+                    {!property && !insurance && singleExpected && (
                         <p className="text-sm text-navy-primary bg-teal/5 border border-teal/20 rounded-lg px-3 py-2">
                             Agreed at registration: <strong>{eur(Number(singleExpected))}</strong> — prefilled below. Adjust if the final amount differs.
                         </p>
@@ -173,7 +191,7 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
-                                {property && (
+                                {basisMode && (
                                     <div>
                                         <label className="block text-xs font-medium text-gray-600 mb-1">{isRent ? 'Months of rent' : 'Agency %'}</label>
                                         <input type="number" min={0} max={isRent ? undefined : 100} step={isRent ? 0.25 : 0.1} value={l.rate}
@@ -220,11 +238,13 @@ export default function ConfirmEntryModal({ entry, owners, onClose, onConfirm }:
                                 </div>
                             </div>
 
-                            <label className="flex items-center gap-2 mt-3 text-sm text-gray-600">
-                                <input type="checkbox" checked={l.vatIncluded}
-                                    onChange={(e) => setLine(l.id, { vatIncluded: e.target.checked })} />
-                                Amount includes VAT (ДДС) — split computed on net
-                            </label>
+                            {!insurance && (
+                                <label className="flex items-center gap-2 mt-3 text-sm text-gray-600">
+                                    <input type="checkbox" checked={l.vatIncluded}
+                                        onChange={(e) => setLine(l.id, { vatIncluded: e.target.checked })} />
+                                    Amount includes VAT (ДДС) — split computed on net
+                                </label>
+                            )}
 
                             <div className="mt-3 flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
                                 <span className="text-gray-500">Broker gets <strong className="text-navy-primary">{eur(computed[i].brokerCut)}</strong></span>

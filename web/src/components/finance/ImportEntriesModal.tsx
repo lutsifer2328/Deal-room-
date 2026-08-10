@@ -81,6 +81,7 @@ export default function ImportEntriesModal({ owners, onClose, onImport }: Import
             propertyRef: r.propertyRef,
             notes: r.notes,
             commission: r.commission,
+            agencyPct: r.agencyPct,
             brokerPct: r.brokerPct,
             cash: r.cash,
             bank: r.bank,

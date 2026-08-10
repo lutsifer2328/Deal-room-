@@ -21,6 +21,7 @@ export interface PreparedImportRow {
     propertyRef: string | null;
     notes: string | null;
     commission: number | null;
+    agencyPct: number | null;   // insurance: % of the policy neto that becomes commission
     brokerPct: number | null;
     cash: number | null;
     bank: number | null;
@@ -51,6 +52,7 @@ const FIELD_ALIASES: Record<string, string[]> = {
     property_address: ['property_address', 'address', 'адрес', 'property', 'имот', 'обект'],
     property_ref: ['property_ref', 'crm', 'ref', 'reference', 'номер', 'крм', 'crm number'],
     commission: ['commission', 'комисион', 'комисиона', 'amount', 'сума', 'fee', 'приход'],
+    agency_pct: ['agency_pct', 'agency %', 'agency pct', 'процент агенция', 'дял агенция', 'агенция %'],
     broker_pct: ['broker_pct', 'broker %', 'broker pct', 'процент', 'дял', 'процент брокер'],
     cash: ['cash', 'кеш', 'в брой', 'брой'],
     bank: ['bank', 'банка', 'по банка'],
@@ -84,19 +86,21 @@ const STATUS_SYNONYMS: Record<string, IncomeStatus> = {
 
 export const TEMPLATE_HEADERS = [
     'date', 'category', 'employee', 'client', 'property_address', 'property_ref',
-    'commission', 'broker_pct', 'cash', 'bank', 'status', 'notes',
+    'commission', 'agency_pct', 'broker_pct', 'cash', 'bank', 'status', 'notes',
     'policy_number', 'policy_type', 'egn_eik', 'valid_from', 'valid_to',
     'policy_cost_gross', 'policy_cost_net',
 ];
 
 // Two worked example rows so the columns are self-explanatory when opened in Excel.
+// Property gives the commission directly; insurance leaves it blank and derives it
+// from neto × agency % (here 500 × 20% = 100), then broker % splits that.
 export function templateCsv(): string {
     const rows = [
         TEMPLATE_HEADERS,
         ['2026-03-14', 'sale', 'Ivan Petrov', 'Maria Ivanova', 'ул. Шипка 12, София', 'AGZ-2026-014',
-            '4000', '40', '0', '4000', 'paid', 'both sides', '', '', '', '', '', '', ''],
+            '4000', '', '40', '0', '4000', 'paid', 'both sides', '', '', '', '', '', '', ''],
         ['2026-05-02', 'insurance', 'Ivan Petrov', 'Georgi Dimitrov', '', '',
-            '120', '30', '120', '0', 'paid', '', 'BG/12345', 'Motor — Casco (Каско)', '8001010101',
+            '', '20', '30', '100', '0', 'paid', '', 'BG/12345', 'Motor — Casco (Каско)', '8001010101',
             '2026-05-02', '2027-05-02', '600', '500'],
     ];
     return rows.map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
@@ -248,10 +252,19 @@ export function parseImportCsv(text: string, owners: OwnerRef[]): ParseResult {
         if (parsedDate === null) errors.push(`unrecognised date "${get(cells, 'date')}"`);
         const dealDate = parsedDate ?? null;
 
-        const commission = normNum(get(cells, 'commission'));
+        let commission = normNum(get(cells, 'commission'));
+        const agencyPct = normNum(get(cells, 'agency_pct'));
         const brokerPct = normNum(get(cells, 'broker_pct'));
+        const policyGross = normNum(get(cells, 'policy_cost_gross'));
+        const policyNet = normNum(get(cells, 'policy_cost_net'));
         let cash = normNum(get(cells, 'cash'));
         let bank = normNum(get(cells, 'bank'));
+
+        // Insurance derives its commission from the policy neto × agency %, mirroring
+        // the register/confirm screens. A directly-given commission still takes priority.
+        if (category === 'insurance' && commission == null && policyNet != null && agencyPct != null) {
+            commission = round2(policyNet * (agencyPct / 100));
+        }
 
         const statusRaw = get(cells, 'status');
         const status: IncomeStatus =
@@ -263,7 +276,9 @@ export function parseImportCsv(text: string, owners: OwnerRef[]): ParseResult {
 
         const moneyStatus = status === 'paid' || status === 'partially_paid';
         if (moneyStatus && commission == null) {
-            errors.push('paid row needs a commission amount');
+            errors.push(category === 'insurance'
+                ? 'paid insurance row needs a commission, or neto + agency %'
+                : 'paid row needs a commission amount');
         }
         // If money is known but the cash/bank split isn't, assume it came by bank.
         if (moneyStatus && commission != null && cash == null && bank == null) {
@@ -289,6 +304,7 @@ export function parseImportCsv(text: string, owners: OwnerRef[]): ParseResult {
             propertyRef: get(cells, 'property_ref') || null,
             notes: get(cells, 'notes') || null,
             commission,
+            agencyPct,
             brokerPct,
             cash,
             bank,
@@ -297,8 +313,8 @@ export function parseImportCsv(text: string, owners: OwnerRef[]): ParseResult {
             insuredIdent: get(cells, 'egn_eik') || null,
             validFrom: validFrom ?? null,
             validTo: validTo ?? null,
-            policyGross: normNum(get(cells, 'policy_cost_gross')),
-            policyNet: normNum(get(cells, 'policy_cost_net')),
+            policyGross,
+            policyNet,
         });
     }
 
