@@ -26,3 +26,8 @@ GRANT ALL ON public.rate_limits TO postgres;
 
 -- Explicitly revoke from anon/authenticated (internal use only via service role in Actions)
 REVOKE ALL ON public.rate_limits FROM anon, authenticated;
+
+-- Defense in depth: enable RLS with NO policies so anon/authenticated are blocked
+-- even if a GRANT is ever reintroduced. The service role bypasses RLS, so the
+-- limiter (which uses the service-role client) is unaffected.
+ALTER TABLE public.rate_limits ENABLE ROW LEVEL SECURITY;

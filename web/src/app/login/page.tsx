@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/authContext';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -15,6 +15,18 @@ export default function LoginPage() {
     const { t, language, setLanguage } = useTranslation();
     const [mode, setMode] = useState<Mode>('code');
     const [email, setEmail] = useState('');
+
+    // Remember the last method used ON THIS DEVICE. Staff who sign in with a
+    // password get the Password tab pre-selected next visit (no more switching
+    // off Code every time); participants who use codes keep the Code tab.
+    // Read after mount to avoid an SSR/hydration mismatch.
+    const LOGIN_MODE_KEY = 'dealroom_login_mode';
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem(LOGIN_MODE_KEY);
+            if (saved === 'password' || saved === 'code') setMode(saved);
+        } catch { /* localStorage unavailable — keep default */ }
+    }, []);
     const [password, setPassword] = useState('');
     const [otp, setOtp] = useState('');
     const [codeSent, setCodeSent] = useState(false);
@@ -23,6 +35,9 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [isResetView, setIsResetView] = useState(false);
+    // Set true after a failed password login so we can offer a "create password"
+    // action inline — covers invited users who never set a password.
+    const [showCreatePassword, setShowCreatePassword] = useState(false);
 
     // ─────────────────────────────────────────────────────────────
     // PASSWORD LOGIN (unchanged — used by staff/admin)
@@ -42,12 +57,41 @@ export default function LoginPage() {
         const { error: loginError } = await login(email, password);
 
         if (loginError) {
-            setError(loginError.message || t('auth.msg.invalidCredentials'));
+            // Supabase returns the same "invalid login credentials" whether the
+            // password is wrong OR the user never set one. In both cases, offer the
+            // create-password path (invited participants often have no password yet).
+            const msg = (loginError.message || '').toLowerCase();
+            const isCredError =
+                loginError.status === 400 ||
+                loginError.code === 'invalid_credentials' ||
+                msg.includes('invalid login credentials') ||
+                msg.includes('invalid');
+
+            if (isCredError) {
+                setError(t('auth.msg.invalidOrNoPassword'));
+                setShowCreatePassword(true);
+            } else {
+                setError(loginError.message || t('auth.msg.invalidCredentials'));
+            }
             setLoading(false);
         } else {
+            // Remember that password worked on this device so it's the default next time.
+            try { localStorage.setItem(LOGIN_MODE_KEY, 'password'); } catch { /* ignore */ }
             // Successful login will trigger auth state change and let the root page handle redirect logic
             router.push('/');
         }
+    };
+
+    // Shared core: request a recovery link (also doubles as "set your first
+    // password"). Throws on failure so callers can show their own message.
+    const sendResetEmail = async (): Promise<void> => {
+        const res = await fetch('/api/reset-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || t('auth.msg.genericError'));
     };
 
     const handleResetPassword = async (e: React.FormEvent) => {
@@ -63,21 +107,34 @@ export default function LoginPage() {
         }
 
         try {
-            const res = await fetch('/api/reset-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
-            });
+            await sendResetEmail();
+            setSuccessMessage(t('auth.msg.resetLinkSent'));
+        } catch (err) {
+            setError((err as Error).message || t('auth.msg.genericError'));
+        } finally {
+            setLoading(false);
+        }
+    };
 
-            const data = await res.json();
+    // Inline "create a password" action shown after a failed password login.
+    // Uses the same recovery link; a user with no password ends up on the
+    // set-password page just as they would from the invite email.
+    const handleCreatePassword = async () => {
+        setError('');
+        setSuccessMessage('');
 
-            if (!res.ok) {
-                setError(data.error || t('auth.msg.genericError'));
-            } else {
-                setSuccessMessage(t('auth.msg.resetLinkSent'));
-            }
-        } catch {
-            setError(t('auth.msg.genericError'));
+        if (!email) {
+            setError(t('auth.msg.enterEmail'));
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await sendResetEmail();
+            setSuccessMessage(t('auth.msg.createPasswordSent'));
+            setShowCreatePassword(false);
+        } catch (err) {
+            setError((err as Error).message || t('auth.msg.genericError'));
         } finally {
             setLoading(false);
         }
@@ -161,11 +218,13 @@ export default function LoginPage() {
 
     const switchMode = (next: Mode) => {
         setMode(next);
+        try { localStorage.setItem(LOGIN_MODE_KEY, next); } catch { /* ignore */ }
         setError('');
         setSuccessMessage('');
         setCodeSent(false);
         setOtp('');
         setPassword('');
+        setShowCreatePassword(false);
     };
 
     const cardTitle = isResetView
@@ -401,6 +460,27 @@ export default function LoginPage() {
                                     <div className="w-1.5 h-1.5 rounded-full bg-red-500 min-w-[6px]"></div>
                                     {error}
                                 </div>
+                            )}
+
+                            {/* Success message (e.g. after "create password") */}
+                            {successMessage && (
+                                <div className="bg-teal-50 border border-teal-200 text-teal-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-teal-500 min-w-[6px]"></div>
+                                    {successMessage}
+                                </div>
+                            )}
+
+                            {/* Offered after a failed password login: many invited users have no password yet */}
+                            {showCreatePassword && !successMessage && (
+                                <button
+                                    type="button"
+                                    onClick={handleCreatePassword}
+                                    disabled={loading}
+                                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-teal-500 text-teal-600 font-bold hover:bg-teal-50 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    <KeyRound className="w-4 h-4" />
+                                    {loading ? t('auth.btn.sendingLink') : t('auth.link.createPassword')}
+                                </button>
                             )}
 
                             {/* Terms Checkbox */}

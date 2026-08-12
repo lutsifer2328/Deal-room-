@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { Shield, Key, Trash2 } from 'lucide-react';
 import GdprAnonymizeModal from './GdprAnonymizeModal';
 import { useData } from '@/lib/store';
@@ -12,7 +11,22 @@ interface SimpleUser {
     name: string;
     role: string;
     is_active: boolean;
+    last_sign_in_at: string | null;
 }
+
+// Compact bilingual-friendly formatter: "10 авг 2026, 13:17" or null → caller shows "Никога".
+const formatLastLogin = (iso: string | null): string | null => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    return d.toLocaleString('bg-BG', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+};
 
 export default function AdminUserList() {
     const { addNotification } = useData();
@@ -22,14 +36,19 @@ export default function AdminUserList() {
 
     const fetchUsers = async () => {
         setLoading(true);
-        const { data, error } = await supabase.from('users').select('id, name, email, role, is_active').order('created_at', { ascending: false });
-        if (error) {
+        // Fetch via the staff-guarded API route so we get last_sign_in_at from
+        // auth.users (not readable through the browser's anon client).
+        try {
+            const res = await fetch('/api/admin/users');
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to fetch users');
+            setUsers((data.users ?? []) as SimpleUser[]);
+        } catch (error: any) {
             console.error('Error fetching users:', error);
-            addNotification('error', 'Error', 'Failed to fetch users');
-        } else if (data) {
-            setUsers(data as SimpleUser[]);
+            addNotification('error', 'Error', error.message || 'Failed to fetch users');
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     useEffect(() => {
@@ -84,6 +103,7 @@ export default function AdminUserList() {
                                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">User</th>
                                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Role</th>
                                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Last Login</th>
                                 <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -112,6 +132,13 @@ export default function AdminUserList() {
                                                 <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
                                                 Inactive
                                             </span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {formatLastLogin(user.last_sign_in_at) ? (
+                                            <span className="text-sm text-text-secondary">{formatLastLogin(user.last_sign_in_at)}</span>
+                                        ) : (
+                                            <span className="text-xs font-medium text-gray-400 italic">Никога</span>
                                         )}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
@@ -164,9 +191,14 @@ export default function AdminUserList() {
                                         </span>
                                     )}
                                 </div>
-                                <div className="mt-2">
+                                <div className="mt-2 flex items-center gap-2 flex-wrap">
                                     <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded border ${user.role === 'admin' ? 'bg-navy-primary/10 text-navy-primary border-navy-primary/20' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                                         {user.role}
+                                    </span>
+                                    <span className="text-xs text-text-light">
+                                        {formatLastLogin(user.last_sign_in_at)
+                                            ? `Вход: ${formatLastLogin(user.last_sign_in_at)}`
+                                            : 'Вход: никога'}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-50">
